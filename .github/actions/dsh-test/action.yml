@@ -1,0 +1,95 @@
+name: DSH Testkit
+description: Run a real-host lifecycle test for a DSH plugin and retain structured evidence.
+inputs:
+  plugin:
+    description: Plugin directory, tarball, exact npm spec, or Git spec pinned to a full commit SHA.
+    required: true
+  dsh-version:
+    description: Exact @deepseek-ai/dsh npm version.
+    required: true
+  config:
+    description: Optional scenario YAML or JSON path relative to the workspace.
+    required: false
+    default: ''
+  output:
+    description: Evidence directory relative to the workspace.
+    required: false
+    default: .dsh-testkit/action-run
+  args:
+    description: Additional dsh-test arguments.
+    required: false
+    default: ''
+outputs:
+  report:
+    description: Canonical JSON report path.
+    value: ${{ steps.paths.outputs.report }}
+  exit-code:
+    description: Stable dsh-test exit code.
+    value: ${{ steps.lifecycle.outputs.exit-code }}
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      with:
+        version: 11.1.3
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '22'
+        cache: pnpm
+        cache-dependency-path: ${{ github.action_path }}/../../../pnpm-lock.yaml
+    - name: Build DSH Testkit
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../..
+      run: pnpm install --frozen-lockfile && pnpm build
+    - id: paths
+      shell: bash
+      env:
+        OUTPUT: ${{ inputs.output }}
+      run: echo "report=$GITHUB_WORKSPACE/$OUTPUT/report.json" >> "$GITHUB_OUTPUT"
+    - id: lifecycle
+      name: Run lifecycle test
+      continue-on-error: true
+      shell: bash
+      env:
+        PLUGIN: ${{ inputs.plugin }}
+        DSH_VERSION: ${{ inputs.dsh-version }}
+        CONFIG: ${{ inputs.config }}
+        OUTPUT: ${{ inputs.output }}
+        EXTRA_ARGS: ${{ inputs.args }}
+      run: |
+        plugin="$PLUGIN"
+        if [[ "$plugin" != /* && -e "$GITHUB_WORKSPACE/$plugin" ]]; then
+          plugin="$GITHUB_WORKSPACE/$plugin"
+        fi
+        command=(node "$GITHUB_ACTION_PATH/../../../dist/src/cli.js" "$plugin" --dsh "$DSH_VERSION" --output "$GITHUB_WORKSPACE/$OUTPUT")
+        [[ -z "$CONFIG" ]] || command+=(--config "$GITHUB_WORKSPACE/$CONFIG")
+        if [[ -n "$EXTRA_ARGS" ]]; then
+          read -r -a extra <<< "$EXTRA_ARGS"
+          command+=("${extra[@]}")
+        fi
+        set +e
+        "${command[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        exit 0
+    - name: Publish JUnit
+      if: always()
+      uses: mikepenz/action-junit-report@3585e9575db828022551b4231f165eb59a0e74e3 # v5.6.2
+      with:
+        report_paths: ${{ github.workspace }}/${{ inputs.output }}/junit.xml
+        check_name: DSH lifecycle
+        fail_on_failure: false
+    - name: Upload lifecycle evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: dsh-testkit-${{ github.run_id }}
+        path: ${{ github.workspace }}/${{ inputs.output }}
+        if-no-files-found: error
+    - name: Enforce lifecycle verdict
+      if: always()
+      shell: bash
+      env:
+        EXIT_CODE: ${{ steps.lifecycle.outputs.exit-code }}
+      run: exit "${EXIT_CODE:-3}"

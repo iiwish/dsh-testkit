@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-dirty-uninstall
+      name: '@dsh-testkit/fixture-dirty-uninstall'

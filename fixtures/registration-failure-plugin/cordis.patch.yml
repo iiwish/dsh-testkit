@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-registration-failure
+      name: '@dsh-testkit/fixture-registration-failure'

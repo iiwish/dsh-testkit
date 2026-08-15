@@ -1,0 +1,16 @@
+schemaVersion: 1
+name: example-plugin
+suite: quick
+subject:
+  source: .
+dsh:
+  version: 0.1.0-rc.6
+expect:
+  boot: success
+  rows: [tool-example]
+  services: []
+  tools: [example_tool]
+exercise:
+  - tool: example_tool
+    arguments:
+      value: smoke

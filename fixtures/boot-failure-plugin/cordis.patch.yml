@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-boot-failure
+      name: '@dsh-testkit/fixture-boot-failure'

@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-known-path-residue
+      name: '@dsh-testkit/fixture-known-path-residue'

@@ -1,0 +1,100 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T003
+task_id: T003
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/docs/product-design.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    requirements_checklist: Completed
+    technical_plan_and_work_graph: Confirmed under user continuation instruction
+    analysis: No unresolved Critical or High finding
+work_unit:
+  title: Fixtures, real-host proof and distribution
+  goal: Prove lifecycle behavior with real DSH and ship CI and documentation assets.
+  epic: E001
+  story: US-002
+  requirements: [all confirmed acceptance criteria, SC-001, SC-002, SC-003, SC-004, SC-005, SC-006, SC-007, SC-008, SC-009, SC-010]
+  priority: P0
+  depends_on: [T002]
+  blocks: []
+  parallel: false
+  conflicts_with: [T001, T002]
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - src/**
+    - .ai-platform/docs/product-design.md
+  existing_patterns:
+    - Fixtures are minimal published DSH bundles; Action wraps the CLI only.
+  interfaces_or_contracts:
+    - .ai-platform/specs/lifecycle-runner/quickstart.md
+    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
+  forbidden_changes:
+    - Do not weaken assertions or skip real-host validation to obtain green results.
+execution_constraints:
+  branch_or_worktree: current new project directory
+  allowed_files:
+    - fixtures/**
+    - tests/e2e/**
+    - .github/actions/dsh-test/action.yml
+    - .github/workflows/ci.yml
+    - docs/**
+    - examples/**
+    - README.md
+    - package.json
+    - pnpm-lock.yaml
+    - .npmignore
+    - .ai-platform/evidence/T003/**
+    - .ai-platform/docs/release-report.md
+  test_targets:
+    - tests/e2e/real-dsh.test.ts
+    - tests/e2e/pack-consumer.mjs
+  ownership_notes:
+    - T002 must be Needs_Review with green unit and integration evidence.
+tdd_plan:
+  required: true
+  exception: null
+  red:
+    command: pnpm test:e2e
+    expected_failure: Fixture and distribution assets do not exist yet.
+  green:
+    command: pnpm test:e2e && pnpm test:pack
+    expected_signal: Real DSH and packed consumer tests pass.
+  refactor:
+    command: pnpm validate
+    expected_signal: Full validation remains green.
+validation_loop:
+  commands:
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:pack
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner
+  retry_budget: 2
+  failure_policy:
+    first_failure: Fix only fixture, distribution or documentation issues within scope.
+    second_failure: Classify product, DSH compatibility or environment blocker.
+    beyond_budget: Stop and write blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T003/summary.md
+  diff: .ai-platform/evidence/T003/diff.patch
+  test_results: .ai-platform/evidence/T003/test-results.md
+  required: [changed files, RED/GREEN/REFACTOR results, full validation, real DSH report, diff summary, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, qa_acceptance]
+  acceptance_rule: User acceptance is required before Accepted or public release.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [initialize or push public repository after user approval, keep local project]
+stop_conditions: [T002 not green, real DSH incompatibility, Docker unavailable, stale packet, unresolved blocker]

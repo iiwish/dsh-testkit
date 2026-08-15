@@ -1,0 +1,8 @@
+.ai-platform/
+.github/
+docs/
+examples/
+fixtures/
+tests/
+coverage/
+vitest.config.ts

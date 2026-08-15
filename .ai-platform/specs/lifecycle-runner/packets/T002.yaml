@@ -1,0 +1,108 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T002
+task_id: T002
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/docs/product-design.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    requirements_checklist: Completed
+    technical_plan_and_work_graph: Confirmed under user continuation instruction
+    analysis: No unresolved Critical or High finding
+work_unit:
+  title: Real DSH worker, runners and CLI
+  goal: Run the lifecycle state machine against exact DSH in Docker or explicit unsafe local mode.
+  epic: E001
+  story: US-001
+  requirements: [FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012, FR-017, FR-018, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-009, NFR-010, NFR-011]
+  priority: P0
+  depends_on: [T001]
+  blocks: [T003]
+  parallel: false
+  conflicts_with: [T001, T003]
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - src/domain/**
+    - src/config/**
+    - src/reporters/**
+  existing_patterns:
+    - Worker returns canonical RunReport; controller only transports and renders.
+  interfaces_or_contracts:
+    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
+    - .ai-platform/specs/lifecycle-runner/data-model.md
+  forbidden_changes:
+    - Do not execute plugin code in the controller.
+    - Do not silently fall back from Docker to local.
+execution_constraints:
+  branch_or_worktree: current new project directory
+  allowed_files:
+    - src/cli.ts
+    - src/domain/lifecycle.ts
+    - src/process/**
+    - src/observers/**
+    - src/runners/**
+    - src/adapters/dsh/**
+    - src/worker/**
+    - src/probe/**
+    - assets/runner.Dockerfile
+    - tests/unit/command.test.ts
+    - tests/unit/runner.test.ts
+    - tests/unit/lifecycle.test.ts
+    - tests/integration/**
+    - package.json
+    - pnpm-lock.yaml
+    - tsconfig.json
+    - pnpm-workspace.yaml
+  test_targets:
+    - tests/unit/command.test.ts
+    - tests/unit/runner.test.ts
+    - tests/integration/worker.test.ts
+    - tests/integration/cli.test.ts
+  ownership_notes:
+    - T001 must be Needs_Review with green evidence before execution.
+tdd_plan:
+  required: true
+  exception: null
+  red:
+    command: pnpm test -- tests/unit/command.test.ts tests/unit/runner.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
+    expected_failure: Runner, adapter, worker and CLI modules do not exist yet.
+  green:
+    command: pnpm test -- tests/unit/command.test.ts tests/unit/runner.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
+    expected_signal: All selected tests pass.
+  refactor:
+    command: pnpm typecheck && pnpm build
+    expected_signal: Typecheck and build remain green.
+validation_loop:
+  commands:
+    - pnpm test -- tests/unit/command.test.ts tests/unit/runner.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
+    - pnpm typecheck
+    - pnpm build
+  retry_budget: 2
+  failure_policy:
+    first_failure: Fix only current lifecycle implementation or tests.
+    second_failure: Re-check DSH CLI and runner assumptions against exact rc.6.
+    beyond_budget: Stop and write blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T002/summary.md
+  diff: .ai-platform/evidence/T002/diff.patch
+  test_results: .ai-platform/evidence/T002/test-results.md
+  required: [changed files, RED/GREEN/REFACTOR results, validation results, diff summary, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, qa_acceptance]
+  acceptance_rule: User acceptance is required before Accepted.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [continue to T003 after review]
+stop_conditions: [T001 not green, Docker contract unavailable, dirty allowed file, stale packet, unresolved blocker]

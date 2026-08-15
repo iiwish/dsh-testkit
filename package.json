@@ -1,0 +1,83 @@
+{
+  "name": "dsh-testkit",
+  "version": "0.1.0",
+  "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "harness",
+    "plugin-testing",
+    "lifecycle-testing"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "author": "DSH Testkit contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iiwish/dsh-testkit.git"
+  },
+  "homepage": "https://github.com/iiwish/dsh-testkit#readme",
+  "bugs": {
+    "url": "https://github.com/iiwish/dsh-testkit/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "./dist/src/index.d.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.1.3",
+  "bin": {
+    "dsh-test": "dist/src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./schemas/report-v1.json": "./schemas/report-v1.json",
+    "./schemas/scenario-v1.json": "./schemas/scenario-v1.json"
+  },
+  "files": [
+    ".dockerignore",
+    "dist/src",
+    "assets",
+    "pnpm-workspace.yaml",
+    "schemas",
+    "README.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check:actions": "node scripts/check-action-pins.mjs",
+    "check:contracts": "node scripts/check-published-contracts.mjs",
+    "check:runner-lock": "node scripts/check-runner-lock.mjs",
+    "check:release": "node scripts/check-release-readiness.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh.test.ts",
+    "test:pack": "node tests/e2e/pack-consumer.mjs",
+    "validate": "pnpm check:runner-lock && pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "prepack": "pnpm check:runner-lock && pnpm check:contracts && pnpm build"
+  },
+  "dependencies": {
+    "commander": "15.0.0",
+    "xmlbuilder2": "4.0.3",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@vitest/coverage-v8": "3.2.7",
+    "typescript": "5.9.2",
+    "vitest": "3.2.7"
+  }
+}

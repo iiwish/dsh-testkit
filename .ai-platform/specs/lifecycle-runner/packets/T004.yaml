@@ -1,0 +1,121 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T004
+task_id: T004
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/docs/product-design.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/evidence/release-acceptance/summary.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    requirements_checklist: Completed
+    technical_plan_and_work_graph: Confirmed
+    release_hardening: User approved all fixes on 2026-08-15
+work_unit:
+  title: Release hardening and acceptance
+  goal: Resolve RA-001 through RA-012 and prove an immutable release candidate.
+  epic: E001
+  story: US-001
+  requirements: [RA-001, RA-002, RA-003, RA-004, RA-005, RA-006, RA-007, RA-008, RA-009, RA-010, RA-011, RA-012]
+  priority: P0
+  depends_on: [T003]
+  blocks: [public release]
+  parallel: false
+  conflicts_with: [T001, T002, T003]
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - .ai-platform/evidence/release-acceptance/summary.md
+    - src/**
+    - tests/**
+    - package.json
+    - .github/**
+  existing_patterns:
+    - The canonical report is validated before all projections are rendered.
+    - The controller never imports subject code and Docker remains the default runner.
+    - Real DSH E2E fixtures complement deterministic fake-adapter orchestration tests.
+  interfaces_or_contracts:
+    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
+    - .ai-platform/specs/lifecycle-runner/contracts/report.schema.json
+    - schemas/report-v1.json
+  forbidden_changes:
+    - Do not weaken residue, identity, update or stage assertions to obtain green results.
+    - Do not add, modify or commit the user-owned AGENTS.md file.
+    - Do not publish or push without a separate explicit instruction.
+execution_constraints:
+  branch_or_worktree: local codex/release-hardening branch
+  allowed_files:
+    - .ai-platform/**
+    - .github/**
+    - src/**
+    - tests/**
+    - fixtures/**
+    - assets/**
+    - schemas/**
+    - scripts/**
+    - docs/**
+    - examples/**
+    - package.json
+    - pnpm-lock.yaml
+    - pnpm-workspace.yaml
+    - vitest.config.ts
+    - README.md
+    - SECURITY.md
+    - CHANGELOG.md
+    - LICENSE
+    - .npmignore
+    - .dockerignore
+    - .gitignore
+  test_targets:
+    - tests/unit/**
+    - tests/integration/**
+    - tests/e2e/real-dsh.test.ts
+    - tests/e2e/pack-consumer.mjs
+  ownership_notes:
+    - T001 through T003 remain unchanged except where T004 hardens a shared contract.
+tdd_plan:
+  required: true
+  exception: null
+  red:
+    command: pnpm test -- tests/unit tests/integration
+    expected_failure: Focused RA-001 through RA-012 regressions fail against the accepted MVP.
+  green:
+    command: pnpm validate && pnpm test:coverage
+    expected_signal: All focused regressions and coverage thresholds pass.
+  refactor:
+    command: pnpm test:e2e && pnpm test:pack
+    expected_signal: Real DSH and clean packed-consumer acceptance pass.
+validation_loop:
+  commands:
+    - pnpm validate
+    - pnpm test:coverage
+    - pnpm test:e2e
+    - pnpm test:pack
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest implementation or contract defect within RA scope.
+    second_failure: Add diagnostic evidence and verify the real DSH or Docker assumption.
+    third_failure: Classify a genuine external blocker without weakening acceptance.
+    beyond_budget: Stop and write blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T004/summary.md
+  diff: .ai-platform/evidence/T004/diff.patch
+  test_results: .ai-platform/evidence/T004/test-results.md
+  required: [finding-to-test traceability, RED/GREEN/REFACTOR results, coverage summary, real DSH reports, package identity, Git identity, diff summary, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, qa_acceptance, release_acceptance]
+  acceptance_rule: User acceptance is required before Accepted or public release.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [keep immutable local release candidate, publish after separate user approval]
+stop_conditions: [Docker unavailable for final E2E, real DSH incompatibility, stale packet, unresolved release blocker]

@@ -1,0 +1,102 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T001
+task_id: T001
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/docs/product-design.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed under user continuation instruction dated 2026-08-15
+    product_or_spec: Confirmed after completed SSOT review
+    requirements_checklist: Completed with no unresolved Critical or High finding
+    technical_plan_and_work_graph: Confirmed under explicit instruction to complete the plugin
+    analysis: No unresolved Critical or High finding
+work_unit:
+  title: Foundation, domain and reporters
+  goal: Create validated lifecycle contracts and pure report projections in a publishable TypeScript package.
+  epic: E001
+  story: US-001
+  requirements: [FR-001, FR-002, FR-013, FR-014, FR-015, FR-016, NFR-001, NFR-002, NFR-008, NFR-012]
+  priority: P0
+  depends_on: []
+  blocks: [T002]
+  parallel: false
+  conflicts_with: [T002, T003]
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - .ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+    - .ai-platform/specs/lifecycle-runner/contracts/report.schema.json
+  existing_patterns:
+    - Fresh package; prefer explicit typed functions and pure reporters.
+  interfaces_or_contracts:
+    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
+    - .ai-platform/specs/lifecycle-runner/data-model.md
+  forbidden_changes:
+    - Do not implement DSH process execution or runner transport in T001.
+execution_constraints:
+  branch_or_worktree: current new project directory
+  allowed_files:
+    - package.json
+    - pnpm-lock.yaml
+    - pnpm-workspace.yaml
+    - tsconfig.json
+    - vitest.config.ts
+    - .gitignore
+    - .npmignore
+    - LICENSE
+    - src/version.ts
+    - src/domain/**
+    - src/config/**
+    - src/reporters/**
+    - tests/unit/**
+    - .ai-platform/evidence/T001/**
+  test_targets:
+    - tests/unit/scenario.test.ts
+    - tests/unit/lifecycle.test.ts
+    - tests/unit/reporters.test.ts
+  ownership_notes:
+    - Stop if files within allowed scope contain unrelated user changes.
+tdd_plan:
+  required: true
+  exception: null
+  red:
+    command: pnpm test -- tests/unit/scenario.test.ts tests/unit/lifecycle.test.ts tests/unit/reporters.test.ts
+    expected_failure: Test modules import source contracts and reporters that do not exist yet.
+  green:
+    command: pnpm test -- tests/unit/scenario.test.ts tests/unit/lifecycle.test.ts tests/unit/reporters.test.ts
+    expected_signal: All selected tests pass.
+  refactor:
+    command: pnpm typecheck && pnpm build
+    expected_signal: Typecheck and build remain green.
+validation_loop:
+  commands:
+    - pnpm test -- tests/unit/scenario.test.ts tests/unit/lifecycle.test.ts tests/unit/reporters.test.ts
+    - pnpm typecheck
+    - pnpm build
+  retry_budget: 2
+  failure_policy:
+    first_failure: Fix only current task source or tests.
+    second_failure: Re-check contract and toolchain assumptions.
+    beyond_budget: Stop and write blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T001/summary.md
+  diff: .ai-platform/evidence/T001/diff.patch
+  test_results: .ai-platform/evidence/T001/test-results.md
+  required: [changed files, RED/GREEN/REFACTOR results, validation results, diff summary, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, qa_acceptance]
+  acceptance_rule: User acceptance is required before Accepted.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [keep current project, initialize and push repository after user approval]
+stop_conditions: [dirty allowed file, missing dependency, stale packet, unresolved blocking analysis, unavailable validation]

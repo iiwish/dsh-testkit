@@ -1,0 +1,48 @@
+name: Bug report
+description: Report incorrect CLI, runner, report, or lifecycle behavior.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Remove credentials and proprietary plugin source from all evidence before submitting.
+  - type: input
+    id: testkit-version
+    attributes:
+      label: DSH Testkit version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH version
+      placeholder: 0.1.0-rc.6
+    validations:
+      required: true
+  - type: dropdown
+    id: runner
+    attributes:
+      label: Runner
+      options: [Docker, unsafe-local]
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed and expected behavior
+      description: Include the failing stage, verdict, and exit code.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use an owned public fixture or sanitized package when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Sanitized report excerpt
+      render: json

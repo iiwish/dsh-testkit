@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsh-testkit.dev/schemas/report-v1.json",
+  "title": "DSH Testkit Run Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "startedAt", "endedAt", "verdict", "subject", "dsh", "scenario", "testkitVersion", "environment", "observerCoverage", "stages", "artifacts", "reproductionCommand"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "verdict": { "enum": ["passed", "failed", "flaky", "unsupported", "invalid", "infrastructure_error"] },
+    "subject": { "$ref": "#/$defs/subject" },
+    "dsh": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "integrity"],
+      "properties": {
+        "version": { "type": "string" },
+        "integrity": { "type": ["string", "null"] }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "suite", "schemaVersion", "profile", "digest"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "suite": { "enum": ["quick", "full"] },
+        "schemaVersion": { "const": 1 },
+        "profile": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "testkitVersion": { "type": "string" },
+    "environment": { "type": "object", "additionalProperties": true },
+    "observerCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filesystem", "process", "ports", "network", "canary"],
+      "properties": {
+        "filesystem": { "$ref": "#/$defs/coverage" },
+        "process": { "$ref": "#/$defs/coverage" },
+        "ports": { "$ref": "#/$defs/coverage" },
+        "network": { "$ref": "#/$defs/coverage" },
+        "canary": { "$ref": "#/$defs/coverage" }
+      }
+    },
+    "stages": { "type": "array", "items": { "$ref": "#/$defs/stage" } },
+    "artifacts": { "type": "array", "items": { "type": "string" } },
+    "repeatability": { "$ref": "#/$defs/repeatability" },
+    "reproductionCommand": { "type": "string" }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "kind", "packageName", "packageVersion", "sourceDigest", "gitCommit", "mutable"],
+      "properties": {
+        "input": { "type": "string" },
+        "kind": { "enum": ["local-directory", "tarball", "npm", "git"] },
+        "packageName": { "type": "string" },
+        "packageVersion": { "type": "string" },
+        "sourceDigest": { "type": "string" },
+        "gitCommit": { "type": ["string", "null"] },
+        "mutable": { "type": "boolean" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "mode", "limitations"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "mode": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "repeatability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestedRuns", "completedRuns", "consistent", "attempts"],
+      "properties": {
+        "requestedRuns": { "type": "integer", "minimum": 2, "maximum": 20 },
+        "completedRuns": { "type": "integer", "minimum": 2, "maximum": 20 },
+        "consistent": { "type": "boolean" },
+        "attempts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["runId", "verdict", "durationMs", "semanticDigest", "report"],
+            "properties": {
+              "runId": { "type": "string", "minLength": 1 },
+              "verdict": { "enum": ["passed", "failed", "flaky", "unsupported", "invalid", "infrastructure_error"] },
+              "durationMs": { "type": "integer", "minimum": 0 },
+              "semanticDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+              "report": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "message"],
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "enum": ["passed", "failed", "unsupported"] },
+        "message": { "type": "string" },
+        "expected": {},
+        "actual": {},
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "startedAt", "endedAt", "durationMs", "summary", "assertions", "artifacts"],
+      "properties": {
+        "id": { "enum": ["resolve", "install-dsh", "package", "install-plugin", "assemble", "boot", "register", "exercise", "update", "uninstall", "reboot", "recover", "cleanup"] },
+        "status": { "enum": ["passed", "failed", "skipped", "unsupported"] },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "summary": { "type": "string" },
+        "failureKind": { "enum": ["assertion", "subject", "dsh", "infrastructure", "timeout", "cleanup"] },
+        "command": { "type": "array", "items": { "type": "string" } },
+        "exitCode": { "type": ["integer", "null"] },
+        "signal": { "type": ["string", "null"] },
+        "assertions": { "type": "array", "items": { "$ref": "#/$defs/assertion" } },
+        "artifacts": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

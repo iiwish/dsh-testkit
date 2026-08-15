@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.dsh-testkit/
+coverage/
+*.tgz
+.DS_Store

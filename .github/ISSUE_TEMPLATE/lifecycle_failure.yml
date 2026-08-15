@@ -1,0 +1,44 @@
+name: Lifecycle compatibility failure
+description: Report a plugin and DSH combination that receives an unexpected lifecycle verdict.
+title: "[Compatibility]: "
+labels: [compatibility]
+body:
+  - type: input
+    id: immutable-subject
+    attributes:
+      label: Immutable plugin identity
+      description: Exact npm version, tarball SHA-256, or full Git commit.
+    validations:
+      required: true
+  - type: input
+    id: dsh-version
+    attributes:
+      label: Exact DSH version
+    validations:
+      required: true
+  - type: input
+    id: image
+    attributes:
+      label: Runner image and image ID
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Failing stage
+      options: [resolve, install-dsh, package, install-plugin, assemble, boot, register, exercise, update, uninstall, reboot, recover, cleanup]
+    validations:
+      required: true
+  - type: textarea
+    id: assertion
+    attributes:
+      label: Failing assertion and sanitized evidence
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, private URLs, proprietary source, and sensitive logs.
+          required: true

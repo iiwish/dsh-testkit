@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsh-testkit.dev/schemas/scenario-v1.json",
+  "title": "DSH Testkit Scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "subject", "dsh"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "suite": { "enum": ["quick", "full"], "default": "quick" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "updateFrom": { "type": "string", "minLength": 1 }
+      }
+    },
+    "dsh": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" }
+      }
+    },
+    "profile": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "default": "dsh-testkit" },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "boot": { "enum": ["success", "failure"], "default": "success" },
+        "rows": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "services": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "tools": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      }
+    },
+    "exercise": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "arguments"],
+        "properties": {
+          "tool": { "type": "string", "minLength": 1 },
+          "arguments": { "type": "object" }
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onBootFailure": { "enum": ["remove-plugin", "none"], "default": "remove-plugin" }
+      }
+    },
+    "observers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": { "$ref": "#/$defs/observerRequirement" },
+        "process": { "$ref": "#/$defs/observerRequirement" },
+        "ports": { "$ref": "#/$defs/observerRequirement" },
+        "network": { "$ref": "#/$defs/observerRequirement" },
+        "canary": { "$ref": "#/$defs/observerRequirement" }
+      }
+    },
+    "timeouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "installMs": { "type": "integer", "minimum": 1000, "maximum": 1800000 },
+        "bootMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
+        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 }
+      }
+    }
+  },
+  "$defs": {
+    "observerRequirement": { "enum": ["required", "preferred", "off"] }
+  }
+}

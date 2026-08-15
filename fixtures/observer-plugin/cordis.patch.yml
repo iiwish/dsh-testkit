@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-observer
+      name: '@dsh-testkit/fixture-observer'

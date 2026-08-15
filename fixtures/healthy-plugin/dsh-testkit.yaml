@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: healthy-plugin
+subject:
+  source: .
+dsh:
+  version: 0.1.0-rc.6
+expect:
+  boot: success
+  rows: [fixture-healthy]
+  services: [fixtureHealthy]
+  tools: [fixture_echo]
+exercise:
+  - tool: fixture_echo
+    arguments:
+      value: smoke

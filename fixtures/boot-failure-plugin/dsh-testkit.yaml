@@ -1,0 +1,11 @@
+schemaVersion: 1
+name: expected-boot-failure
+subject:
+  source: .
+dsh:
+  version: 0.1.0-rc.6
+expect:
+  boot: failure
+  rows: [fixture-boot-failure]
+  services: []
+  tools: []
