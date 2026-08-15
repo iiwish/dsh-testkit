@@ -4,6 +4,19 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-16
+
+### Added
+
+- Added offline `dsh-test init` scaffolding for a deterministic scenario, least-privilege GitHub Actions workflow, and project-local Agent Skill.
+- Added one canonical typed Agent Skill that ships in the npm package and registers with the optional DSH Skills service.
+- Added real-host coverage for native Skill registration and packed-consumer coverage for generated adoption files.
+
+### Security
+
+- Preflighted every scaffold target before writing, rejected symlink path components and paths outside the plugin root, and required explicit `--force` for conflicting files.
+- Kept initialization non-interactive and network-free without modifying package manifests, lockfiles, or repository instructions.
+
 ## [0.2.1] - 2026-08-15
 
 ### Added
@@ -73,7 +86,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/iiwish/dsh-testkit/compare/v0.1.1...v0.1.2

@@ -26,10 +26,17 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 ```bash
 pnpm add -D dsh-testkit
-pnpm dsh-test . --dsh 0.1.0-rc.6 \
-  --expect-row tool-my-plugin \
-  --expect-tool my_tool
+pnpm dsh-test init
+pnpm dsh-test
 ```
+
+`init` 会离线读取 bundle 声明的 patch，并且只生成三个可审核文件：
+
+- `dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
+- `.github/workflows/dsh-lifecycle.yml`：采用最小权限的生命周期检查
+- `.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
+
+请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任何冲突文件都会让命令在写入全部目标前停止。
 
 Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `report.json`、`junit.xml`、`report.md`、脱敏命令日志和各阶段证据。
 
@@ -93,7 +100,7 @@ observers:
 
 ## CI 证据
 
-在 GitHub Actions 中使用固定的滚动主版本 tag：
+`dsh-test init` 会使用固定的滚动主版本 tag 生成以下 workflow：
 
 ```yaml
 - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
@@ -106,12 +113,18 @@ Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check �
 
 稳定退出码为：`0` 通过、`1` 生命周期失败、`2` 输入无效、`3` 基础设施错误、`4` 能力不支持、`5` 结果不稳定。JSON Schema 发布在 `dsh-testkit/schemas/report-v1.json` 和 `dsh-testkit/schemas/scenario-v1.json`。
 
+## Agent Skill
+
+项目级 `.agents/skills/dsh-testkit/SKILL.md` 会告诉兼容的 coding agent 应在何时、如何初始化 Testkit，怎样选择 quick 或 full 生命周期覆盖，如何解释证据，以及如何守住 Docker 信任边界。它和 DSH 原生 bundle 在宿主提供可选 Skills service 时注册的 Skill 来自同一个类型化定义。
+
+规范文件也随 npm 包发布，可通过 `dsh-testkit/skills/dsh-testkit/SKILL.md` 子路径访问。Skill 让 Agent 更稳定地使用 Testkit，但不会授予执行不受信任代码的权限，也不能替代人工审核或认证插件。
+
 ## DSH 原生工具
 
 DSH Testkit 还提供一个可选的、由社区维护的 DSH-native Profile Bundle：
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.2.1
+dsh plugin --profile web add dsh-testkit@0.3.0
 dsh --profile web --dump-config
 ```
 
@@ -146,5 +159,7 @@ Runner 会从子进程中移除模型、npm、GitHub、云平台和 Docker regis
 ## 参与贡献
 
 高质量故障报告应包含精确插件版本、DSH 版本、失败阶段、`report.json` 和脱敏日志。请先阅读[贡献指南](docs/contributing.md)，再使用 lifecycle-failure issue 模板提交可复现的宿主行为。
+
+可以在 DeepSeek Harness 官方 [Show & Tell 讨论](https://github.com/deepseek-ai/deepseek-harness/discussions/2038)了解项目并加入首批维护者协作。
 
 DSH Testkit 是独立、非官方的社区项目，采用 [MIT License](LICENSE) 发布。

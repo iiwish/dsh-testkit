@@ -111,6 +111,7 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
         mode: 'present',
         services: [],
         tools: ['dsh_test'],
+        skills: ['dsh-testkit'],
         exercise: [{
           tool: 'dsh_test',
           arguments: {
@@ -138,9 +139,11 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
       expect(boot.stoppedAfterCompletion).toBe(true)
       const probe = JSON.parse(await readFile(probeOutput, 'utf8')) as {
         tools: string[]
+        skills: string[]
         exercises: Array<{ id: string, status: string, message: string }>
       }
       expect(probe.tools).toContain('dsh_test')
+      expect(probe.skills).toContain('dsh-testkit')
       expect(probe.exercises).toContainEqual(expect.objectContaining({
         id: 'exercise.dsh_test.1',
         status: 'passed',

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
+import { DSH_TESTKIT_SKILL } from '../../src/agent-skill.js'
 import { apply, createDshTestTool, executeDshTest } from '../../src/dsh-plugin.js'
 
 describe('native DSH tool adapter', () => {
@@ -25,6 +26,23 @@ describe('native DSH tool adapter', () => {
     expect(Object.keys(parameters.properties)).not.toEqual(expect.arrayContaining([
       'runner', 'unsafeLocal', 'allowMutableSource', 'output', 'config', 'argv',
     ]))
+  })
+
+  it('registers the canonical Skill through an optional injected child', () => {
+    const registerSkill = vi.fn(() => vi.fn())
+    const inject = vi.fn((_services, callback) => callback({
+      skills: { register: registerSkill },
+    }))
+
+    apply({
+      inject,
+      on: () => undefined,
+      tools: { register: () => undefined },
+    } as never)
+
+    expect(inject).toHaveBeenCalledWith(['skills'], expect.any(Function))
+    expect(registerSkill).toHaveBeenCalledOnce()
+    expect(registerSkill).toHaveBeenCalledWith(DSH_TESTKIT_SKILL)
   })
 
   it('asks for interactive approval without overriding a downstream denial', async () => {

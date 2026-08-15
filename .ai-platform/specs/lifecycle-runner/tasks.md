@@ -604,7 +604,7 @@ Evidence required:
 
 ### T008: v0.3.0 One-Command Adoption And Agent Skill
 
-Status: Ready
+Status: Needs_Review
 Priority: P0
 Depends on: T007
 Blocks: v0.3.0 public release and upstream integration submissions

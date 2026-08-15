@@ -24,6 +24,7 @@ import { renderMarkdown } from './reporters/markdown.js'
 import { renderTerminal } from './reporters/terminal.js'
 import { createRunner } from './runners/index.js'
 import type { Runner, RunnerKind } from './runners/types.js'
+import { initializeDshTestkitProject } from './scaffold/init.js'
 import { RunnerError } from './runners/types.js'
 import { TESTKIT_VERSION } from './version.js'
 import { WorkerRequestSchema } from './worker/protocol.js'
@@ -44,6 +45,11 @@ interface CliOptions {
   allowMutableSource: boolean
   json: boolean
   color: boolean
+}
+
+interface InitCliOptions {
+  dsh?: string
+  force: boolean
 }
 
 export interface CliDependencies {
@@ -196,11 +202,40 @@ function buildProgram(deps: CliDependencies): Command {
     .option('--allow-mutable-source', 'allow mutable package and Git sources', false)
     .option('--json', 'print the canonical report as JSON', false)
     .option('--no-color')
+    .addHelpText('after', '\nCommands:\n  init [directory]  Scaffold scenario, CI workflow, and Agent Skill\n')
+}
+
+function buildInitProgram(deps: CliDependencies): Command {
+  return new Command()
+    .name('dsh-test init')
+    .description('Scaffold DSH Testkit in an existing DSH bundle repository.')
+    .exitOverride()
+    .configureOutput({ writeOut: deps.stdout, writeErr: deps.stderr })
+    .argument('[directory]', 'DSH plugin repository', '.')
+    .option('--dsh <version>', 'exact supported DSH version')
+    .option('--force', 'replace conflicting scaffold targets', false)
 }
 
 export async function runCli(argv: string[], overrides: Partial<CliDependencies> = {}): Promise<number> {
   const deps = { ...defaultDependencies(), ...overrides }
   try {
+    if (argv[0] === 'init') {
+      const program = buildInitProgram(deps)
+      program.parse(argv.slice(1), { from: 'user' })
+      const options = program.opts<InitCliOptions>()
+      const directory = String(program.processedArgs[0] ?? '.')
+      const result = await initializeDshTestkitProject({
+        directory: resolve(deps.cwd, directory),
+        ...(options.dsh === undefined ? {} : { dshVersion: options.dsh }),
+        force: options.force,
+      })
+      deps.stdout(`DSH Testkit initialized ${result.root}\n`)
+      for (const file of result.files) {
+        deps.stdout(`${file.status.padEnd(8)} ${file.path}\n`)
+      }
+      deps.stdout(`Next: ${result.nextCommand}\n`)
+      return 0
+    }
     const program = buildProgram(deps)
     program.parse(argv, { from: 'user' })
     const options = program.opts<CliOptions>()

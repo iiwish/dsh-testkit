@@ -10,7 +10,7 @@ describe('published DSH bundle contract', () => {
     const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
     const patch = parse(await readFile(resolve(root, 'cordis.patch.yml'), 'utf8'))
 
-    expect(manifest.version).toBe('0.2.1')
+    expect(manifest.version).toBe('0.3.0')
     expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
     expect(manifest.exports['.']).toMatchObject({
       types: './dist/src/index.d.ts',
@@ -18,7 +18,10 @@ describe('published DSH bundle contract', () => {
       default: './dist/src/index.js',
     })
     expect(manifest.exports['./cordis.patch.yml']).toBe('./cordis.patch.yml')
+    expect(manifest.exports['./skills/dsh-testkit/SKILL.md'])
+      .toBe('./.agents/skills/dsh-testkit/SKILL.md')
     expect(manifest.files).toContain('cordis.patch.yml')
+    expect(manifest.files).toContain('.agents/skills/dsh-testkit')
     expect(manifest.peerDependencies).toMatchObject({
       '@deepseek-ai/cordis': '^4.0.1',
       '@deepseek-ai/dsh-invariants': '>=0.1.0-rc.6 <0.2.0',

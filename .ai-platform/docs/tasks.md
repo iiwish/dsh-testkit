@@ -106,6 +106,6 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T007.yaml`
 
 #### Work Item T008: v0.3.0 One-Command Adoption And Agent Skill
 
-Status: Ready
+Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t008-v030-one-command-adoption-and-agent-skill`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
