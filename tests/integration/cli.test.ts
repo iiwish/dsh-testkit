@@ -249,7 +249,41 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(0)
     expect(factoryCalled).toBe(false)
-    expect(stdout.join('')).toBe('0.2.1\n')
+    expect(stdout.join('')).toBe('0.3.0\n')
+  })
+
+  it('initializes a DSH bundle without constructing a lifecycle runner', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-cli-init-'))
+    await writeFile(join(root, 'package.json'), `${JSON.stringify({
+      name: 'cli-init-fixture',
+      version: '1.0.0',
+      dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }, null, 2)}\n`)
+    await writeFile(join(root, 'cordis.patch.yml'), [
+      '- insert:',
+      '    - id: tool-cli-init',
+      '      name: ./index.js',
+      '',
+    ].join('\n'))
+    const stdout: string[] = []
+    let factoryCalled = false
+
+    const exitCode = await runCli(['init', root], {
+      stdout: value => stdout.push(value),
+      stderr: value => stdout.push(value),
+      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    expect(exitCode).toBe(0)
+    expect(factoryCalled).toBe(false)
+    expect(stdout.join('')).toContain('created  dsh-testkit.yaml')
+    expect(stdout.join('')).toContain('Next: pnpm dsh-test')
+    expect(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')))
+      .not.toHaveProperty('devDependencies.dsh-testkit')
+    await expect(readFile(join(root, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
+      .resolves.toContain('DSH lifecycle')
   })
 
   it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {

@@ -5,6 +5,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path'
 import { z } from 'zod'
 
 import { SUPPORTED_DSH_NPM_VERSIONS } from './adapters/dsh/support.js'
+import { DSH_TESTKIT_SKILL } from './agent-skill.js'
 import { runCli } from './cli.js'
 import type { CliDependencies } from './cli.js'
 import { LIFECYCLE_STAGE_IDS, RunReportSchema } from './domain/report.js'
@@ -63,6 +64,14 @@ export interface DshToolDefinition {
 }
 
 export interface DshPluginContext {
+  inject?(
+    services: readonly ['skills'],
+    callback: (ctx: {
+      readonly skills: {
+        register(skill: typeof DSH_TESTKIT_SKILL): unknown
+      }
+    }) => unknown,
+  ): unknown
   on(
     event: 'tools/pre-execute',
     listener: (
@@ -361,6 +370,7 @@ export function createDshTestTool(): DshToolDefinition {
 }
 
 export function apply(ctx: DshPluginContext): void {
+  ctx.inject?.(['skills'], skillCtx => skillCtx.skills.register(DSH_TESTKIT_SKILL))
   ctx.on('tools/pre-execute', async (exec, next): Promise<DshPreToolDecision> => {
     const downstream = await next()
     const confirmed = typeof exec.arguments === 'object'

@@ -1,10 +1,10 @@
-# DSH Testkit v0.2 Release Acceptance Plan
+# DSH Testkit v0.3 Release Acceptance Plan
 
-Version: v0.2
+Version: v0.3.0
 Status: Active
 Release channel: Public preview
 Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 ## 1. Acceptance Objective
 
@@ -136,6 +136,18 @@ Requirements: US-006, FR-019 through FR-022, SC-011, SC-012.
 - Local input and output symlink escapes fail before runner construction.
 - DSH cancellation propagates through image inspection/build and runner subprocesses, which reach quiescence.
 - Tool response is bounded and points to complete canonical evidence on disk.
+
+### G11 Scaffold And Agent Skill Adoption Boundary
+
+Requirements: US-008, FR-029 through FR-036, NFR-015 through NFR-018, SC-017 through SC-019.
+
+- `dsh-test init` structurally validates the bundle manifest and patch, discovers deterministic row IDs and performs no network or package-manager operation.
+- Scenario, workflow and project Skill generation pass runtime parser and contract checks; a second run is byte-identical.
+- Any non-identical target or symlink path fails before the first target write unless replacement is explicitly authorized with `--force`.
+- Root CLI behavior, v1 scenario/report schemas, Action inputs and exit-code meanings remain compatible.
+- The repository and packed package ship the canonical Skill file within size and routing limits.
+- A real DSH bundle registers `dsh_test` without the Skill service and additionally exposes `dsh-testkit` when the optional registry is present.
+- Publication updates the existing official Show & Tell; official guidance is pursued through an Ideas discussion rather than a prohibited external PR; the template PR references the released `v0` Action.
 
 ## 5. Public-Preview Field Gates
 

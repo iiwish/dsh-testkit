@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 
+import { parse as parseYaml } from 'yaml'
+
 const executeFile = promisify(execFile)
 const root = resolve(import.meta.dirname, '../..')
 const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -66,8 +68,8 @@ try {
     throw new Error('packed community CLI help is missing its disclosure boundary')
   }
   const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
-    "import { ScenarioSchema, TESTKIT_VERSION, createDshTestTool } from 'dsh-testkit'",
-    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}' || createDshTestTool().name !== 'dsh_test') process.exit(1)`,
+    "import { DSH_TESTKIT_SKILL, ScenarioSchema, TESTKIT_VERSION, createDshTestTool, initializeDshTestkitProject } from 'dsh-testkit'",
+    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}' || createDshTestTool().name !== 'dsh_test' || DSH_TESTKIT_SKILL.name !== 'dsh-testkit' || typeof initializeDshTestkitProject !== 'function') process.exit(1)`,
   ].join(';')], { cwd: consumerDir, timeout: 30_000 })
   if (imported.stderr !== '') process.stderr.write(imported.stderr)
 
@@ -91,6 +93,13 @@ try {
   }
   if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('packed DSH bundle manifest is invalid')
   if (manifest.exports?.['./cordis.patch.yml'] !== './cordis.patch.yml') throw new Error('packed bundle patch export is missing')
+  if (manifest.exports?.['./skills/dsh-testkit/SKILL.md'] !== './.agents/skills/dsh-testkit/SKILL.md') {
+    throw new Error('packed Agent Skill export is missing')
+  }
+  const packedSkill = await readFile(join(installedPackage, '.agents', 'skills', 'dsh-testkit', 'SKILL.md'), 'utf8')
+  if (!packedSkill.includes('name: dsh-testkit') || !packedSkill.includes('dsh-test init')) {
+    throw new Error('packed Agent Skill is incomplete')
+  }
   const patch = await readFile(join(installedPackage, 'cordis.patch.yml'), 'utf8')
   if (!patch.includes('id: tool-dsh-testkit') || !patch.includes('name: dsh-testkit')) {
     throw new Error('packed bundle patch does not register dsh-testkit')
@@ -105,6 +114,40 @@ try {
   if (!Array.isArray(sourceMap.sourcesContent) || sourceMap.sourcesContent.length === 0) {
     throw new Error('published source maps must embed their TypeScript sources')
   }
+
+  const pluginDir = join(consumerDir, 'plugin')
+  await mkdir(pluginDir)
+  const pluginManifest = `${JSON.stringify({
+    name: '@fixture/packed-adoption',
+    version: '1.0.0',
+    dsh: { bundle: { patch: './cordis.patch.yml' } },
+  }, null, 2)}\n`
+  await Promise.all([
+    writeFile(join(pluginDir, 'package.json'), pluginManifest),
+    writeFile(join(pluginDir, 'cordis.patch.yml'), '- insert:\n    - id: tool-packed-adoption\n      name: ./dist/index.js\n'),
+  ])
+  const initialized = await executeFile(
+    join(consumerDir, 'node_modules', '.bin', 'dsh-test'),
+    ['init', '.'],
+    { cwd: pluginDir, timeout: 30_000 },
+  )
+  if (!initialized.stdout.includes('created  dsh-testkit.yaml') || !initialized.stdout.includes('Next: pnpm dsh-test')) {
+    throw new Error(`packed init output is incomplete:\n${initialized.stdout}`)
+  }
+  const [generatedScenario, generatedWorkflow, generatedSkill, preservedManifest] = await Promise.all([
+    readFile(join(pluginDir, 'dsh-testkit.yaml'), 'utf8'),
+    readFile(join(pluginDir, '.github', 'workflows', 'dsh-lifecycle.yml'), 'utf8'),
+    readFile(join(pluginDir, '.agents', 'skills', 'dsh-testkit', 'SKILL.md'), 'utf8'),
+    readFile(join(pluginDir, 'package.json'), 'utf8'),
+  ])
+  if (parseYaml(generatedScenario).expect?.rows?.[0] !== 'tool-packed-adoption') {
+    throw new Error('packed init did not detect the declared bundle row')
+  }
+  if (!generatedWorkflow.includes('iiwish/dsh-testkit/.github/actions/dsh-test@v0')) {
+    throw new Error('packed init did not generate the lifecycle Action')
+  }
+  if (generatedSkill !== packedSkill) throw new Error('generated and packaged Agent Skills differ')
+  if (preservedManifest !== pluginManifest) throw new Error('packed init modified package.json')
 
   await executeFile('docker', [
     'build',

@@ -1,8 +1,8 @@
-# DSH Testkit MVP Implementation Plan
+# DSH Testkit Implementation Plan
 
-Version: v0.2.1
+Version: v0.3.0
 Status: Confirmed
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 Source: confirmed Product Design and Technology Decision Record
 
 ## Goal
@@ -78,6 +78,15 @@ cordis.patch.yml
 - Add npm dist-tag discovery and an ephemeral DSH candidate matrix without widening the published support registry.
 - Record the evidence-based decision on multi-plugin lifecycle scope.
 - Release v0.2.1 through the protected-branch and trusted-publishing path.
+
+### Slice 6: v0.3.0 Adoption And Agent Workflow
+
+- Add an offline `dsh-test init` subcommand that parses the real bundle manifest and patch, then atomically scaffolds the scenario, lifecycle workflow and project Skill.
+- Keep initialization non-destructive and idempotent, with containment and symlink checks before any write.
+- Define one compact `dsh-testkit` Skill used by the project file and optional DSH runtime registration.
+- Prove root CLI compatibility, generated-file contracts, packed consumption and real DSH tool-plus-Skill discovery.
+- Update the existing official Show & Tell, submit a policy-compliant official Agent Skill proposal, and open a released integration PR against a maintained public plugin template.
+- Release v0.3.0 through the protected-branch and trusted-publishing path.
 
 ## Validation Strategy
 

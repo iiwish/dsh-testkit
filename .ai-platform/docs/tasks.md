@@ -1,8 +1,8 @@
 # DSH Testkit Delivery Index
 
-Version: v0.2
+Version: v0.3.0
 Status: Confirmed
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 ## Active Release
 
@@ -97,3 +97,15 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
 Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t006-native-dsh-bundle-and-v020-release`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`
+
+#### Work Item T007: v0.2.1 Community Proof And Release Automation
+
+Status: Needs_Review
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t007-v021-community-proof-and-release-automation`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T007.yaml`
+
+#### Work Item T008: v0.3.0 One-Command Adoption And Agent Skill
+
+Status: Needs_Review
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t008-v030-one-command-adoption-and-agent-skill`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`

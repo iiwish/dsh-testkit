@@ -55,4 +55,31 @@ describe('runtime probe', () => {
     const report = JSON.parse(await readFile(output, 'utf8'))
     expect(report.exercises).toMatchObject([{ id: 'exercise.runtime-probe', status: 'passed' }])
   })
+
+  it('observes declared Agent Skills through the optional runtime registry', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-probe-skill-'))
+    const output = join(root, 'probe.json')
+    process.env.DSH_TESTKIT_PROBE_CONFIG = JSON.stringify({
+      schemaVersion: 1,
+      output,
+      mode: 'present',
+      services: [],
+      tools: [],
+      skills: ['dsh-testkit'],
+      exercise: [],
+      settleMs: 1,
+    })
+    const skills = {
+      list: async () => [{ name: 'dsh-testkit' }],
+    }
+
+    await apply({ get: name => name === 'skills' ? skills : undefined })
+
+    const report = JSON.parse(await readFile(output, 'utf8'))
+    expect(report.skills).toEqual(['dsh-testkit'])
+    expect(report.assertions).toContainEqual(expect.objectContaining({
+      id: 'skill.dsh-testkit',
+      status: 'passed',
+    }))
+  })
 })

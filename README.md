@@ -26,10 +26,17 @@ Requirements: Node.js 22 or newer and Docker.
 
 ```bash
 pnpm add -D dsh-testkit
-pnpm dsh-test . --dsh 0.1.0-rc.6 \
-  --expect-row tool-my-plugin \
-  --expect-tool my_tool
+pnpm dsh-test init
+pnpm dsh-test
 ```
+
+`init` works offline and reads the bundle's declared patch to create exactly three reviewable files:
+
+- `dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
+- `.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check
+- `.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
+
+Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files stop the command before any target is written unless `--force` is explicit.
 
 Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
 
@@ -93,7 +100,7 @@ The [Scenario Reference](docs/scenarios.md) covers update targets, expected fail
 
 ## CI Evidence
 
-Use the stable moving major tag in GitHub Actions:
+`dsh-test init` generates this workflow using the stable moving major tag:
 
 ```yaml
 - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
@@ -106,12 +113,18 @@ The Action publishes JUnit and uploads the complete run directory. `artifact-nam
 
 Stable exit codes are: `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported capability, and `5` flaky. Published JSON Schemas live at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
 
+## Agent Skill
+
+The project-local `.agents/skills/dsh-testkit/SKILL.md` teaches compatible coding agents when and how to initialize Testkit, choose quick or full lifecycle coverage, interpret evidence, and preserve the Docker trust boundary. It is generated from the same typed definition that the native DSH bundle registers when the host exposes the optional Skills service.
+
+The canonical file also ships in npm at the exported subpath `dsh-testkit/skills/dsh-testkit/SKILL.md`. The Skill helps an agent use Testkit consistently; it does not grant permission to execute untrusted code, replace review, or certify a plugin.
+
 ## DSH-Native Tool
 
 DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.2.1
+dsh plugin --profile web add dsh-testkit@0.3.0
 dsh --profile web --dump-config
 ```
 
@@ -146,5 +159,7 @@ See [Architecture](docs/architecture.md) for trust boundaries and [Security Poli
 ## Contributing
 
 Bug reports are most useful with the exact plugin version, DSH version, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md), then use the lifecycle-failure issue template for reproducible host behavior.
+
+Meet the project and the first-maintainer cohort in the official DeepSeek Harness [Show & Tell discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/2038).
 
 DSH Testkit is an independent, unofficial community project released under the [MIT License](LICENSE).

@@ -1,6 +1,6 @@
 {
   "name": "dsh-testkit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
   "keywords": [
     "deepseek",
@@ -45,9 +45,11 @@
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json",
     "./schemas/report-v1.json": "./schemas/report-v1.json",
-    "./schemas/scenario-v1.json": "./schemas/scenario-v1.json"
+    "./schemas/scenario-v1.json": "./schemas/scenario-v1.json",
+    "./skills/dsh-testkit/SKILL.md": "./.agents/skills/dsh-testkit/SKILL.md"
   },
   "files": [
+    ".agents/skills/dsh-testkit",
     ".dockerignore",
     "cordis.patch.yml",
     "dist/src",
