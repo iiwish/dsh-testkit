@@ -22,9 +22,13 @@ Last updated: 2026-08-15
 - `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
 - `npm pack --dry-run --json`: passed; bundle patch and compiled plugin entry are included.
 
-## Pending Hosted Evidence
+## Hosted And Public Acceptance
 
-- Pull request and required checks.
-- Merge commit and protected tag.
-- Trusted npm publication and provenance.
-- GitHub release and plugin-directory submission.
+- [PR #7](https://github.com/iiwish/dsh-testkit/pull/7) merged as `73e6058258564698911f3b1ca92d062647f1b423` after [CI run 31883230903](https://github.com/iiwish/dsh-testkit/actions/runs/31883230903) passed validate, Action smoke and real-host jobs.
+- [Main CI run 31883503152](https://github.com/iiwish/dsh-testkit/actions/runs/31883503152) passed validate, both Action smoke jobs, existing real-host lifecycle, native bundle E2E and packed-consumer gates.
+- [CodeQL run 31883502999](https://github.com/iiwish/dsh-testkit/actions/runs/31883502999) passed JavaScript/TypeScript analysis and received both DSH lifecycle check runs.
+- [Release run 31883743981](https://github.com/iiwish/dsh-testkit/actions/runs/31883743981) passed the complete release gate and published through npm OIDC trusted publishing.
+- [`v0.2.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.2.0) and moving `v0` dereference to the release commit.
+- [`dsh-testkit@0.2.0`](https://www.npmjs.com/package/dsh-testkit/v/0.2.0) has SHA-1 `5db1e8322307decacb3d3b80564f37591a8bb6a8`, integrity `sha512-cDgCYVtCnlR8P6lY4NVUdTZ2DD8LP0FM6qihKwmVH1UW5hZQAcKPRBAq5MZ9+cL5sjxmhs0pl0ZVaIYoXLfIbg==` and a [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.2.0).
+- A clean public-registry install returned CLI version `0.2.0`, exported `createDshTestTool` from the root module, and exposed the expected `dsh.bundle` and peer metadata.
+- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) submits the released bundle to the official community directory.
