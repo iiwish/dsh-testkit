@@ -53,7 +53,7 @@ Tasks:
 - [x] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
 - [x] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
 - [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
-- [ ] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
+- [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
 
 ## Task Details
 
