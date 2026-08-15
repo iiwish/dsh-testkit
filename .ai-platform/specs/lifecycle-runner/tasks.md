@@ -1,10 +1,10 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.2
+Version: v0.3.0
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 ## 状态定义
 
@@ -52,6 +52,8 @@ Tasks:
 - [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
 - [x] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
 - [x] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
+- [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
+- [ ] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
 
 ## Task Details
 
@@ -600,6 +602,91 @@ Evidence required:
 - DSH release discovery/canary fixtures and hosted workflow evidence.
 - Full release validation, commit/PR/CI/tag/GitHub/npm/provenance identities and residual risks.
 
+### T008: v0.3.0 One-Command Adoption And Agent Skill
+
+Status: Ready
+Priority: P0
+Depends on: T007
+Blocks: v0.3.0 public release and upstream integration submissions
+Story / Requirement: US-008, FR-029 through FR-036, NFR-015 through NFR-018, SC-017 through SC-020
+Parallel: No
+Conflicts with: None
+
+Goal:
+Make real-host lifecycle testing a one-command repository workflow for humans and coding agents, publish one canonical Agent Skill through project and runtime surfaces, and use released evidence to pursue official guidance and a maintained plugin template.
+
+Allowed files:
+- `.ai-platform/**`
+- `.agents/skills/dsh-testkit/**`
+- `.github/**`
+- `src/**`
+- `tests/**`
+- `scripts/**`
+- `docs/**`
+- `examples/**`
+- `package.json`
+- `pnpm-lock.yaml`
+- `README.md`
+- `README.zh-CN.md`
+- `CHANGELOG.md`
+
+Test targets:
+- `tests/unit/scaffold.test.ts`
+- `tests/unit/agent-skill.test.ts`
+- `tests/unit/dsh-plugin.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/contracts/documentation.test.ts`
+- `tests/contracts/dsh-bundle.test.ts`
+- `tests/e2e/pack-consumer.mjs`
+- `tests/e2e/real-dsh-bundle.test.ts`
+
+Deliverables:
+- Non-interactive, offline and non-destructive `dsh-test init [directory]` command.
+- Structured manifest/patch discovery and generated scenario/workflow contracts.
+- Canonical compact `dsh-testkit` Skill, generated repository file and optional DSH runtime registration.
+- Bilingual onboarding documentation and v0.3.0 package/release identities.
+- Updated official Show & Tell, policy-compliant official Agent Skill Ideas proposal and at least one public plugin-template integration PR.
+
+Acceptance criteria:
+- A clean bundle fixture generates exactly the scenario, workflow and project Skill with the expected exact DSH version and deterministic rows.
+- Idempotent reruns leave bytes unchanged; a conflict or symlink path fails before any target write; `--force` lists replacements.
+- Existing root CLI commands, Action input contract, v1 schemas and exit codes remain compatible.
+- The native bundle registers `dsh_test` whether or not `skills` exists and registers `dsh-testkit` only when the optional registry exists.
+- Packed consumer and real DSH E2E prove the shipped Skill identity and real runtime discovery.
+- Protected-branch PR, full CI, trusted npm publication, public install and native bundle verification pass before upstream submissions claim released support.
+- Official and template submissions are vendor-neutral, link immutable v0.3.0 evidence and do not imply DeepSeek endorsement.
+
+Definition of Done:
+- Focused scaffold, Skill and runtime tests demonstrate RED before implementation and GREEN after it.
+- Full validation, real-host lifecycle, native-bundle E2E, packed-consumer, actionlint, publint, audit and governance checks pass.
+- v0.3.0 public identities resolve to one reviewed merge commit with npm provenance.
+- Existing Show & Tell is updated; official Ideas discussion and plugin-template PR URLs are recorded in release evidence.
+
+Validation commands:
+- `pnpm test -- tests/unit/scaffold.test.ts tests/unit/agent-skill.test.ts tests/unit/dsh-plugin.test.ts tests/integration/cli.test.ts`
+- `pnpm validate`
+- `pnpm test:e2e`
+- `pnpm test:bundle-e2e`
+- `pnpm test:pack`
+- `npx --yes actionlint`
+- `pnpm audit --prod --registry https://registry.npmjs.org/`
+- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T008`
+
+TDD plan:
+- RED: add scaffold transaction, generated-file, routing/size, optional runtime registration, CLI compatibility and packed/real-host discovery tests before implementation.
+- GREEN: implement the smallest structured scaffold and canonical Skill surfaces satisfying those tests.
+- REFACTOR: consolidate rendering and safety checks, run full release acceptance, publish, then submit upstream integrations against the released identity.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
+
+Evidence required:
+- Show & Tell and showcase-asset PR identities.
+- RED/GREEN outputs for scaffold, Skill and runtime registration.
+- Full validation, packed consumer and real DSH outputs.
+- Commit/PR/CI/tag/GitHub/npm/provenance identities.
+- Official Ideas and template PR identities, maintainer feedback and residual risks.
+
 ## Gate
 
 - User explicitly authorized continuation on 2026-08-15.
@@ -608,3 +695,4 @@ Evidence required:
 - The user explicitly approved T004 and all release fixes on 2026-08-15.
 - The user explicitly approved the native DSH bundle direction and v0.2.0 release on 2026-08-15.
 - The user explicitly approved v0.2.1 and optimization items 1 through 5 on 2026-08-15.
+- The user explicitly approved Show & Tell, v0.3.0 one-command onboarding, the Agent Skill and upstream/template integration on 2026-08-16.

@@ -1,0 +1,134 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T008
+task_id: T008
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    technical_plan_and_work_graph: Confirmed
+    adoption_release_and_upstream: User approved Show & Tell, v0.3.0 one-command onboarding, Agent Skill and upstream/template integration on 2026-08-16
+work_unit:
+  title: v0.3.0 one-command adoption and Agent Skill
+  goal: Make lifecycle testing a safe one-command repository workflow for humans and agents, release it, then pursue policy-compliant official guidance and a public template integration.
+  epic: E001
+  story: US-008
+  requirements: [FR-029, FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-036, NFR-015, NFR-016, NFR-017, NFR-018, SC-017, SC-018, SC-019, SC-020]
+  priority: P0
+  depends_on: [T007]
+  blocks: [v0.3.0 public release, official Agent Skill proposal, plugin template integration]
+  parallel: false
+  conflicts_with: []
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - src/cli.ts
+    - src/dsh-plugin.ts
+    - src/probe/runtime.ts
+    - src/adapters/dsh/support.ts
+    - tests/integration/cli.test.ts
+    - tests/unit/dsh-plugin.test.ts
+    - tests/e2e/real-dsh-bundle.test.ts
+    - tests/e2e/pack-consumer.mjs
+    - .github/actions/dsh-test/action.yml
+    - package.json
+  existing_patterns:
+    - runCli is the only controller entry into lifecycle execution and preserves stable exit codes.
+    - JSON and YAML inputs use structured parsers.
+    - Docker is the default execution boundary; init itself performs no plugin execution or network access.
+    - Native DSH capabilities use optional ctx.get for soft dependencies and explicit inject only for hard dependencies.
+    - Release publication runs only from reviewed immutable tags through npm trusted publishing.
+  interfaces_or_contracts:
+    - dsh-test init [directory] [--dsh exact-version] [--force]
+    - dsh-testkit.yaml scenario v1
+    - .github/workflows/dsh-lifecycle.yml
+    - .agents/skills/dsh-testkit/SKILL.md
+    - ctx.skills.register optional runtime Skill registration
+    - existing root CLI and Action contracts
+  forbidden_changes:
+    - Do not add model-effect evaluation, static source scanning, marketplace behavior or multi-plugin orchestration.
+    - Do not infer tool or service expectations from source text.
+    - Do not install dependencies, run package scripts, access the network or edit package manifests/lockfiles/AGENTS.md during init.
+    - Do not make the skills service a hard DSH plugin dependency.
+    - Do not claim official endorsement, certification or universal Agent discovery.
+    - Do not add, modify or commit the user-owned AGENTS.md file.
+execution_constraints:
+  branch_or_worktree: agent/v0.3.0-adoption
+  allowed_files:
+    - .ai-platform/**
+    - .agents/skills/dsh-testkit/**
+    - .github/**
+    - src/**
+    - tests/**
+    - scripts/**
+    - docs/**
+    - examples/**
+    - package.json
+    - pnpm-lock.yaml
+    - README.md
+    - README.zh-CN.md
+    - CHANGELOG.md
+  test_targets:
+    - tests/unit/scaffold.test.ts
+    - tests/unit/agent-skill.test.ts
+    - tests/unit/dsh-plugin.test.ts
+    - tests/integration/cli.test.ts
+    - tests/contracts/documentation.test.ts
+    - tests/contracts/dsh-bundle.test.ts
+    - tests/e2e/pack-consumer.mjs
+    - tests/e2e/real-dsh-bundle.test.ts
+  ownership_notes:
+    - Preserve the untracked AGENTS.md exactly as found.
+    - Scaffold writes only three explicit repository targets after a complete preflight.
+    - Official repository contribution policy currently requires a Discussion rather than an external PR.
+tdd_plan:
+  required: true
+  exception: Show & Tell, upstream discussion and release publication use hosted validation rather than unit-level RED.
+  red:
+    command: pnpm vitest run tests/unit/scaffold.test.ts tests/unit/agent-skill.test.ts tests/unit/dsh-plugin.test.ts tests/integration/cli.test.ts
+    expected_failure: init command, generated files, canonical Skill and optional runtime Skill registration do not exist.
+  green:
+    command: pnpm validate
+    expected_signal: Scaffold transaction, Skill, CLI compatibility, documentation, contracts, coverage, typecheck and build pass.
+  refactor:
+    command: pnpm test:e2e && pnpm test:bundle-e2e && pnpm test:pack
+    expected_signal: Existing lifecycle, native tool, real DSH Skill discovery and packed consumer remain green.
+validation_loop:
+  commands:
+    - pnpm test -- tests/unit/scaffold.test.ts tests/unit/agent-skill.test.ts tests/unit/dsh-plugin.test.ts tests/integration/cli.test.ts
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:bundle-e2e
+    - pnpm test:pack
+    - npx --yes actionlint
+    - pnpm audit --prod --registry https://registry.npmjs.org/
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T008
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest scaffold, Skill, runtime-registration or release-contract defect within scope.
+    second_failure: Recheck ownership, DSH preview API and packaging assumptions and add focused evidence.
+    third_failure: Stop release or upstream submission, preserve evidence and record a genuine blocker without weakening contracts.
+    beyond_budget: Stop and record blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T008/summary.md
+  diff: .ai-platform/evidence/T008/diff.patch
+  test_results: .ai-platform/evidence/T008/test-results.md
+  required: [Show & Tell identity, RED/GREEN results, scaffold and Skill contracts, real DSH discovery, full release validation, public identities, upstream and template submissions, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, scaffold_safety, skill_boundary, qa_acceptance, release_acceptance, upstream_policy]
+  acceptance_rule: Public release requires a reviewed merge commit, green full gates, trusted npm publication and public install verification; upstream submissions must reference the released identity and comply with target policy.
+handoff:
+  external_issue: https://github.com/deepseek-ai/deepseek-harness/discussions/2038
+  pull_request: null
+  finish_options: [merge reviewed pull request, publish v0.3.0, move v0, update Show-and-tell, publish official Ideas proposal, submit plugin-template PR]
+stop_conditions: [scaffold can overwrite or escape without explicit force, Skill makes skills a hard dependency, Docker unavailable for final E2E, npm trusted publisher unavailable, official or template submission would violate target policy, unresolved release blocker]

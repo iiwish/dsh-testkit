@@ -1,9 +1,9 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.2.1
+Version: v0.3.0
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 Review: User authorized continuation after SSOT review on 2026-08-15
 
 ## 1. 产品定位
@@ -88,6 +88,16 @@ Scenario:
 2. 公开报告仅声明已执行的环境、阶段、聚合 verdict 和发现类型；未复现并通知维护者的单一插件失败不做命名披露。
 3. 新 DSH dist-tag 出现时，自动化先识别未支持版本，再在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
 
+### US-008: 插件作者和开发 Agent 一键接入生命周期门禁
+
+As a DSH plugin author or coding agent, I want one deterministic initialization command and a discoverable project skill, so that real-host lifecycle testing becomes part of the repository workflow before review and release.
+
+Scenario:
+1. 作者或 Agent 在已有 DSH bundle 仓库运行 `dsh-test init`。
+2. Testkit 从 package manifest 和结构化 patch 中识别 bundle 与可确定的 row，不猜测 service 或 tool。
+3. 命令生成声明式场景、GitHub Actions workflow 和项目级 `dsh-testkit` Skill；已有非等价文件不会被静默覆盖。
+4. DSH 原生 bundle 在 `skills` service 可用时注册同一份运行时 Skill，使宿主内 Agent 能发现何时以及如何调用 `dsh_test`。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -129,6 +139,14 @@ Scenario:
 - FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag，并将未进入支持注册表的精确版本作为可机器消费的 canary matrix 输入。
 - FR-027: Canary 可在一次性 CI checkout 中临时启用候选 DSH 版本并运行真实宿主测试，但不得修改发布包的支持列表或将 canary 通过宣称为正式支持。
 - FR-028: v0.2.1 必须从受保护分支的 reviewed merge commit 发布，并验证 tag、GitHub Release、npm provenance、公共安装与 DSH bundle 运行身份。
+- FR-029: CLI 必须提供 `dsh-test init [directory]`，只接受真实目录中的 DSH bundle，结构化读取 `package.json` 的 `dsh.bundle.patch` 并解析可确定的 patch row ID。
+- FR-030: `init` 必须生成 `dsh-testkit.yaml`、`.github/workflows/dsh-lifecycle.yml` 和 `.agents/skills/dsh-testkit/SKILL.md`；相同内容重跑必须幂等，冲突内容必须在任何写入前失败，只有显式 `--force` 才可替换目标文件。
+- FR-031: 生成场景必须固定精确受支持 DSH 版本、使用当前目录作为 subject、断言所有可确定 row，并保留空的 service/tool 集合而不是通过文本扫描猜测能力。
+- FR-032: 生成 workflow 必须使用只读最小权限、固定 Node 主版本、稳定 `v0` Action 入口、同一场景文件和固定的 `DSH lifecycle` check 名称。
+- FR-033: npm 包和仓库必须发布一个模型可调用的 `dsh-testkit` Skill；其 description 覆盖创建、修改、review、测试、发布和 install/boot/register/update/uninstall/reboot/cleanup/flaky 故障，正文说明 quick/full 选择、证据解释和安全边界。
+- FR-034: DSH 原生 bundle 必须在可选 `skills` service 存在时注册与项目文件相同的 Skill 定义；service 缺失时 tool 仍可激活，不得把 `skills` 变成硬依赖。
+- FR-035: `init` 不得安装依赖、运行插件、访问网络、改写 `package.json`/lockfile/`AGENTS.md` 或在目标根目录之外创建文件。
+- FR-036: v0.3.0 必须发布并验证 Skill、scaffold 和原生注册；官方 Agent Skill 集成通过符合上游贡献政策的 Ideas 讨论推进，至少向一个公开插件模板提交可审核的一键接入 PR。
 
 ## 6. Non-Functional Requirements
 
@@ -146,6 +164,10 @@ Scenario:
 - NFR-012 Schema stability: 机器输出和退出码的破坏性变化必须升级 schema 或主版本并提供迁移说明。
 - NFR-013 Documentation parity: 发布检查必须同时验证两份 README 的当前版本、DSH 支持线、语言切换和安全声明。
 - NFR-014 Responsible disclosure: 社区验证结果是环境绑定的兼容性证据，不是安全评级；命名失败披露必须先复现并给作者可操作证据。
+- NFR-015 Onboarding: 在 warm 本地文件系统中，`init` 不访问网络且应在 2 秒内完成；成功输出必须列出 created、unchanged 和 replaced 文件以及下一条验证命令。
+- NFR-016 Scaffold safety: 目标根目录、patch 和所有生成文件必须经过 containment 与 symlink 边界检查；一次冲突不得留下部分 scaffold。
+- NFR-017 Skill efficiency: 模型目录 description 必须不超过 DSH 默认 500 字符限制，Skill 正文不超过 4 KiB，完整场景语法通过现有文档引用而不是复制。
+- NFR-018 Compatibility: v0.3.0 不改变现有 root CLI、v1 scenario/report schema、退出码、Action 输入或生命周期 verdict 语义。
 
 ## 7. 功能范围
 
@@ -167,6 +189,14 @@ Scenario:
 - 注册一个薄 `dsh_test` tool adapter，只负责安全参数收敛、Docker 调用、取消和结果投影。
 - 使用真实 DSH profile 验证 bundle 安装、配置组装、tool 注册和确定性调用。
 
+### v0.3 范围
+
+- 保留 v0.2 的 CLI、Action、DSH tool 和 v1 schema 兼容性。
+- 增加非交互、可幂等且拒绝隐式覆盖的 `dsh-test init`。
+- 从 bundle manifest 与 patch 生成最小场景和 GitHub lifecycle workflow。
+- 发布一份规范化 `dsh-testkit` Agent Skill，并同时提供项目文件与可选 DSH 运行时注册。
+- 通过官方 Ideas 讨论和公开插件模板 PR 争取把生命周期测试放入插件开发默认路径。
+
 ### 后续候选
 
 - macOS 和 Windows runner。
@@ -174,11 +204,12 @@ Scenario:
 - Catalog compatibility feed 和徽章数据源。
 - 更强的网络、文件和系统调用 observer。
 - 与现有静态扫描、故障注入和 MCP Conformance 工具组合。
+- 基于真实采用证据改进 prerequisite profile 生成与模板生态集成。
 
 ## 8. 非目标
 
 - 不定义跨 Harness 的插件、Skill 或 MCP 公共标准。
-- 不测试模型质量、Skill 激活概率或任务效果。
+- 不把 Skill 路由测试扩张为模型质量或任务效果评测；只验证结构、发现、注册和明确的正负触发契约。
 - 不宣称插件绝对安全，也不取代安全审计。
 - 不复制 `dsh-plugin-check` 一类静态仓库扫描器。
 - 不重复实现 MCP 协议 Conformance。
@@ -203,6 +234,9 @@ Scenario:
 - DSH 版本不受当前 adapter 支持。
 - Runner 被 SIGINT、超时、磁盘不足或容器终止。
 - 日志中包含 Secret、Token、企业路径或源码片段。
+- bundle patch 缺失、位于仓库外、经过 symlink 逃逸、没有可确定 row，或采用当前 scaffold 不支持的结构。
+- 目标 scaffold 文件部分存在、内容被维护者修改，或 `.github`/`.agents` 路径组件是 symlink。
+- DSH profile 没有挂载 `skills` service；`dsh_test` 仍必须注册且运行时 Skill 明确不可用。
 
 ## 10. 约束与假设
 
@@ -222,6 +256,7 @@ Scenario:
 - 可记录的临时文件系统、网络代理或 observer、进程树和端口信息。
 - GitHub Actions、GitLab CI 或其他能执行 CLI 并读取 JUnit/JSON 的 CI。
 - 可选的 Catalog 消费方只读取脱敏结果，不是 Testkit 的运行依赖。
+- 项目级 Agent Skill 使用 DSH 与主流 coding-agent 已采用的 `.agents/skills/<name>/SKILL.md` 结构；特定 Agent 的额外目录由模板或用户显式适配。
 
 ## 12. Success Criteria
 
@@ -241,6 +276,10 @@ Scenario:
 - SC-014: 英文和中文 README 经过版本/链接/安全契约检查，打包消费者可读取两份文档。
 - SC-015: DSH dist-tag 发现器对“全部已支持”和“出现新候选”均有固定 fixture，新候选能启动真实宿主 canary matrix。
 - SC-016: 多插件完整生命周期是否进入下一版本，必须以 10 插件 cohort 和社区失败类型为证据做明确 TDR，不以功能完整性直觉扩张。
+- SC-017: 干净 bundle fixture 的 `dsh-test init` 在无网络条件下生成可解析的场景、workflow 和 Skill；第二次运行字节不变，冲突文件使整次操作零写入。
+- SC-018: 单元测试、打包消费者和真实 DSH bundle E2E 分别证明 Skill 文件身份、项目级发现契约和可选运行时注册，且 `skills` 缺失不阻塞 `dsh_test`。
+- SC-019: v0.3.0 发布后，官方 Ideas 区存在可直接采纳的 vendor-neutral Agent Skill 建议，至少一个公开插件模板 PR 使用 released `v0` Action 和生成场景。
+- SC-020: 首批采用阶段以 5 个外部插件仓库运行 lifecycle Action、3 个持续 check 和至少 1 个上游/模板引用为目标；该 field metric 不阻塞 v0.3.0 发布。
 
 ## 13. 验收标准
 
@@ -255,6 +294,9 @@ Scenario:
 - 10 个真实插件测试结果中至少形成 3 个可提交给插件作者或 DSH 上游的可复现问题。
 - `npm pack` 的干净消费者可验证 bundle manifest、patch、Cordis 入口和 `dsh_test` schema。
 - 真实 DSH profile 可安装打包后的 Testkit、观察 bundle layer，并对 healthy fixture 完成一次 `dsh_test` Docker 调用。
+- `dsh-test init` 对合法 fixture 生成三个受控文件，对幂等重跑不改字节，对冲突与 symlink 路径在写入前失败。
+- Agent Skill 的路由描述、正文大小、安全约束和生成文件通过契约测试，真实 DSH profile 可同时观察 `dsh_test` 和 `dsh-testkit` Skill。
+- v0.3.0 公共 npm 包、GitHub Release、Show & Tell 更新、官方 Ideas 建议和插件模板 PR 均引用同一个发布身份。
 
 ## 14. Clarifications
 
@@ -272,6 +314,10 @@ Scenario:
   A: 真实宿主执行需要隔离 runner、生命周期状态机和恢复语义，与只读扫描器的安全模型和架构边界不同；Testkit 可以组合其结果而不复制规则。
 - Q: 将 Testkit 做成 DSH 插件是否改变产品定位？
   A: 否。DSH bundle 是现有生命周期引擎的原生入口和分发形态，不是第二套测试实现，也不把项目扩张成市场或通用 Harness 契约。
+- Q: v0.3.0 的 Agent Skill 是否替代 CLI 自解释和 CI？
+  A: 否。Skill 负责在正确任务时路由并教授最小工作流；CLI help、结构化错误、`init` 和 required check 负责确定性执行。Skill 被发现前仍需要官方开发指引或插件模板提供入口。
+- Q: 是否自动修改所有 Agent 的配置目录？
+  A: 否。`init` 写入 DSH 与跨 Agent 使用的 `.agents/skills` 标准位置，不静默修改 `AGENTS.md`。特定 Agent 的额外目录适配由模板或用户显式选择。
 
 ## 15. 开放问题
 
@@ -279,5 +325,5 @@ None blocking product review. 技术栈、runner 后端、模块布局和首批 
 
 ## 16. User Review Gate
 
-- Approval: Approved on 2026-08-15
-- Reviewer notes: 用户批准名称，并明确要求完成 SSOT review 后继续交付。Review 将不稳定的 command/event 枚举移出 v0.1，并把副作用断言改为 capability-aware，避免未观测即通过。
+- Approval: Approved on 2026-08-16
+- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板。既有 lifecycle、schema 和安全边界保持不变。
