@@ -15,6 +15,7 @@ Last updated: 2026-08-15
 - Updated package version, release workflows, docs and canonical governance artifacts for v0.2.0.
 - Merged [PR #7](https://github.com/iiwish/dsh-testkit/pull/7), published the reviewed merge commit through npm trusted publishing, and created the `v0.2.0` GitHub release.
 - Submitted [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) for official directory discovery.
+- Preserved required `real-host` and Action smoke check identities on documentation-only pull requests while bypassing only their expensive execution steps.
 
 ## Review
 

@@ -56,25 +56,33 @@ jobs:
 
   real-host:
     needs: [changes, validate]
-    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Preserve required check for documentation-only changes
+        if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'
+        run: echo 'No lifecycle-impacting changes; real-host execution is not required.'
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 11.1.3
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:e2e
-      - run: pnpm test:bundle-e2e
-      - run: pnpm test:pack
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        run: pnpm test:e2e
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        run: pnpm test:bundle-e2e
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        run: pnpm test:pack
 
   action-smoke:
     needs: [changes, validate]
-    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,8 +96,13 @@ jobs:
           - plugin: fixtures/boot-failure-plugin
             config: fixtures/boot-failure-plugin/dsh-testkit.yaml
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/dsh-test
+      - name: Preserve required check for documentation-only changes
+        if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'
+        run: echo 'No lifecycle-impacting changes; Action smoke execution is not required.'
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+        uses: ./.github/actions/dsh-test
         with:
           plugin: ${{ matrix.plugin }}
           dsh-version: 0.1.0-rc.6

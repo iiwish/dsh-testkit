@@ -24,6 +24,7 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 | Packed consumer | Passed: v0.2.0 CLI/library import, DSH manifest, patch export, tool schema, embedded sources and Docker image build |
 | Tool safety regressions | Passed: confirmation, DSH approval gate, downstream denial preservation, credential rejection, workspace escape, symlink escape, output-parent escape, forced Docker and bounded projection |
 | Workflow validation | `actionlint v1.7.12` passed for CI and release workflows |
+| Required-check continuity | Contract coverage keeps `real-host` and both Action smoke matrix identities successful for documentation-only pull requests while skipping their expensive execution steps |
 | Package quality | `publint v0.3.23` passed; dry-run tarball is under 150 KB and contains the declared bundle/runtime assets |
 | Dependency security | `pnpm audit --prod --registry https://registry.npmjs.org/` passed with no known production vulnerability |
 | Delivery artifacts | T006 packet, implementation evidence and residual risks are recorded |

@@ -21,6 +21,9 @@ Last updated: 2026-08-15
 - `actionlint v1.7.12`: passed.
 - `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
 - `npm pack --dry-run --json`: passed; bundle patch and compiled plugin entry are included.
+- Required-check RED: `tests/contracts/ci-required-checks.test.ts` failed because `real-host` and `action-smoke` used job-level skip conditions.
+- Required-check GREEN: the focused contract passed after both jobs retained their identities and moved lifecycle filtering to individual steps.
+- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml`: passed for the required-check fix.
 
 ## Hosted And Public Acceptance
 
