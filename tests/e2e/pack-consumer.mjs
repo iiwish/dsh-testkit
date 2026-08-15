@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -33,17 +33,37 @@ try {
     private: true,
     type: 'module',
   }, null, 2)}\n`)
-  await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
+  const installed = await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
     cwd: consumerDir,
     timeout: 120_000,
     maxBuffer: 8 * 1024 * 1024,
+    env: { ...process.env, PNPM_CONFIG_AUTO_INSTALL_PEERS: 'false' },
   })
+  const installLog = `${installed.stdout}\n${installed.stderr}`
+  if (/peer dependenc|missing peer|unmet peer/i.test(installLog)) {
+    throw new Error(`packed install emitted a peer warning:\n${installLog}`)
+  }
+  for (const peer of ['cordis', 'dsh-invariants', 'dsh-tools']) {
+    await access(join(consumerDir, 'node_modules', '@deepseek-ai', peer))
+      .then(() => { throw new Error(`optional host peer was installed into the clean consumer: ${peer}`) })
+      .catch((error) => {
+        if (error instanceof Error && !('code' in error && error.code === 'ENOENT')) throw error
+      })
+  }
   const help = await executeFile(join(consumerDir, 'node_modules', '.bin', 'dsh-test'), ['--help'], {
     cwd: consumerDir,
     timeout: 30_000,
   })
   if (!help.stdout.includes('Real-host lifecycle testing for DSH plugins.')) {
     throw new Error('packed CLI help is missing the product description')
+  }
+  const communityHelp = await executeFile(
+    join(consumerDir, 'node_modules', '.bin', 'dsh-test-community'),
+    ['--help'],
+    { cwd: consumerDir, timeout: 30_000 },
+  )
+  if (!communityHelp.stdout.includes('Only community-summary.json is suitable for aggregate publication.')) {
+    throw new Error('packed community CLI help is missing its disclosure boundary')
   }
   const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
     "import { ScenarioSchema, TESTKIT_VERSION, createDshTestTool } from 'dsh-testkit'",
@@ -52,9 +72,23 @@ try {
   if (imported.stderr !== '') process.stderr.write(imported.stderr)
 
   const installedPackage = join(consumerDir, 'node_modules', 'dsh-testkit')
+  const [englishReadme, chineseReadme] = await Promise.all([
+    readFile(join(installedPackage, 'README.md'), 'utf8'),
+    readFile(join(installedPackage, 'README.zh-CN.md'), 'utf8'),
+  ])
+  if (!englishReadme.includes('[简体中文](README.zh-CN.md)') || !chineseReadme.includes('[English](README.md)')) {
+    throw new Error('packed README language entrypoints are not reciprocal')
+  }
+  const adapterTypes = await readFile(join(installedPackage, 'dist', 'src', 'dsh-plugin.d.ts'), 'utf8')
+  if (adapterTypes.includes("from '@deepseek-ai/")) {
+    throw new Error('published root types must not require optional DSH host peers')
+  }
   const manifest = JSON.parse(await readFile(join(installedPackage, 'package.json'), 'utf8'))
   if (manifest.version !== version) throw new Error('packed manifest version is stale')
-  if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js') throw new Error('packed bin mapping is invalid')
+  if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js'
+    || manifest.bin?.['dsh-test-community'] !== 'scripts/run-community-validation.mjs') {
+    throw new Error('packed bin mapping is invalid')
+  }
   if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('packed DSH bundle manifest is invalid')
   if (manifest.exports?.['./cordis.patch.yml'] !== './cordis.patch.yml') throw new Error('packed bundle patch export is missing')
   const patch = await readFile(join(installedPackage, 'cordis.patch.yml'), 'utf8')

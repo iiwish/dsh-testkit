@@ -1,0 +1,124 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T007
+task_id: T007
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    technical_plan_and_work_graph: Confirmed
+    release_and_community_validation: User approved v0.2.1 and optimization items 1 through 5 on 2026-08-15
+work_unit:
+  title: v0.2.1 community proof and release automation
+  goal: Publish a bilingual evidence-led patch release, validate ten exact community bundles, and add a non-promissory DSH release canary.
+  epic: E001
+  story: US-007
+  requirements: [FR-023, FR-024, FR-025, FR-026, FR-027, FR-028, NFR-013, NFR-014, SC-013, SC-014, SC-015, SC-016]
+  priority: P0
+  depends_on: [T006]
+  blocks: [v0.2.1 public release]
+  parallel: false
+  conflicts_with: []
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - README.md
+    - package.json
+    - src/adapters/dsh/support.ts
+    - scripts/check-release-readiness.mjs
+    - tests/e2e/real-dsh.test.ts
+    - tests/e2e/real-dsh-bundle.test.ts
+    - .github/workflows/**
+  existing_patterns:
+    - runCli is the only controller entry into lifecycle execution.
+    - Unsupported DSH versions fail before runner construction.
+    - Docker is the default isolated runner and local execution requires explicit unsafe consent.
+    - Release publication runs only from immutable tags through npm trusted publishing.
+  interfaces_or_contracts:
+    - English README and Simplified Chinese README
+    - exact npm community subject specs
+    - aggregate-only community validation summary
+    - npm latest/next DSH dist-tags
+    - SUPPORTED_DSH_NPM_VERSIONS registry
+  forbidden_changes:
+    - Do not add static doctor rules, plugin rankings, marketplace behavior or a second lifecycle engine.
+    - Do not publish a named community failure before reproduction and maintainer-ready evidence.
+    - Do not inherit model, npm, GitHub, cloud or Docker registry credentials into community plugin execution.
+    - Do not commit a canary DSH version into the support registry without reviewed adapter evidence.
+    - Do not add, modify or commit the user-owned AGENTS.md file.
+execution_constraints:
+  branch_or_worktree: fix/v0.2.1-acceptance
+  allowed_files:
+    - .ai-platform/**
+    - .github/**
+    - src/**
+    - tests/**
+    - scripts/**
+    - docs/**
+    - examples/**
+    - package.json
+    - pnpm-lock.yaml
+    - README.md
+    - README.zh-CN.md
+    - CHANGELOG.md
+    - SECURITY.md
+  test_targets:
+    - tests/contracts/documentation.test.ts
+    - tests/contracts/dsh-bundle.test.ts
+    - tests/unit/community-validation.test.ts
+    - tests/unit/dsh-release-train.test.ts
+    - tests/e2e/pack-consumer.mjs
+    - tests/e2e/real-dsh.test.ts
+    - tests/e2e/real-dsh-bundle.test.ts
+  ownership_notes:
+    - Preserve the untracked AGENTS.md exactly as found.
+    - Community plugin code is untrusted even when public; use Docker and a disposable credential-free environment.
+tdd_plan:
+  required: true
+  exception: README prose and public release operations use contract/hosted validation rather than unit-level RED.
+  red:
+    command: pnpm vitest run tests/contracts/documentation.test.ts tests/unit/community-validation.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts
+    expected_failure: Chinese README, cohort runner, release discovery and v0.2.1 metadata do not exist.
+  green:
+    command: pnpm validate
+    expected_signal: Documentation, metadata, cohort, release-train, compatibility, coverage, typecheck and build contracts pass.
+  refactor:
+    command: pnpm test:e2e && pnpm test:bundle-e2e && pnpm test:pack
+    expected_signal: Existing lifecycle, native DSH bundle and clean packed-consumer acceptance remain green.
+validation_loop:
+  commands:
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:bundle-e2e
+    - pnpm test:pack
+    - pnpm audit --prod --registry https://registry.npmjs.org/
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T007
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest documentation, metadata, runner or release-watch defect within scope.
+    second_failure: Classify lifecycle, package, infrastructure or disclosure-policy assumptions and add evidence.
+    third_failure: Stop named disclosure, preserve raw evidence and record a genuine external blocker without weakening acceptance.
+    beyond_budget: Stop and record blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T007/summary.md
+  diff: .ai-platform/evidence/T007/diff.patch
+  test_results: .ai-platform/evidence/T007/test-results.md
+  required: [RED/GREEN results, README parity, community aggregate reconciliation, DSH canary evidence, full release validation, public identities, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, credential_boundary, disclosure_boundary, qa_acceptance, release_acceptance]
+  acceptance_rule: Public release requires a reviewed merge commit, green full gates, reconciled aggregate community evidence, trusted npm publication and public install verification.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [merge reviewed pull request, publish v0.2.1, move v0, prepare unofficial Show-and-tell draft]
+stop_conditions: [Docker unavailable for final E2E, community runner would expose credentials, aggregate cannot reconcile to raw reports, npm trusted publisher unavailable, unresolved release blocker]

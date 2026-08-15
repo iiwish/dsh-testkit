@@ -1,6 +1,6 @@
 # DSH Testkit Requirements Checklist
 
-Version: v0.2
+Version: v0.2.1
 Status: Completed
 Source spec: `.ai-platform/docs/product-design.md`
 Last updated: 2026-08-15
@@ -28,6 +28,9 @@ Last updated: 2026-08-15
 - [x] DSH bundle 被定义为现有测试引擎的入口，而不是市场或第二套实现。[Scope]
 - [x] DSH tool 明确要求确认、Docker 强制、workspace containment、取消传递和有界输出。[Safety]
 - [x] FR-019 至 FR-022 均映射到 T006 的单元、契约、打包和真实宿主测试。[Traceability]
+- [x] FR-023 至 FR-028 分别定义双语入口、工具边界、社区 cohort、DSH release watch/canary 和 trusted patch release。[Traceability]
+- [x] 社区测试仅接受精确 npm 版本，明确无凭证环境、聚合披露与“不是安全评级”边界。[Safety]
+- [x] Canary 只修改一次性 CI checkout，不改动发布包支持声明。[Release Safety]
 
 ## Findings Summary
 

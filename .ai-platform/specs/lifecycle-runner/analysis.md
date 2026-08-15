@@ -1,6 +1,6 @@
 # DSH Testkit Spec Consistency Analysis
 
-Version: v0.2
+Version: v0.2.1
 Status: Completed
 Scope: lifecycle-runner and native DSH bundle
 Last updated: 2026-08-15
@@ -12,11 +12,11 @@ Last updated: 2026-08-15
 - Requirements checklist: `.ai-platform/specs/lifecycle-runner/checklists/requirements.md`
 - Plan/TDR: `.ai-platform/docs/technology-decision-record.md`, `.ai-platform/specs/lifecycle-runner/plan.md`
 - Work graph: `.ai-platform/specs/lifecycle-runner/tasks.md`
-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T006.yaml`
+- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T007.yaml`
 
 ## Coverage
 
-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006.
+- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007.
 - Requirements without task coverage: None.
 - Tasks without requirement/plan mapping: None.
 - Ready tasks without packet: None.

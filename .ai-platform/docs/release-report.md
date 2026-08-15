@@ -8,7 +8,7 @@ Release commit: [`73e6058258564698911f3b1ca92d062647f1b423`](https://github.com/
 
 ## Release Scope
 
-DSH Testkit v0.2.0 preserves the CLI, GitHub Action and v1 report contracts while publishing the same lifecycle engine as an official DSH Profile Bundle. The bundle registers `dsh_test`, requires both a confirmation argument and DSH pre-execution approval for agent-originated calls, constrains local inputs and outputs to the active workspace, and always executes the tested plugin through Docker.
+DSH Testkit v0.2.0 preserves the CLI, GitHub Action and v1 report contracts while publishing the same lifecycle engine as a DSH-native Profile Bundle. The bundle registers `dsh_test`, requires both a confirmation argument and DSH pre-execution approval for agent-originated calls, constrains local inputs and outputs to the active workspace, and always executes the tested plugin through Docker.
 
 The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bounded structured result and points to the complete canonical evidence under `.dsh-testkit/runs`.
 
@@ -32,7 +32,7 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 | Main branch | [CI run 31883503152](https://github.com/iiwish/dsh-testkit/actions/runs/31883503152) and [CodeQL run 31883502999](https://github.com/iiwish/dsh-testkit/actions/runs/31883502999) passed on the release commit |
 | Trusted publication | [Release run 31883743981](https://github.com/iiwish/dsh-testkit/actions/runs/31883743981) passed validation, both real-host suites, packed-consumer testing, npm OIDC publication and public verification |
 | Public consumer | A clean project installed `dsh-testkit@0.2.0` from `registry.npmjs.org`; the CLI returned `0.2.0`, the root library exported `createDshTestTool`, and the installed package declared the DSH bundle and peers |
-| Official directory | [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is open with English and Chinese entries for the released package |
+| Community directory | [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is open with English and Chinese entries for the released package |
 
 ## Review
 
@@ -58,4 +58,4 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 - npm tarball SHA-1: `5db1e8322307decacb3d3b80564f37591a8bb6a8`
 - npm integrity: `sha512-cDgCYVtCnlR8P6lY4NVUdTZ2DD8LP0FM6qihKwmVH1UW5hZQAcKPRBAq5MZ9+cL5sjxmhs0pl0ZVaIYoXLfIbg==`
 - npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.2.0)
-- Official plugin directory submission: [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562)
+- Community plugin directory submission: [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562)

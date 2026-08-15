@@ -1,6 +1,6 @@
 # DSH Testkit MVP Implementation Plan
 
-Version: v0.2
+Version: v0.2.1
 Status: Confirmed
 Last updated: 2026-08-15
 Source: confirmed Product Design and Technology Decision Record
@@ -65,11 +65,19 @@ cordis.patch.yml
 
 ### Slice 4: Native DSH Bundle
 
-- Add the official `dsh.bundle.patch` manifest and Cordis plugin export.
+- Add the DSH `dsh.bundle.patch` manifest and Cordis plugin export.
 - Register a typed `dsh_test` tool that delegates to the existing CLI engine.
 - Require confirmation, constrain workspace paths, disable implicit config and force Docker.
 - Forward DSH cancellation through runner-owned subprocesses.
 - Verify package contracts, real DSH install/config/tool registration and a healthy Docker invocation.
+
+### Slice 5: v0.2.1 Community Proof And Release-Train Automation
+
+- Publish paired English and Simplified Chinese README entrypoints with current-version checks and a precise comparison boundary.
+- Add a credential-free, exact-version community cohort runner that emits aggregate public evidence while retaining detailed local reports.
+- Add npm dist-tag discovery and an ephemeral DSH candidate matrix without widening the published support registry.
+- Record the evidence-based decision on multi-plugin lifecycle scope.
+- Release v0.2.1 through the protected-branch and trusted-publishing path.
 
 ## Validation Strategy
 

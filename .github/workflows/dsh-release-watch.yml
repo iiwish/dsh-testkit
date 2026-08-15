@@ -1,0 +1,57 @@
+name: DSH Release Watch
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      canary_versions: ${{ steps.release-train.outputs.canary_versions }}
+      has_canaries: ${{ steps.release-train.outputs.has_canaries }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - id: release-train
+        name: Discover unseen DSH dist-tags
+        run: node scripts/check-dsh-release-train.mjs
+
+  canary:
+    needs: discover
+    if: needs.discover.outputs.has_canaries == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh: ${{ fromJSON(needs.discover.outputs.canary_versions) }}
+    env:
+      DSH_TESTKIT_DSH_VERSION: ${{ matrix.dsh }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Enable candidate in this disposable checkout
+        run: node scripts/enable-dsh-canary.mjs "$DSH_TESTKIT_DSH_VERSION"
+      - run: pnpm test:e2e
+      - run: pnpm test:bundle-e2e

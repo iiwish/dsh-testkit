@@ -25,6 +25,14 @@ Last updated: 2026-08-15
 - Required-check GREEN: the focused contract passed after both jobs retained their identities and moved lifecycle filtering to individual steps.
 - `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml`: passed for the required-check fix.
 
+## Acceptance Follow-up
+
+- RED: the bundle contract found no optional peer metadata; `pnpm test:pack` emitted `Issues with peer dependencies found`; the release-readiness check found unsupported official-status wording.
+- GREEN: `pnpm validate` passed 16 files and 88 tests; coverage is 54.46% statements, 74.05% branches, 59.35% functions and 54.46% lines.
+- `pnpm test:pack`: passed with automatic peer installation disabled, no DSH host package installed, root import and public declarations independent of optional peers, and the Docker image smoke green.
+- `pnpm test:bundle-e2e`: passed in 293.186 seconds with no peer warning, a real DSH profile registration and invocation, healthy Docker lifecycle evidence, removal and profile cleanup.
+- `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
+
 ## Hosted And Public Acceptance
 
 - [PR #7](https://github.com/iiwish/dsh-testkit/pull/7) merged as `73e6058258564698911f3b1ca92d062647f1b423` after [CI run 31883230903](https://github.com/iiwish/dsh-testkit/actions/runs/31883230903) passed validate, Action smoke and real-host jobs.
@@ -34,4 +42,4 @@ Last updated: 2026-08-15
 - [`v0.2.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.2.0) and moving `v0` dereference to the release commit.
 - [`dsh-testkit@0.2.0`](https://www.npmjs.com/package/dsh-testkit/v/0.2.0) has SHA-1 `5db1e8322307decacb3d3b80564f37591a8bb6a8`, integrity `sha512-cDgCYVtCnlR8P6lY4NVUdTZ2DD8LP0FM6qihKwmVH1UW5hZQAcKPRBAq5MZ9+cL5sjxmhs0pl0ZVaIYoXLfIbg==` and a [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.2.0).
 - A clean public-registry install returned CLI version `0.2.0`, exported `createDshTestTool` from the root module, and exposed the expected `dsh.bundle` and peer metadata.
-- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) submits the released bundle to the official community directory.
+- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) submits the released bundle to a community directory.

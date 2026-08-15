@@ -43,9 +43,9 @@ codebase_context:
     - Docker is the default isolated runner and local execution requires explicit unsafe consent.
     - The canonical report is persisted before terminal projection.
   interfaces_or_contracts:
-    - official dsh.bundle.patch package manifest
+    - DSH dsh.bundle.patch package manifest
     - Cordis apply(ctx) plugin entry
-    - @deepseek-ai/dsh-tools defineTool schema
+    - @deepseek-ai/dsh-tools ToolDefinition schema contract
   forbidden_changes:
     - Do not duplicate the lifecycle engine inside the DSH adapter.
     - Do not expose unsafe-local, mutable-source, arbitrary argv or arbitrary output paths.
@@ -80,7 +80,7 @@ tdd_plan:
   exception: Documentation, manifest metadata and release operations use static or hosted validation.
   red:
     command: pnpm test -- tests/unit/dsh-plugin.test.ts tests/contracts/dsh-bundle.test.ts tests/unit/command.test.ts
-    expected_failure: Native tool module, official manifest and cancellation forwarding do not exist.
+    expected_failure: Native tool module, DSH manifest and cancellation forwarding do not exist.
   green:
     command: pnpm validate
     expected_signal: Tool, contract, cancellation, compatibility, coverage, typecheck and build tests pass.
@@ -111,5 +111,5 @@ review_contract:
 handoff:
   external_issue: null
   pull_request: https://github.com/iiwish/dsh-testkit/pull/7
-  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit official plugin directory entry]
+  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit community plugin directory entry]
 stop_conditions: [Docker unavailable for final E2E, real DSH bundle incompatibility, npm trusted publisher unavailable, unresolved release blocker]
