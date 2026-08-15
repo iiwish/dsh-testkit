@@ -30,7 +30,7 @@ const report: RunReport = {
     profile: 'dsh-testkit',
     digest: `sha256:${'a'.repeat(64)}`,
   },
-  testkitVersion: '0.1.0',
+  testkitVersion: '0.1.1',
   environment: { runner: 'docker', node: '22.18.0' },
   observerCoverage: {
     filesystem: { available: true, mode: 'owned-root-snapshot', limitations: [] },

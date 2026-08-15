@@ -10,7 +10,7 @@ import {
 describe('Docker runner command planning', () => {
   it('mounts output read-write, local input read-only and uses tmpfs work roots', () => {
     const args = buildDockerRunArgs({
-      image: 'dsh-testkit-runner:0.1.0',
+      image: 'dsh-testkit-runner:0.1.1',
       runId: 'run:unsafe/name',
       outputDir: '/tmp/output',
       requestFilename: 'worker-request.json',
@@ -44,6 +44,6 @@ describe('Docker runner command planning', () => {
 
   it('keys the runner image name by the immutable build-context digest', () => {
     const digest = `sha256:${'a'.repeat(64)}`
-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.0-aaaaaaaaaaaa')
+    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.1-aaaaaaaaaaaa')
   })
 })

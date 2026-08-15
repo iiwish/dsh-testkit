@@ -42,7 +42,7 @@ if (!help.stdout.includes('Real-host lifecycle testing for DSH plugins.')) {
 }
 const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
   "import { ScenarioSchema, TESTKIT_VERSION } from 'dsh-testkit'",
-  "if (!ScenarioSchema || TESTKIT_VERSION !== '0.1.0') process.exit(1)",
+  "if (!ScenarioSchema || TESTKIT_VERSION !== '0.1.1') process.exit(1)",
 ].join(';')], { cwd: consumerDir, timeout: 30_000 })
 if (imported.stderr !== '') process.stderr.write(imported.stderr)
 const manifest = JSON.parse(await readFile(join(consumerDir, 'node_modules', 'dsh-testkit', 'package.json'), 'utf8'))
@@ -57,8 +57,8 @@ for (const schema of ['schemas/report-v1.json', 'schemas/scenario-v1.json']) {
 await executeFile('docker', [
   'build',
   '--file', join(installedPackage, 'assets', 'runner.Dockerfile'),
-  '--build-arg', 'TESTKIT_VERSION=0.1.0-pack-smoke',
-  '--tag', 'dsh-testkit-pack-smoke:0.1.0',
+  '--build-arg', 'TESTKIT_VERSION=0.1.1-pack-smoke',
+  '--tag', 'dsh-testkit-pack-smoke:0.1.1',
   installedPackage,
 ], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
 process.stdout.write(`packed consumer smoke passed: ${filename}\n`)

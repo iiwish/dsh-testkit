@@ -4,6 +4,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-15
+
+### Fixed
+
+- Made the composite GitHub Action portable by removing an invalid parent-traversing cache path.
+- Added a release check that rejects parent traversal in GitHub Actions cache dependency paths.
+
 ## [0.1.0] - 2026-08-15
 
 ### Added
@@ -15,5 +22,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/iiwish/dsh-testkit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.0

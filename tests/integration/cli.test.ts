@@ -25,7 +25,7 @@ function passingReport(request: WorkerRequest, verdict: RunReport['verdict'] = '
       profile: 'dsh-testkit',
       digest: `sha256:${'a'.repeat(64)}`,
     },
-    testkitVersion: '0.1.0',
+    testkitVersion: '0.1.1',
     environment: { runner: 'fake', outputDir: request.outputDir },
     observerCoverage: {
       filesystem: { available: true, mode: 'fake', limitations: [] },
@@ -161,7 +161,7 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(0)
     expect(factoryCalled).toBe(false)
-    expect(stdout.join('')).toBe('0.1.0\n')
+    expect(stdout.join('')).toBe('0.1.1\n')
   })
 
   it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {

@@ -27,7 +27,7 @@ function report(runId: string, verdict: RunReport['verdict'] = 'passed'): RunRep
       profile: 'dsh-testkit',
       digest: `sha256:${'a'.repeat(64)}`,
     },
-    testkitVersion: '0.1.0',
+    testkitVersion: '0.1.1',
     environment: { runner: 'docker', outputDir: `/tmp/${runId}`, imageId: 'sha256:image' },
     observerCoverage: {
       filesystem: { available: true, mode: 'snapshot', limitations: [] },
