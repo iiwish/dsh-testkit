@@ -452,7 +452,7 @@ Parallel: No
 Conflicts with: None
 
 Goal:
-Make `dsh-testkit` an official installable DSH bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
+Make `dsh-testkit` a DSH-native installable bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
 
 Allowed files:
 - `.ai-platform/**`
@@ -477,7 +477,7 @@ Test targets:
 - `tests/e2e/real-dsh-bundle.test.ts`
 
 Deliverables:
-- Official `dsh.bundle.patch` and Cordis plugin export.
+- DSH `dsh.bundle.patch` manifest and Cordis plugin export.
 - Typed `dsh_test` tool with explicit consent, workspace containment, Docker-only execution, cancellation and bounded structured output.
 - Packed-consumer and real DSH install/registration/invocation evidence.
 - v0.2.0 npm package, GitHub tag/release, moving `v0` tag and plugin-directory submission.
@@ -518,6 +518,88 @@ Evidence required:
 - Commit, PR, CI, tag, GitHub release, npm provenance and marketplace submission identities.
 - Residual risks and any external repository-setting changes.
 
+### T007: v0.2.1 Community Proof And Release Automation
+
+Status: In_Progress
+Priority: P0
+Depends on: T006
+Blocks: v0.2.1 public release
+Story / Requirement: US-007, FR-023 through FR-028, NFR-013, NFR-014, SC-013 through SC-016
+Parallel: No
+Conflicts with: None
+
+Goal:
+Publish a bilingual, evidence-led v0.2.1 release; prove the runner against ten exact community bundles; and detect new DSH release candidates without weakening the published compatibility contract.
+
+Allowed files:
+- `.ai-platform/**`
+- `.github/**`
+- `src/**`
+- `tests/**`
+- `scripts/**`
+- `docs/**`
+- `examples/**`
+- `package.json`
+- `pnpm-lock.yaml`
+- `README.md`
+- `README.zh-CN.md`
+- `CHANGELOG.md`
+- `SECURITY.md`
+
+Test targets:
+- `tests/contracts/dsh-bundle.test.ts`
+- `tests/contracts/documentation.test.ts`
+- `tests/unit/community-validation.test.ts`
+- `tests/unit/dsh-release-train.test.ts`
+- `tests/e2e/pack-consumer.mjs`
+- `tests/e2e/real-dsh.test.ts`
+- `tests/e2e/real-dsh-bundle.test.ts`
+
+Deliverables:
+- English and Simplified Chinese README entrypoints with concise positioning, quickstart, lifecycle, evidence, comparison, safety and contribution paths.
+- Optional DSH host peer metadata with runtime/declaration independence and warning-free clean/profile installation.
+- Exact-version, credential-free community cohort runner plus aggregate public report for ten bundles.
+- Scheduled/manual DSH dist-tag watch and ephemeral real-host canary matrix.
+- Evidence-based multi-plugin lifecycle decision.
+- v0.2.1 npm package, GitHub release, immutable `v0.2.1` tag and moving `v0` tag.
+
+Acceptance criteria:
+- Both README files link to each other, document v0.2.1 and rc.6, contain the same safety boundary and ship in the npm tarball.
+- Clean installation with automatic peer installation disabled emits no peer warning, installs no DSH host package, and preserves runtime and declaration imports.
+- Ten exact npm bundle versions run in Docker with no inherited credentials; public output contains only aggregate results and first-failure-stage counts.
+- New npm `latest`/`next` values outside the support registry become canary inputs; a fixture proves candidate detection and disposable source enablement.
+- Canary tests use an ephemeral checkout and cannot alter the committed support registry or published package.
+- Multi-plugin scope has an explicit TDR grounded in cohort and community evidence.
+- Protected-branch PR, CI, trusted npm publication, public install and native DSH bundle verification pass.
+
+Definition of Done:
+- Focused contracts demonstrate RED before implementation and GREEN after it.
+- Full validation, package, real-host, native-bundle, audit, actionlint and governance gates pass.
+- Community cohort results and raw local evidence reconcile to the published aggregate.
+- v0.2.1 public identities resolve to one reviewed merge commit and npm provenance verifies.
+
+Validation commands:
+- `pnpm validate`
+- `pnpm test:e2e`
+- `pnpm test:bundle-e2e`
+- `pnpm test:pack`
+- `node scripts/run-community-validation.mjs --acknowledge-untrusted-code --dsh 0.1.0-rc.6 --plugin <exact-spec> ...`
+- `node scripts/check-dsh-release-train.mjs --metadata tests/fixtures/dsh-registry-current.json`
+- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T007`
+
+TDD plan:
+- RED: add bilingual/package contracts, immutable cohort/credential rules and DSH dist-tag candidate fixtures before implementation.
+- GREEN: implement the smallest documentation, runner and release-watch changes that satisfy those contracts.
+- REFACTOR: run ten public artifacts, publish only aggregate evidence, then complete full release validation.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T007.yaml`
+
+Evidence required:
+- RED/GREEN results, README parity, warning-free package/profile installs, cohort protocol and aggregate reconciliation.
+- DSH release discovery/canary fixtures and hosted workflow evidence.
+- Full release validation, commit/PR/CI/tag/GitHub/npm/provenance identities and residual risks.
+
 ## Gate
 
 - User explicitly authorized continuation on 2026-08-15.
@@ -525,3 +607,4 @@ Evidence required:
 - Each task executes only from its packet and remains `Needs_Review` until final user acceptance.
 - The user explicitly approved T004 and all release fixes on 2026-08-15.
 - The user explicitly approved the native DSH bundle direction and v0.2.0 release on 2026-08-15.
+- The user explicitly approved v0.2.1 and optimization items 1 through 5 on 2026-08-15.

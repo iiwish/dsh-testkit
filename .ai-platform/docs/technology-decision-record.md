@@ -359,7 +359,7 @@ Task impact:
 ## TDR-015: One Package, Two Entrypoints, One Engine
 
 Decision:
-Publish `dsh-testkit` as both the existing CLI/library package and an official DSH Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
+Publish `dsh-testkit` as both the existing CLI/library package and a DSH-native Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
 
 Requirement mapping:
 - US-006, FR-019, FR-020, SC-011
@@ -423,6 +423,66 @@ Rationale:
 
 Task impact:
 - T006 adds the output schema and result-projection tests.
+
+## TDR-018: Aggregate-First Community Validation
+
+Decision:
+Run public community bundles only from exact npm versions inside Docker on a disposable, credential-free runner. Keep per-plugin reports as local review evidence. Publish the cohort selection method, environment, aggregate verdicts and first-failure-stage distribution; publish a named failure only after reproducing it and giving the maintainer actionable evidence.
+
+Requirement mapping:
+- FR-025, NFR-014, SC-013
+
+Rationale:
+- Public code is executable but not automatically safe, and a compatibility failure is not a security rating.
+- Aggregate-first reporting validates market need without turning a new test harness into an unreviewed public ranking system.
+- Exact npm versions and retained local reports preserve reproducibility and a path to responsible maintainer outreach.
+
+Alternatives considered:
+- Publish a named pass/fail leaderboard: creates reputational claims before environment and root cause are reviewed.
+- Test mutable Git branches: cannot bind a result to an immutable artifact.
+- Reuse the developer workstation environment: risks leaking credentials and contaminating results with local state.
+
+Task impact:
+- T007 adds the cohort runner, fixed validation protocol, aggregate report and release evidence.
+
+## TDR-019: Dist-Tag Watch With Ephemeral Canary Enablement
+
+Decision:
+Discover exact DSH versions from the npm `latest` and `next` dist-tags. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become canary matrix inputs. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
+
+Requirement mapping:
+- FR-026, FR-027, SC-015
+
+Rationale:
+- A strict published registry prevents unrecognized host drift from being blamed on plugins.
+- A separate ephemeral canary provides early evidence without silently widening the product's support promise.
+
+Risks:
+- npm dist-tags can move or omit a release line.
+- Canary failures can be infrastructure failures rather than adapter incompatibility.
+
+Mitigations:
+- Record the resolved exact version and dist-tag metadata, keep verdict categories separate, and require reviewed real-host evidence before changing support.
+
+Task impact:
+- T007 adds release discovery fixtures, canary preparation and the scheduled workflow.
+
+## TDR-020: Defer Multi-Plugin Lifecycle Execution
+
+Decision:
+Keep v0.2.1 focused on one subject plugin per isolated lifecycle. The next scenario experiment is a declarative prerequisite profile or fixed support-bundle fixture, not arbitrary multi-plugin update/uninstall/recovery semantics. General multi-plugin lifecycle behavior enters scope only when named field evidence demonstrates a failure that neither a prerequisite profile, single-plugin Testkit nor composition checks can reproduce.
+
+Requirement mapping:
+- FR-024, SC-016
+
+Rationale:
+- Multi-plugin state ownership, update order and residue attribution introduce a new scenario model rather than a small extension.
+- The current ecosystem already has doctor/preflight and composition-check implementations; duplicating them would dilute Testkit's real-host lifecycle boundary.
+- The v0.2.1 cohort completed ten exact-version Docker runs: two passed, five first failed at boot, and three first failed at uninstall. All five boot-first cases required a service absent from the minimal isolated profile, which supports prerequisite-profile fixtures before general multi-plugin orchestration.
+- The uninstall-first cases already produced distinct single-subject lifecycle evidence for package policy, timeout and residue classes; they do not require cross-plugin semantics to reproduce.
+
+Task impact:
+- T007 records the decision after the cohort run and keeps the v1 scenario/report contracts unchanged.
 
 ## User Review Gate
 

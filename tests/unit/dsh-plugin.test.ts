@@ -53,6 +53,14 @@ describe('native DSH tool adapter', () => {
     expect(runCli).not.toHaveBeenCalled()
   })
 
+  it('validates model arguments before executing the adapter', async () => {
+    const tool = createDshTestTool()
+
+    await expect(tool.execute({ confirm: 'yes' }, {
+      signal: new AbortController().signal,
+    } as never)).rejects.toThrow('invalid arguments')
+  })
+
   it('forces Docker, disables implicit config and returns a bounded structured result', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-tool-run-'))
     const workspace = await realpath(root)

@@ -1,6 +1,6 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.2
+Version: v0.2.1
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
 Last updated: 2026-08-15
@@ -75,9 +75,18 @@ Scenario:
 As a DSH user, I want to invoke Testkit as a native DSH tool, so that I can test the current plugin workspace without leaving the DSH workflow.
 
 Scenario:
-1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装官方 bundle 形态。
+1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装 DSH 原生 bundle 形态。
 2. DSH 注册 `dsh_test` tool；用户明确确认后，tool 以当前 workspace 为默认输入。
 3. Testkit 仍只通过 Docker runner 加载和执行被测插件，并返回 verdict、摘要和证据路径。
+
+### US-007: AI 插件维护者获得可复核的社区与版本证据
+
+As an AI-assisted plugin maintainer, I want one reproducible real-host gate across public plugins and DSH release candidates, so that generated code is judged by lifecycle evidence rather than the generating agent's confidence.
+
+Scenario:
+1. 维护者在不携带模型密钥、npm token 或用户 Docker 凭证的一次性环境中，对精确版本的社区插件运行 quick suite。
+2. 公开报告仅声明已执行的环境、阶段、聚合 verdict 和发现类型；未复现并通知维护者的单一插件失败不做命名披露。
+3. 新 DSH dist-tag 出现时，自动化先识别未支持版本，再在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
 
 ## 4. 核心用户旅程
 
@@ -110,10 +119,16 @@ Scenario:
 - FR-016: CLI 必须提供稳定退出码，区分 test failure、flaky、unsupported、invalid input 和 infrastructure failure。
 - FR-017: Runner 中断、超时或宿主崩溃后，Testkit 必须尽力收集阶段证据并清理临时资源。
 - FR-018: 用户必须能重跑单个失败 case，并使用同一环境指纹生成复现命令。
-- FR-019: npm 包必须声明官方 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
+- FR-019: npm 包必须声明 DSH 规范的 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
 - FR-020: `dsh_test` 必须复用同一个生命周期引擎，强制 Docker runner，不暴露 `--unsafe-local`、任意输出目录或可变来源开关。
 - FR-021: `dsh_test` 必须要求显式执行确认，将本地输入限制在当前 workspace 的真实路径内，并把 DSH 取消信号传递到所拥有的 runner 进程。
 - FR-022: tool 结果必须是有界的结构化值，至少包含退出码、verdict、运行目录、报告路径、摘要和诊断；完整证据保存在 Testkit 运行目录。
+- FR-023: 英文 `README.md` 与简体中文 `README.zh-CN.md` 必须共享定位、支持版本、安装命令、生命周期、安全边界和文档入口。
+- FR-024: README 必须明确区分 Testkit 与单元测试、plugin doctor/preflight 和 composition check，不抢占静态诊断或市场定位。
+- FR-025: 社区验证工具必须只接受精确 npm 版本，强制 Docker，从子进程环境移除凭证，输出不包含插件名称的聚合报告，并保留本地详细证据供复核。
+- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag，并将未进入支持注册表的精确版本作为可机器消费的 canary matrix 输入。
+- FR-027: Canary 可在一次性 CI checkout 中临时启用候选 DSH 版本并运行真实宿主测试，但不得修改发布包的支持列表或将 canary 通过宣称为正式支持。
+- FR-028: v0.2.1 必须从受保护分支的 reviewed merge commit 发布，并验证 tag、GitHub Release、npm provenance、公共安装与 DSH bundle 运行身份。
 
 ## 6. Non-Functional Requirements
 
@@ -129,6 +144,8 @@ Scenario:
 - NFR-010 Usability: 常规插件 quick suite 只要求插件路径和 DSH 版本，不要求用户编写测试代码。
 - NFR-011 Offline support: 除获取显式依赖外，测试判断不依赖中央 SaaS；私有仓库可完全在 self-hosted runner 运行。
 - NFR-012 Schema stability: 机器输出和退出码的破坏性变化必须升级 schema 或主版本并提供迁移说明。
+- NFR-013 Documentation parity: 发布检查必须同时验证两份 README 的当前版本、DSH 支持线、语言切换和安全声明。
+- NFR-014 Responsible disclosure: 社区验证结果是环境绑定的兼容性证据，不是安全评级；命名失败披露必须先复现并给作者可操作证据。
 
 ## 7. 功能范围
 
@@ -146,7 +163,7 @@ Scenario:
 ### v0.2 范围
 
 - 保留 v0.1 CLI、Action、report schema 和生命周期语义。
-- 将同一个 npm 包发布为官方 DSH Profile Bundle。
+- 将同一个 npm 包发布为 DSH 原生 Profile Bundle。
 - 注册一个薄 `dsh_test` tool adapter，只负责安全参数收敛、Docker 调用、取消和结果投影。
 - 使用真实 DSH profile 验证 bundle 安装、配置组装、tool 注册和确定性调用。
 
@@ -220,6 +237,10 @@ Scenario:
 - SC-010: DSH 官方实现等价能力时，场景和 fixture 能被上游直接采用，而不是只能依赖项目私有服务。
 - SC-011: npm 安装包可被 DSH 标准 profile 命令识别为 bundle，且真实宿主能注册并调用 `dsh_test`。
 - SC-012: tool 调用的被测插件执行只发生在 Docker 中，workspace 越界、本地 symlink 逃逸、缺少确认和取消均有自动化回归测试。
+- SC-013: 至少 10 个精确版本的公开社区 bundle 在无凭证的 Docker cohort 中完成 quick suite，公开报告包含样本选择、环境、聚合 verdict 和首个失败阶段分布。
+- SC-014: 英文和中文 README 经过版本/链接/安全契约检查，打包消费者可读取两份文档。
+- SC-015: DSH dist-tag 发现器对“全部已支持”和“出现新候选”均有固定 fixture，新候选能启动真实宿主 canary matrix。
+- SC-016: 多插件完整生命周期是否进入下一版本，必须以 10 插件 cohort 和社区失败类型为证据做明确 TDR，不以功能完整性直觉扩张。
 
 ## 13. 验收标准
 

@@ -21,13 +21,44 @@ for (const path of [
   await access(path)
 }
 
-const readme = await readFile('README.md', 'utf8')
-if (readme.includes('YOUR_ORG')) throw new Error('README.md contains an unresolved repository placeholder')
-if (!readme.includes('dsh plugin --profile web add dsh-testkit@0.2.0')) {
-  throw new Error('README.md must document the native DSH bundle installation path')
+const readmes = await Promise.all([
+  readFile('README.md', 'utf8'),
+  readFile('README.zh-CN.md', 'utf8'),
+])
+for (const [index, readme] of readmes.entries()) {
+  const path = index === 0 ? 'README.md' : 'README.zh-CN.md'
+  if (readme.includes('YOUR_ORG')) throw new Error(`${path} contains an unresolved repository placeholder`)
+  if (!readme.includes(`dsh plugin --profile web add dsh-testkit@${manifest.version}`)) {
+    throw new Error(`${path} must document the current native DSH bundle installation path`)
+  }
 }
 if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') {
-  throw new Error('package.json must declare the official DSH bundle patch')
+  throw new Error('package.json must declare the DSH bundle patch')
+}
+
+const positioningFiles = [
+  'README.md',
+  'README.zh-CN.md',
+  '.ai-platform/docs/product-design.md',
+  '.ai-platform/docs/technology-decision-record.md',
+  '.ai-platform/docs/release-report.md',
+  '.ai-platform/specs/lifecycle-runner/spec.md',
+  '.ai-platform/specs/lifecycle-runner/plan.md',
+  '.ai-platform/specs/lifecycle-runner/tasks.md',
+]
+const unsupportedClaims = [
+  'official DSH Profile Bundle',
+  'Official DSH Profile Bundle',
+  'Official directory',
+  'Official plugin directory',
+  '官方 bundle 形态',
+  '官方 `dsh.bundle.patch`',
+  '官方 DSH Profile Bundle',
+]
+for (const path of positioningFiles) {
+  const contents = await readFile(path, 'utf8')
+  const claim = unsupportedClaims.find(candidate => contents.includes(candidate))
+  if (claim !== undefined) throw new Error(`${path} makes an unsupported official-status claim: ${claim}`)
 }
 const bundlePatch = await readFile('cordis.patch.yml', 'utf8')
 if (!bundlePatch.includes('id: tool-dsh-testkit') || !bundlePatch.includes('name: dsh-testkit')) {

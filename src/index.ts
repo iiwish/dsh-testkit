@@ -1,4 +1,6 @@
 export * from './adapters/dsh/support.js'
+export * from './adapters/dsh/release-train.js'
+export * from './community/validation.js'
 export * from './config/scenario.js'
 export * from './domain/lifecycle.js'
 export * from './domain/report.js'

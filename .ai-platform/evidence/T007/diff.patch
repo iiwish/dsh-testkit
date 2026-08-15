@@ -1,0 +1,2006 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 4bf4a2f..d7b04c2 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -3 +3 @@
+-Version: v0.2
++Version: v0.2.1
+@@ -78 +78 @@ Scenario:
+-1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装官方 bundle 形态。
++1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装 DSH 原生 bundle 形态。
+@@ -81,0 +82,9 @@ Scenario:
++### US-007: AI 插件维护者获得可复核的社区与版本证据
++
++As an AI-assisted plugin maintainer, I want one reproducible real-host gate across public plugins and DSH release candidates, so that generated code is judged by lifecycle evidence rather than the generating agent's confidence.
++
++Scenario:
++1. 维护者在不携带模型密钥、npm token 或用户 Docker 凭证的一次性环境中，对精确版本的社区插件运行 quick suite。
++2. 公开报告仅声明已执行的环境、阶段、聚合 verdict 和发现类型；未复现并通知维护者的单一插件失败不做命名披露。
++3. 新 DSH dist-tag 出现时，自动化先识别未支持版本，再在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
++
+@@ -113 +122 @@ Scenario:
+-- FR-019: npm 包必须声明官方 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
++- FR-019: npm 包必须声明 DSH 规范的 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
+@@ -116,0 +126,6 @@ Scenario:
++- FR-023: 英文 `README.md` 与简体中文 `README.zh-CN.md` 必须共享定位、支持版本、安装命令、生命周期、安全边界和文档入口。
++- FR-024: README 必须明确区分 Testkit 与单元测试、plugin doctor/preflight 和 composition check，不抢占静态诊断或市场定位。
++- FR-025: 社区验证工具必须只接受精确 npm 版本，强制 Docker，从子进程环境移除凭证，输出不包含插件名称的聚合报告，并保留本地详细证据供复核。
++- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag，并将未进入支持注册表的精确版本作为可机器消费的 canary matrix 输入。
++- FR-027: Canary 可在一次性 CI checkout 中临时启用候选 DSH 版本并运行真实宿主测试，但不得修改发布包的支持列表或将 canary 通过宣称为正式支持。
++- FR-028: v0.2.1 必须从受保护分支的 reviewed merge commit 发布，并验证 tag、GitHub Release、npm provenance、公共安装与 DSH bundle 运行身份。
+@@ -131,0 +147,2 @@ Scenario:
++- NFR-013 Documentation parity: 发布检查必须同时验证两份 README 的当前版本、DSH 支持线、语言切换和安全声明。
++- NFR-014 Responsible disclosure: 社区验证结果是环境绑定的兼容性证据，不是安全评级；命名失败披露必须先复现并给作者可操作证据。
+@@ -149 +166 @@ Scenario:
+-- 将同一个 npm 包发布为官方 DSH Profile Bundle。
++- 将同一个 npm 包发布为 DSH 原生 Profile Bundle。
+@@ -222,0 +240,4 @@ Scenario:
++- SC-013: 至少 10 个精确版本的公开社区 bundle 在无凭证的 Docker cohort 中完成 quick suite，公开报告包含样本选择、环境、聚合 verdict 和首个失败阶段分布。
++- SC-014: 英文和中文 README 经过版本/链接/安全契约检查，打包消费者可读取两份文档。
++- SC-015: DSH dist-tag 发现器对“全部已支持”和“出现新候选”均有固定 fixture，新候选能启动真实宿主 canary matrix。
++- SC-016: 多插件完整生命周期是否进入下一版本，必须以 10 插件 cohort 和社区失败类型为证据做明确 TDR，不以功能完整性直觉扩张。
+diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index 5e93034..9a33975 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -11 +11 @@ Release commit: [`73e6058258564698911f3b1ca92d062647f1b423`](https://github.com/
+-DSH Testkit v0.2.0 preserves the CLI, GitHub Action and v1 report contracts while publishing the same lifecycle engine as an official DSH Profile Bundle. The bundle registers `dsh_test`, requires both a confirmation argument and DSH pre-execution approval for agent-originated calls, constrains local inputs and outputs to the active workspace, and always executes the tested plugin through Docker.
++DSH Testkit v0.2.0 preserves the CLI, GitHub Action and v1 report contracts while publishing the same lifecycle engine as a DSH-native Profile Bundle. The bundle registers `dsh_test`, requires both a confirmation argument and DSH pre-execution approval for agent-originated calls, constrains local inputs and outputs to the active workspace, and always executes the tested plugin through Docker.
+@@ -35 +35 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
+-| Official directory | [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is open with English and Chinese entries for the released package |
++| Community directory | [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is open with English and Chinese entries for the released package |
+@@ -61 +61 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
+-- Official plugin directory submission: [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562)
++- Community plugin directory submission: [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562)
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index 0eecd5b..e8371fe 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -362 +362 @@ Decision:
+-Publish `dsh-testkit` as both the existing CLI/library package and an official DSH Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
++Publish `dsh-testkit` as both the existing CLI/library package and a DSH-native Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
+@@ -426,0 +427,60 @@ Task impact:
++## TDR-018: Aggregate-First Community Validation
++
++Decision:
++Run public community bundles only from exact npm versions inside Docker on a disposable, credential-free runner. Keep per-plugin reports as local review evidence. Publish the cohort selection method, environment, aggregate verdicts and first-failure-stage distribution; publish a named failure only after reproducing it and giving the maintainer actionable evidence.
++
++Requirement mapping:
++- FR-025, NFR-014, SC-013
++
++Rationale:
++- Public code is executable but not automatically safe, and a compatibility failure is not a security rating.
++- Aggregate-first reporting validates market need without turning a new test harness into an unreviewed public ranking system.
++- Exact npm versions and retained local reports preserve reproducibility and a path to responsible maintainer outreach.
++
++Alternatives considered:
++- Publish a named pass/fail leaderboard: creates reputational claims before environment and root cause are reviewed.
++- Test mutable Git branches: cannot bind a result to an immutable artifact.
++- Reuse the developer workstation environment: risks leaking credentials and contaminating results with local state.
++
++Task impact:
++- T007 adds the cohort runner, fixed validation protocol, aggregate report and release evidence.
++
++## TDR-019: Dist-Tag Watch With Ephemeral Canary Enablement
++
++Decision:
++Discover exact DSH versions from the npm `latest` and `next` dist-tags. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become canary matrix inputs. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
++
++Requirement mapping:
++- FR-026, FR-027, SC-015
++
++Rationale:
++- A strict published registry prevents unrecognized host drift from being blamed on plugins.
++- A separate ephemeral canary provides early evidence without silently widening the product's support promise.
++
++Risks:
++- npm dist-tags can move or omit a release line.
++- Canary failures can be infrastructure failures rather than adapter incompatibility.
++
++Mitigations:
++- Record the resolved exact version and dist-tag metadata, keep verdict categories separate, and require reviewed real-host evidence before changing support.
++
++Task impact:
++- T007 adds release discovery fixtures, canary preparation and the scheduled workflow.
++
++## TDR-020: Defer Multi-Plugin Lifecycle Execution
++
++Decision:
++Keep v0.2.1 focused on one subject plugin per isolated lifecycle. The next scenario experiment is a declarative prerequisite profile or fixed support-bundle fixture, not arbitrary multi-plugin update/uninstall/recovery semantics. General multi-plugin lifecycle behavior enters scope only when named field evidence demonstrates a failure that neither a prerequisite profile, single-plugin Testkit nor composition checks can reproduce.
++
++Requirement mapping:
++- FR-024, SC-016
++
++Rationale:
++- Multi-plugin state ownership, update order and residue attribution introduce a new scenario model rather than a small extension.
++- The current ecosystem already has doctor/preflight and composition-check implementations; duplicating them would dilute Testkit's real-host lifecycle boundary.
++- The v0.2.1 cohort completed ten exact-version Docker runs: two passed, five first failed at boot, and three first failed at uninstall. All five boot-first cases required a service absent from the minimal isolated profile, which supports prerequisite-profile fixtures before general multi-plugin orchestration.
++- The uninstall-first cases already produced distinct single-subject lifecycle evidence for package policy, timeout and residue classes; they do not require cross-plugin semantics to reproduce.
++
++Task impact:
++- T007 records the decision after the cohort run and keeps the v1 scenario/report contracts unchanged.
++
+diff --git a/.ai-platform/evidence/T006/summary.md b/.ai-platform/evidence/T006/summary.md
+index bd80966..94e688a 100644
+--- a/.ai-platform/evidence/T006/summary.md
++++ b/.ai-platform/evidence/T006/summary.md
+@@ -9 +9 @@ Last updated: 2026-08-15
+-- Added the official `dsh.bundle.patch` manifest and `tool-dsh-testkit` Cordis row.
++- Added the DSH `dsh.bundle.patch` manifest and `tool-dsh-testkit` Cordis row.
+@@ -17 +17 @@ Last updated: 2026-08-15
+-- Submitted [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) for official directory discovery.
++- Submitted [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) for community directory discovery.
+@@ -18,0 +19,2 @@ Last updated: 2026-08-15
++- Canonical documentation identifies the package as DSH-native without claiming official endorsement or official directory status.
++- DSH host packages remain bounded optional peers, while the root runtime and declarations stay independent of them; clean and profile installs emit no missing-peer warning.
+diff --git a/.ai-platform/evidence/T006/test-results.md b/.ai-platform/evidence/T006/test-results.md
+index 6177843..dd665fb 100644
+--- a/.ai-platform/evidence/T006/test-results.md
++++ b/.ai-platform/evidence/T006/test-results.md
+@@ -27,0 +28,8 @@ Last updated: 2026-08-15
++## Acceptance Follow-up
++
++- RED: the bundle contract found no optional peer metadata; `pnpm test:pack` emitted `Issues with peer dependencies found`; the release-readiness check found unsupported official-status wording.
++- GREEN: `pnpm validate` passed 16 files and 88 tests; coverage is 54.46% statements, 74.05% branches, 59.35% functions and 54.46% lines.
++- `pnpm test:pack`: passed with automatic peer installation disabled, no DSH host package installed, root import and public declarations independent of optional peers, and the Docker image smoke green.
++- `pnpm test:bundle-e2e`: passed in 293.186 seconds with no peer warning, a real DSH profile registration and invocation, healthy Docker lifecycle evidence, removal and profile cleanup.
++- `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
++
+@@ -37 +45 @@ Last updated: 2026-08-15
+-- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) submits the released bundle to the official community directory.
++- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) submits the released bundle to a community directory.
+diff --git a/.ai-platform/evidence/T007/summary.md b/.ai-platform/evidence/T007/summary.md
+new file mode 100644
+index 0000000..d720cf1
+--- /dev/null
++++ b/.ai-platform/evidence/T007/summary.md
+@@ -0,0 +1,33 @@
++# T007 Delivery Summary
++
++Status: In_Progress
++Task: v0.2.1 Community Proof And Release Automation
++Last updated: 2026-08-15
++
++## Implemented
++
++- Rebuilt the English README as an evidence-led project entrypoint and added a parity-checked Simplified Chinese README shipped in the npm package.
++- Defined the lifecycle boundary against unit tests, `dsh-plugin-doctor`/preflight and `dsh-composition-check` without claiming official status.
++- Preserved the DSH-native bundle as an optional thin adapter while keeping CLI and declarations independent of optional host peers.
++- Added `dsh-test-community`, accepting only exact npm versions, requiring explicit untrusted-code acknowledgement, forcing Docker, stripping credentials and emitting a subject-free aggregate.
++- Completed ten exact-version public plugin runs and published only aggregate, environment-bound evidence: 2 passed, 8 failed; first failure stage counts were boot 5 and uninstall 3.
++- Added exact `latest`/`next` dist-tag discovery, disposable AST-based canary enablement and a scheduled/manual real-host canary workflow.
++- Kept general multi-plugin lifecycle execution out of v0.2.1. Cohort evidence prioritizes declarative prerequisite profile/support-bundle fixtures before arbitrary cross-plugin update and uninstall semantics.
++- Made DSH host peers optional and removed host-package imports from the native adapter's runtime and declarations.
++
++## Review
++
++- Spec compliance: local implementation and all requirement contracts pass.
++- Bug and code quality: no open P0/P1 finding after focused, full, packed-consumer and real-host review.
++- Credential boundary: child environments use an allowlist and omit model, npm, GitHub, cloud, remote Docker and Docker registry credentials.
++- Disclosure boundary: committed cohort artifacts contain no plugin identity; raw named reports remain under a local `/tmp` evidence directory.
++- QA acceptance: local gates pass; hosted PR, main, release and public-consumer gates remain pending.
++- Execution mode: Direct Execute because current host policy does not authorize subagent delegation; the self-contained T007 packet constrained scope and validation.
++
++## Residual Risks
++
++- Five cohort subjects need a host service absent from the minimal isolated profile. A prerequisite-profile contract is the next evidence-led experiment.
++- Docker reduces exposure but is not a hardened malware sandbox, and community code retains public-network access inside disposable containers.
++- Network tracing is unavailable; output-canary absence does not prove absence of egress.
++- DSH is still an rc contract. Canary success is evidence, not automatic support promotion.
++- Public release identities and provenance are pending the reviewed protected-branch merge and trusted-publishing workflow.
+diff --git a/.ai-platform/evidence/T007/test-results.md b/.ai-platform/evidence/T007/test-results.md
+new file mode 100644
+index 0000000..aafc442
+--- /dev/null
++++ b/.ai-platform/evidence/T007/test-results.md
+@@ -0,0 +1,43 @@
++# T007 Test Results
++
++Last updated: 2026-08-15
++
++## RED
++
++`pnpm vitest run tests/contracts/documentation.test.ts tests/unit/community-validation.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts`
++
++- Failed because `README.zh-CN.md`, the community validation module and the DSH release-train module did not exist.
++- Failed because package and bundle metadata still reported `0.2.0` and the changelog had no v0.2.1 entry.
++
++## GREEN
++
++- Focused contracts: 4 files and 9 tests passed after the first implementation; the release-train suite later expanded to 4 tests and stayed green.
++- `pnpm validate`: passed 19 files and 97 tests, typecheck, published contracts, Action pinning, release readiness, coverage and build.
++- Coverage: 55.40% statements, 74.74% branches, 60.62% functions and 55.40% lines; community validation is 100% covered and release-train discovery has 100% statement/function/line coverage.
++- `pnpm test:e2e`: passed 8 real DSH lifecycle cases against `0.1.0-rc.6` in 389.071 seconds.
++- `pnpm test:bundle-e2e`: passed real profile install, registration, `dsh_test` invocation, Docker lifecycle and removal in 81.972 seconds.
++- `pnpm test:pack`: passed for `dsh-testkit-0.2.1.tgz`, including both README files, both CLIs, warning-free optional peers, root imports, declarations and Docker image construction.
++- `publint v0.3.23`: passed.
++- `actionlint v1.7.12`: passed for all workflows, including DSH release watch.
++- `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
++- `npm pack --dry-run --json`: passed; version 0.2.1, bilingual docs, community CLI and compiled release/community modules are present.
++
++## Community Cohort
++
++- Ten exact npm versions completed sequential Docker quick suites with Testkit 0.2.1 and DSH `0.1.0-rc.6`.
++- Aggregate reconciliation: cohort size 10; passed 2; failed 8; first failure stage boot 5 and uninstall 3.
++- Public JSON and Markdown contain no plugin identity. Named reports and controller logs remain local at `/tmp/dsh-testkit-community-v0.2.1-20260815/.private` or the original pre-hardening `private` directory.
++- Environment fingerprint: Docker/Linux arm64, Node.js 22.23.2, pnpm 11.1.3, runner image `dsh-testkit-runner:0.2.1-b88cac3d08b2`.
++
++## DSH Release Train
++
++- Current fixture: `latest` and `next` deduplicate to supported `0.1.0-rc.6`, with no canary.
++- Candidate fixture: unseen `0.1.0-rc.7` becomes one canary input.
++- Disposable source test: AST-based enablement adds rc.7 only to a temporary support file and leaves the committed registry unchanged.
++- Live npm metadata on 2026-08-15: `latest`/`next` resolve only to supported `0.1.0-rc.6`; no hosted candidate run is currently required.
++
++## Hosted And Public Acceptance
++
++- Pending protected-branch PR and hosted CI.
++- Pending merge commit, `v0.2.1`, moving `v0`, GitHub Release and npm trusted publication/provenance.
++- Pending cold public install and native DSH profile verification of the published artifact.
+diff --git a/.ai-platform/specs/lifecycle-runner/analysis.md b/.ai-platform/specs/lifecycle-runner/analysis.md
+index 78a4145..3a40bc4 100644
+--- a/.ai-platform/specs/lifecycle-runner/analysis.md
++++ b/.ai-platform/specs/lifecycle-runner/analysis.md
+@@ -3 +3 @@
+-Version: v0.2
++Version: v0.2.1
+@@ -15 +15 @@ Last updated: 2026-08-15
+-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T006.yaml`
++- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T007.yaml`
+@@ -19 +19 @@ Last updated: 2026-08-15
+-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006.
++- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007.
+diff --git a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+index eba6dea..f404e3d 100644
+--- a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
++++ b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+@@ -3 +3 @@
+-Version: v0.2
++Version: v0.2.1
+@@ -30,0 +31,3 @@ Last updated: 2026-08-15
++- [x] FR-023 至 FR-028 分别定义双语入口、工具边界、社区 cohort、DSH release watch/canary 和 trusted patch release。[Traceability]
++- [x] 社区测试仅接受精确 npm 版本，明确无凭证环境、聚合披露与“不是安全评级”边界。[Safety]
++- [x] Canary 只修改一次性 CI checkout，不改动发布包支持声明。[Release Safety]
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T006.yaml b/.ai-platform/specs/lifecycle-runner/packets/T006.yaml
+index 5035f6f..84bffcf 100644
+--- a/.ai-platform/specs/lifecycle-runner/packets/T006.yaml
++++ b/.ai-platform/specs/lifecycle-runner/packets/T006.yaml
+@@ -46 +46 @@ codebase_context:
+-    - official dsh.bundle.patch package manifest
++    - DSH dsh.bundle.patch package manifest
+@@ -48 +48 @@ codebase_context:
+-    - @deepseek-ai/dsh-tools defineTool schema
++    - @deepseek-ai/dsh-tools ToolDefinition schema contract
+@@ -83 +83 @@ tdd_plan:
+-    expected_failure: Native tool module, official manifest and cancellation forwarding do not exist.
++    expected_failure: Native tool module, DSH manifest and cancellation forwarding do not exist.
+@@ -114 +114 @@ handoff:
+-  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit official plugin directory entry]
++  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit community plugin directory entry]
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T007.yaml b/.ai-platform/specs/lifecycle-runner/packets/T007.yaml
+new file mode 100644
+index 0000000..b0af2a0
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T007.yaml
+@@ -0,0 +1,124 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T007
++task_id: T007
++feature_id: lifecycle-runner
++mode: execute_one_task
++adapter: codex
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  product_contract: .ai-platform/docs/product-design.md
++  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
++  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
++  technical_decisions: .ai-platform/docs/technology-decision-record.md
++  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
++  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
++  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
++  approval_gates:
++    constitution: Confirmed
++    product_or_spec: Confirmed
++    technical_plan_and_work_graph: Confirmed
++    release_and_community_validation: User approved v0.2.1 and optimization items 1 through 5 on 2026-08-15
++work_unit:
++  title: v0.2.1 community proof and release automation
++  goal: Publish a bilingual evidence-led patch release, validate ten exact community bundles, and add a non-promissory DSH release canary.
++  epic: E001
++  story: US-007
++  requirements: [FR-023, FR-024, FR-025, FR-026, FR-027, FR-028, NFR-013, NFR-014, SC-013, SC-014, SC-015, SC-016]
++  priority: P0
++  depends_on: [T006]
++  blocks: [v0.2.1 public release]
++  parallel: false
++  conflicts_with: []
++codebase_context:
++  local_instructions: [AGENTS.md]
++  relevant_files:
++    - README.md
++    - package.json
++    - src/adapters/dsh/support.ts
++    - scripts/check-release-readiness.mjs
++    - tests/e2e/real-dsh.test.ts
++    - tests/e2e/real-dsh-bundle.test.ts
++    - .github/workflows/**
++  existing_patterns:
++    - runCli is the only controller entry into lifecycle execution.
++    - Unsupported DSH versions fail before runner construction.
++    - Docker is the default isolated runner and local execution requires explicit unsafe consent.
++    - Release publication runs only from immutable tags through npm trusted publishing.
++  interfaces_or_contracts:
++    - English README and Simplified Chinese README
++    - exact npm community subject specs
++    - aggregate-only community validation summary
++    - npm latest/next DSH dist-tags
++    - SUPPORTED_DSH_NPM_VERSIONS registry
++  forbidden_changes:
++    - Do not add static doctor rules, plugin rankings, marketplace behavior or a second lifecycle engine.
++    - Do not publish a named community failure before reproduction and maintainer-ready evidence.
++    - Do not inherit model, npm, GitHub, cloud or Docker registry credentials into community plugin execution.
++    - Do not commit a canary DSH version into the support registry without reviewed adapter evidence.
++    - Do not add, modify or commit the user-owned AGENTS.md file.
++execution_constraints:
++  branch_or_worktree: fix/v0.2.1-acceptance
++  allowed_files:
++    - .ai-platform/**
++    - .github/**
++    - src/**
++    - tests/**
++    - scripts/**
++    - docs/**
++    - examples/**
++    - package.json
++    - pnpm-lock.yaml
++    - README.md
++    - README.zh-CN.md
++    - CHANGELOG.md
++    - SECURITY.md
++  test_targets:
++    - tests/contracts/documentation.test.ts
++    - tests/contracts/dsh-bundle.test.ts
++    - tests/unit/community-validation.test.ts
++    - tests/unit/dsh-release-train.test.ts
++    - tests/e2e/pack-consumer.mjs
++    - tests/e2e/real-dsh.test.ts
++    - tests/e2e/real-dsh-bundle.test.ts
++  ownership_notes:
++    - Preserve the untracked AGENTS.md exactly as found.
++    - Community plugin code is untrusted even when public; use Docker and a disposable credential-free environment.
++tdd_plan:
++  required: true
++  exception: README prose and public release operations use contract/hosted validation rather than unit-level RED.
++  red:
++    command: pnpm vitest run tests/contracts/documentation.test.ts tests/unit/community-validation.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts
++    expected_failure: Chinese README, cohort runner, release discovery and v0.2.1 metadata do not exist.
++  green:
++    command: pnpm validate
++    expected_signal: Documentation, metadata, cohort, release-train, compatibility, coverage, typecheck and build contracts pass.
++  refactor:
++    command: pnpm test:e2e && pnpm test:bundle-e2e && pnpm test:pack
++    expected_signal: Existing lifecycle, native DSH bundle and clean packed-consumer acceptance remain green.
++validation_loop:
++  commands:
++    - pnpm validate
++    - pnpm test:e2e
++    - pnpm test:bundle-e2e
++    - pnpm test:pack
++    - pnpm audit --prod --registry https://registry.npmjs.org/
++    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T007
++  retry_budget: 3
++  failure_policy:
++    first_failure: Fix the smallest documentation, metadata, runner or release-watch defect within scope.
++    second_failure: Classify lifecycle, package, infrastructure or disclosure-policy assumptions and add evidence.
++    third_failure: Stop named disclosure, preserve raw evidence and record a genuine external blocker without weakening acceptance.
++    beyond_budget: Stop and record blocked evidence.
++evidence_contract:
++  summary: .ai-platform/evidence/T007/summary.md
++  diff: .ai-platform/evidence/T007/diff.patch
++  test_results: .ai-platform/evidence/T007/test-results.md
++  required: [RED/GREEN results, README parity, community aggregate reconciliation, DSH canary evidence, full release validation, public identities, residual risks]
++review_contract:
++  required_passes: [spec_compliance, bug_code_quality, credential_boundary, disclosure_boundary, qa_acceptance, release_acceptance]
++  acceptance_rule: Public release requires a reviewed merge commit, green full gates, reconciled aggregate community evidence, trusted npm publication and public install verification.
++handoff:
++  external_issue: null
++  pull_request: null
++  finish_options: [merge reviewed pull request, publish v0.2.1, move v0, prepare unofficial Show-and-tell draft]
++stop_conditions: [Docker unavailable for final E2E, community runner would expose credentials, aggregate cannot reconcile to raw reports, npm trusted publisher unavailable, unresolved release blocker]
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index 93c3f07..0cdf11d 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -3 +3 @@
+-Version: v0.2
++Version: v0.2.1
+@@ -68 +68 @@ cordis.patch.yml
+-- Add the official `dsh.bundle.patch` manifest and Cordis plugin export.
++- Add the DSH `dsh.bundle.patch` manifest and Cordis plugin export.
+@@ -73,0 +74,8 @@ cordis.patch.yml
++### Slice 5: v0.2.1 Community Proof And Release-Train Automation
++
++- Publish paired English and Simplified Chinese README entrypoints with current-version checks and a precise comparison boundary.
++- Add a credential-free, exact-version community cohort runner that emits aggregate public evidence while retaining detailed local reports.
++- Add npm dist-tag discovery and an ephemeral DSH candidate matrix without widening the published support registry.
++- Record the evidence-based decision on multi-plugin lifecycle scope.
++- Release v0.2.1 through the protected-branch and trusted-publishing path.
++
+diff --git a/.ai-platform/specs/lifecycle-runner/research.md b/.ai-platform/specs/lifecycle-runner/research.md
+index 9bb9db7..8c36fe1 100644
+--- a/.ai-platform/specs/lifecycle-runner/research.md
++++ b/.ai-platform/specs/lifecycle-runner/research.md
+@@ -47 +47 @@ Source: DSH 官方文档、社区仓库源码和成熟插件生态官方测试
+-`dsh-plugin-check` 同时证明了官方 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
++`dsh-plugin-check` 同时证明了 DSH 原生 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
+diff --git a/.ai-platform/specs/lifecycle-runner/spec.md b/.ai-platform/specs/lifecycle-runner/spec.md
+index c37a5e6..32a749c 100644
+--- a/.ai-platform/specs/lifecycle-runner/spec.md
++++ b/.ai-platform/specs/lifecycle-runner/spec.md
+@@ -3 +3 @@
+-Version: v0.2
++Version: v0.2.1
+@@ -16 +16 @@ The lifecycle runner is the first DSH Testkit release slice. It turns a plugin s
+-- Non-functional requirements: `NFR-001` through `NFR-012` in Product Design.
++- Non-functional requirements: `NFR-001` through `NFR-014` in Product Design.
+@@ -31 +31,3 @@ This feature specification does not redefine those requirements. The Product Des
+-- Official DSH Profile Bundle manifest and a Docker-only `dsh_test` tool adapter over the same engine.
++- DSH-native Profile Bundle manifest and a Docker-only `dsh_test` tool adapter over the same engine.
++- English and Simplified Chinese project entrypoints with explicit doctor/composition boundaries.
++- Credential-free community cohort validation and DSH release-train canary automation.
+@@ -39,0 +42 @@ This feature specification does not redefine those requirements. The Product Des
++- A static doctor replacement, public plugin ranking system or automatic security certification.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index f3ff857..32e3709 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -455 +455 @@ Goal:
+-Make `dsh-testkit` an official installable DSH bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
++Make `dsh-testkit` a DSH-native installable bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
+@@ -480 +480 @@ Deliverables:
+-- Official `dsh.bundle.patch` and Cordis plugin export.
++- DSH `dsh.bundle.patch` manifest and Cordis plugin export.
+@@ -520,0 +521,82 @@ Evidence required:
++### T007: v0.2.1 Community Proof And Release Automation
++
++Status: In_Progress
++Priority: P0
++Depends on: T006
++Blocks: v0.2.1 public release
++Story / Requirement: US-007, FR-023 through FR-028, NFR-013, NFR-014, SC-013 through SC-016
++Parallel: No
++Conflicts with: None
++
++Goal:
++Publish a bilingual, evidence-led v0.2.1 release; prove the runner against ten exact community bundles; and detect new DSH release candidates without weakening the published compatibility contract.
++
++Allowed files:
++- `.ai-platform/**`
++- `.github/**`
++- `src/**`
++- `tests/**`
++- `scripts/**`
++- `docs/**`
++- `examples/**`
++- `package.json`
++- `pnpm-lock.yaml`
++- `README.md`
++- `README.zh-CN.md`
++- `CHANGELOG.md`
++- `SECURITY.md`
++
++Test targets:
++- `tests/contracts/dsh-bundle.test.ts`
++- `tests/contracts/documentation.test.ts`
++- `tests/unit/community-validation.test.ts`
++- `tests/unit/dsh-release-train.test.ts`
++- `tests/e2e/pack-consumer.mjs`
++- `tests/e2e/real-dsh.test.ts`
++- `tests/e2e/real-dsh-bundle.test.ts`
++
++Deliverables:
++- English and Simplified Chinese README entrypoints with concise positioning, quickstart, lifecycle, evidence, comparison, safety and contribution paths.
++- Optional DSH host peer metadata with runtime/declaration independence and warning-free clean/profile installation.
++- Exact-version, credential-free community cohort runner plus aggregate public report for ten bundles.
++- Scheduled/manual DSH dist-tag watch and ephemeral real-host canary matrix.
++- Evidence-based multi-plugin lifecycle decision.
++- v0.2.1 npm package, GitHub release, immutable `v0.2.1` tag and moving `v0` tag.
++
++Acceptance criteria:
++- Both README files link to each other, document v0.2.1 and rc.6, contain the same safety boundary and ship in the npm tarball.
++- Clean installation with automatic peer installation disabled emits no peer warning, installs no DSH host package, and preserves runtime and declaration imports.
++- Ten exact npm bundle versions run in Docker with no inherited credentials; public output contains only aggregate results and first-failure-stage counts.
++- New npm `latest`/`next` values outside the support registry become canary inputs; a fixture proves candidate detection and disposable source enablement.
++- Canary tests use an ephemeral checkout and cannot alter the committed support registry or published package.
++- Multi-plugin scope has an explicit TDR grounded in cohort and community evidence.
++- Protected-branch PR, CI, trusted npm publication, public install and native DSH bundle verification pass.
++
++Definition of Done:
++- Focused contracts demonstrate RED before implementation and GREEN after it.
++- Full validation, package, real-host, native-bundle, audit, actionlint and governance gates pass.
++- Community cohort results and raw local evidence reconcile to the published aggregate.
++- v0.2.1 public identities resolve to one reviewed merge commit and npm provenance verifies.
++
++Validation commands:
++- `pnpm validate`
++- `pnpm test:e2e`
++- `pnpm test:bundle-e2e`
++- `pnpm test:pack`
++- `node scripts/run-community-validation.mjs --acknowledge-untrusted-code --dsh 0.1.0-rc.6 --plugin <exact-spec> ...`
++- `node scripts/check-dsh-release-train.mjs --metadata tests/fixtures/dsh-registry-current.json`
++- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T007`
++
++TDD plan:
++- RED: add bilingual/package contracts, immutable cohort/credential rules and DSH dist-tag candidate fixtures before implementation.
++- GREEN: implement the smallest documentation, runner and release-watch changes that satisfy those contracts.
++- REFACTOR: run ten public artifacts, publish only aggregate evidence, then complete full release validation.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T007.yaml`
++
++Evidence required:
++- RED/GREEN results, README parity, warning-free package/profile installs, cohort protocol and aggregate reconciliation.
++- DSH release discovery/canary fixtures and hosted workflow evidence.
++- Full release validation, commit/PR/CI/tag/GitHub/npm/provenance identities and residual risks.
++
+@@ -527,0 +610 @@ Evidence required:
++- The user explicitly approved v0.2.1 and optimization items 1 through 5 on 2026-08-15.
+diff --git a/.github/workflows/dsh-release-watch.yml b/.github/workflows/dsh-release-watch.yml
+new file mode 100644
+index 0000000..17e74f9
+--- /dev/null
++++ b/.github/workflows/dsh-release-watch.yml
+@@ -0,0 +1,57 @@
++name: DSH Release Watch
++
++on:
++  schedule:
++    - cron: '17 3 * * *'
++  workflow_dispatch:
++
++permissions:
++  contents: read
++
++jobs:
++  discover:
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    outputs:
++      canary_versions: ${{ steps.release-train.outputs.canary_versions }}
++      has_canaries: ${{ steps.release-train.outputs.has_canaries }}
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '22'
++          cache: pnpm
++      - run: pnpm install --frozen-lockfile
++      - run: pnpm build
++      - id: release-train
++        name: Discover unseen DSH dist-tags
++        run: node scripts/check-dsh-release-train.mjs
++
++  canary:
++    needs: discover
++    if: needs.discover.outputs.has_canaries == 'true'
++    runs-on: ubuntu-latest
++    timeout-minutes: 60
++    strategy:
++      fail-fast: false
++      matrix:
++        dsh: ${{ fromJSON(needs.discover.outputs.canary_versions) }}
++    env:
++      DSH_TESTKIT_DSH_VERSION: ${{ matrix.dsh }}
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '22'
++          cache: pnpm
++      - run: pnpm install --frozen-lockfile
++      - name: Enable candidate in this disposable checkout
++        run: node scripts/enable-dsh-canary.mjs "$DSH_TESTKIT_DSH_VERSION"
++      - run: pnpm test:e2e
++      - run: pnpm test:bundle-e2e
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c4e8eb9..c9f0bdf 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,0 +7,18 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
++## [0.2.1] - 2026-08-15
++
++### Added
++
++- Added equivalent English and Simplified Chinese project entrypoints with an explicit boundary between lifecycle testing, doctor/preflight checks, and composition checks.
++- Added a credential-free, exact-version community cohort protocol with aggregate-only public reporting.
++- Added scheduled DSH dist-tag discovery and disposable real-host canaries for unrecognized release candidates.
++
++### Fixed
++
++- Made DSH host peers optional so clean CLI consumers do not install host packages or receive peer warnings.
++- Removed runtime and declaration imports of DSH host packages from the native bundle adapter.
++- Corrected the bundle positioning to describe a DSH-native community integration without implying official status.
++
++### Security
++
++- Kept community subject identities and detailed reports local, stripped credentials from cohort subprocesses, and required explicit acknowledgement before public plugin code runs.
++
+@@ -11 +29 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+-- Added the official `dsh.bundle.patch` manifest so `dsh-testkit` installs directly into DSH profiles.
++- Added a DSH-native `dsh.bundle.patch` manifest so `dsh-testkit` installs directly into DSH profiles.
+@@ -58 +76,2 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...HEAD
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...HEAD
++[0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1
+diff --git a/README.md b/README.md
+index 4b1cf69..ab32f17 100644
+--- a/README.md
++++ b/README.md
+@@ -0,0 +1,2 @@
++<div align="center">
++
+@@ -3 +5,19 @@
+-Real-host lifecycle testing for DeepSeek Harness plugins.
++**Deterministic, real-host lifecycle testing for DeepSeek Harness plugins.**
++
++[简体中文](README.zh-CN.md) · [Scenario reference](docs/scenarios.md) · [Architecture](docs/architecture.md) · [Contributing](docs/contributing.md)
++
++[![CI](https://github.com/iiwish/dsh-testkit/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/dsh-testkit/actions/workflows/ci.yml)
++[![npm](https://img.shields.io/npm/v/dsh-testkit?color=cb3837)](https://www.npmjs.com/package/dsh-testkit)
++[![Node.js](https://img.shields.io/node/v/dsh-testkit)](package.json)
++[![License: MIT](https://img.shields.io/badge/license-MIT-0b7285)](LICENSE)
++
++</div>
++
++DSH Testkit packs your plugin, installs it beside an exact DSH version in a disposable environment, boots the real host, exercises deterministic capabilities, uninstalls the plugin, reboots the same profile, and retains reviewable evidence. No model call or model API key is required.
++
++```text
++resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
++        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
++```
++
++## Quick Start
+@@ -5 +25 @@ Real-host lifecycle testing for DeepSeek Harness plugins.
+-DSH Testkit installs the exact DSH version and a plugin's packed artifact into a disposable environment, boots the real host, probes deterministic runtime capabilities, removes the plugin, reboots the same profile, and retains machine-readable evidence. It does not call a model or require a model API key.
++Requirements: Node.js 22 or newer and Docker.
+@@ -14 +34 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 \
+-DSH Testkit is also an official DSH Profile Bundle. Install it into the profile where you want the tool available:
++Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
+@@ -16,6 +36 @@ DSH Testkit is also an official DSH Profile Bundle. Install it into the profile
+-```bash
+-dsh plugin --profile web add dsh-testkit@0.2.0
+-dsh --profile web --dump-config
+-```
+-
+-The bundle registers `dsh_test`. It tests the active workspace by default, accepts the same expected row/service/tool assertions, and returns the verdict plus paths to the complete report. The tool always uses Docker, ignores implicit `dsh-testkit.yaml` configuration, restricts local inputs to the active workspace, requires `confirm: true`, and asks through DSH's pre-execution approval pipeline for agent-originated calls. It never exposes unsafe-local execution or arbitrary CLI arguments.
++The current adapter supports exactly `@deepseek-ai/dsh@0.1.0-rc.6`. Unknown versions stop before runner creation with exit code `4`, so host drift is not misreported as a plugin failure.
+@@ -23 +38 @@ The bundle registers `dsh_test`. It tests the active workspace by default, accep
+-Docker is the default runner. The plugin and its install scripts execute inside a fresh container, while the source mount is read-only and the run root uses disposable filesystems. Local execution is deliberately loud:
++## What It Proves
+@@ -25,3 +40,8 @@ Docker is the default runner. The plugin and its install scripts execute inside
+-```bash
+-pnpm dsh-test . --dsh 0.1.0-rc.6 --runner local --unsafe-local
+-```
++| Signal | How it is tested |
++|---|---|
++| Package integrity | Local directories go through `npm pack`; links and unpublished files cannot hide packaging defects. |
++| Real registration | Rows come from DSH `--dump-config`; services and tool schemas come from an in-process Cordis probe. |
++| Deterministic exercise | The baseline runtime probe and declared tool calls run through the real tool runtime without model selection. |
++| Clean removal | The same profile is rebooted after uninstall and checked for bundles, capabilities, processes, ports, and owned-path residue. |
++| Repeatability | `--suite full` runs five isolated attempts and returns `flaky` when semantic outcomes disagree. |
++| Observer limits | Unavailable coverage is disclosed; a required unavailable observer returns `unsupported`, never a false pass. |
+@@ -29 +49 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 --runner local --unsafe-local
+-## What It Proves
++It does **not** prove that arbitrary executable code is safe or that a plugin produces high-quality model output.
+@@ -31 +51 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 --runner local --unsafe-local
+-One scenario records these ordered stages:
++## Choose The Right Check
+@@ -33 +53 @@ One scenario records these ordered stages:
+-`resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup`
++These tools are complementary, not competing replacements.
+@@ -35,7 +55,6 @@ One scenario records these ordered stages:
+-- Local directories are copied and tested through `npm pack`, catching publication mistakes that links hide.
+-- DSH is installed at an exact npm version and invoked through its public profile and plugin commands.
+-- Expected config rows come from `--dump-config`; expected services and tool schemas come from an in-process Cordis probe.
+-- A baseline runtime-probe exercise always runs; declared tool exercises also use the real tool runtime without asking a model to choose or generate anything.
+-- Uninstall checks the profile manifest, bundle list, rebooted capabilities, and unexplained owned-root files.
+-- Every unavailable observer is disclosed. Requiring unavailable coverage yields `unsupported`, not a false pass.
+-- `--suite full` runs five isolated attempts and returns `flaky` when their semantic outcomes disagree.
++| Need | Best fit |
++|---|---|
++| Fast static checks, manifest diagnostics, dependency guidance | `dsh-plugin-doctor` or a plugin preflight check |
++| Conflicts among several bundles before or during assembly | `dsh-composition-check` |
++| Plugin-owned unit logic | Your test framework |
++| Install, boot, exercise, uninstall, reboot, recovery, residue, and repeatability on a real host | **DSH Testkit** |
+@@ -43 +62 @@ One scenario records these ordered stages:
+-The current DSH adapter supports `@deepseek-ai/dsh@0.1.0-rc.6`. Other exact versions fail with exit code `4` before a runner is created, preventing host-version drift from being reported as a plugin failure.
++DSH Testkit deliberately tests one subject plugin per isolated lifecycle. Multi-plugin state ownership and update order remain outside the current scenario contract until field evidence shows a failure that single-plugin lifecycle testing plus composition checks cannot reproduce.
+@@ -45 +64 @@ The current DSH adapter supports `@deepseek-ai/dsh@0.1.0-rc.6`. Other exact vers
+-## Scenario
++## Scenario As Code
+@@ -47 +66 @@ The current DSH adapter supports `@deepseek-ai/dsh@0.1.0-rc.6`. Other exact vers
+-Place `dsh-testkit.yaml` in the plugin project:
++Create `dsh-testkit.yaml` in the plugin project:
+@@ -73 +92 @@ observers:
+-See [Scenario Reference](docs/scenarios.md) for updates, expected failures, recovery, timeouts, and observer policy.
++The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, and stage reruns.
+@@ -75 +94 @@ See [Scenario Reference](docs/scenarios.md) for updates, expected failures, reco
+-## Evidence And CI
++## CI Evidence
+@@ -77 +96 @@ See [Scenario Reference](docs/scenarios.md) for updates, expected failures, reco
+-Each run writes:
++Use the stable moving major tag in GitHub Actions:
+@@ -79,5 +98,10 @@ Each run writes:
+-- `report.json`: versioned canonical result and environment fingerprint.
+-- `junit.xml`: one test case per lifecycle stage.
+-- `report.md`: support-ready lifecycle and observer summary.
+-- `logs/`: sanitized stdout and stderr for each external command.
+-- `evidence/`: resolved scenario, effective config, runtime probes, filesystem, process, and port snapshots.
++```yaml
++- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++  with:
++    plugin: .
++    dsh-version: 0.1.0-rc.6
++```
++
++The Action publishes JUnit and uploads the complete run directory. `artifact-name`, `check-name`, `output`, and retention are configurable; artifact ID, URL, and digest are outputs. GitHub Enterprise Server and other CI systems can invoke the CLI directly because `actions/upload-artifact@v4+` is not available on GHES.
++
++Stable exit codes are: `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported capability, and `5` flaky. Published JSON Schemas live at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
+@@ -85 +109 @@ Each run writes:
+-Full or explicitly repeated runs retain each complete report under `attempts/{nn}/` and write an aggregate root report with semantic digests. Use `--repeat 2` through `--repeat 20` for targeted repeatability checks; full requires at least five attempts.
++## DSH-Native Tool
+@@ -87 +111 @@ Full or explicitly repeated runs retain each complete report under `attempts/{nn
+-Lifecycle stages are stable case identifiers. Rerun a failed stage with its required prefix and the same scenario identity using `--case`:
++DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
+@@ -90 +114,2 @@ Lifecycle stages are stable case identifiers. Rerun a failed stage with its requ
+-pnpm dsh-test . --dsh 0.1.0-rc.6 --case boot
++dsh plugin --profile web add dsh-testkit@0.2.1
++dsh --profile web --dump-config
+@@ -93 +118 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 --case boot
+-Later stages are recorded as skipped and cleanup still runs. The selected case is preserved in `report.json` and the reproduction command.
++The bundle registers `dsh_test`, a thin adapter over the same lifecycle engine. It defaults to the active workspace, requires `confirm: true`, always uses Docker, ignores implicit repository configuration, rejects paths outside the workspace, and never exposes unsafe-local execution or arbitrary CLI arguments.
+@@ -95 +120 @@ Later stages are recorded as skipped and cleanup still runs. The selected case i
+-The package publishes `schemas/scenario-v1.json` and `schemas/report-v1.json` for CI consumers that validate artifacts outside Node.js.
++This adapter is convenient when DSH is already healthy. Keep the external CLI or CI Action as the independent recovery and release gate because an in-host tool cannot diagnose a host that fails before tool registration.
+@@ -97 +122 @@ The package publishes `schemas/scenario-v1.json` and `schemas/report-v1.json` fo
+-Stable exit codes are `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported required capability, and `5` flaky.
++## Community Validation
+@@ -99 +124 @@ Stable exit codes are `0` passed, `1` lifecycle failure, `2` invalid input, `3`
+-The composite Action publishes JUnit and uploads the complete run directory:
++Maintainers can run an exact-version public cohort with an explicit trust acknowledgement:
+@@ -101,5 +126,6 @@ The composite Action publishes JUnit and uploads the complete run directory:
+-```yaml
+-- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
+-  with:
+-    plugin: .
+-    dsh-version: 0.1.0-rc.6
++```bash
++pnpm exec dsh-test-community \
++  --acknowledge-untrusted-code \
++  --dsh 0.1.0-rc.6 \
++  --plugin example-plugin@1.2.3 \
++  --output /tmp/dsh-testkit-cohort
+@@ -108 +134,3 @@ The composite Action publishes JUnit and uploads the complete run directory:
+-Matrix jobs derive unique output directories, check names, and artifact names. `artifact-name`, `check-name`, `output`, and `artifact-retention-days` remain configurable; `artifact-id`, `artifact-url`, and `artifact-digest` are Action outputs. Pass complex extra options without shell quoting loss through `args-json`, for example `args-json: '["--expect-row", "row with spaces"]'`.
++The runner strips model, npm, GitHub, cloud, and Docker registry credentials from child processes. It keeps named reports locally and writes a subject-free aggregate summary for responsible public reporting.
++
++See the [v0.2.1 community validation report](docs/community-validation.md) for the selection method, aggregate evidence, limitations, and the resulting product decision.
+@@ -110 +138 @@ Matrix jobs derive unique output directories, check names, and artifact names. `
+-The composite Action targets GitHub.com because `actions/upload-artifact@v4+` is unavailable on GitHub Enterprise Server. GHES and other CI systems can invoke the `dsh-test` CLI directly and retain the same JSON/JUnit evidence.
++## Safety
+@@ -112 +140 @@ The composite Action targets GitHub.com because `actions/upload-artifact@v4+` is
+-Private plugins stay on the CI runner. The Testkit has no SaaS dependency and does not upload source or credentials.
++Plugins are executable code: package scripts and runtime code run during a lifecycle test. Docker narrows the default blast radius but is **not a hardened malware sandbox**. Use disposable infrastructure for unknown code and never use `--runner local --unsafe-local` for an untrusted plugin.
+@@ -114 +142 @@ Private plugins stay on the CI runner. The Testkit has no SaaS dependency and do
+-## Scope And Safety
++The native tool needs Docker daemon access and may execute package scripts with network access inside the runner. Confirmation is a trust decision, not a security certification. Private plugins stay on the CI runner; DSH Testkit has no SaaS dependency and does not upload source or credentials.
+@@ -116 +144 @@ Private plugins stay on the CI runner. The Testkit has no SaaS dependency and do
+-DSH Testkit tests DSH lifecycle behavior. It is not a plugin marketplace, cross-Harness standard, model-quality benchmark, static security scanner, or proof that executable code is safe. Docker reduces the default blast radius but is not a hardened malware sandbox. Do not run untrusted plugins with `--unsafe-local`.
++See [Architecture](docs/architecture.md) for trust boundaries and [Security Policy](SECURITY.md) for private vulnerability reporting.
+@@ -118 +146 @@ DSH Testkit tests DSH lifecycle behavior. It is not a plugin marketplace, cross-
+-The native `dsh_test` tool requires access to the Docker daemon and can execute package scripts with network access inside the runner. Confirmation is a deliberate trust decision, not a security certification.
++## Contributing
+@@ -120 +148 @@ The native `dsh_test` tool requires access to the Docker daemon and can execute
+-Architecture and trust boundaries are documented in [Architecture](docs/architecture.md). Development workflow is in [Contributing](docs/contributing.md).
++Bug reports are most useful with the exact plugin version, DSH version, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md), then use the lifecycle-failure issue template for reproducible host behavior.
+@@ -122 +150 @@ Architecture and trust boundaries are documented in [Architecture](docs/architec
+-MIT License.
++DSH Testkit is an independent, unofficial community project released under the [MIT License](LICENSE).
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+new file mode 100644
+index 0000000..13e5897
+--- /dev/null
++++ b/README.zh-CN.md
+@@ -0,0 +1,150 @@
++<div align="center">
++
++# DSH Testkit
++
++**为 DeepSeek Harness 插件提供确定性的真实宿主生命周期测试。**
++
++[English](README.md) · [场景参考](docs/scenarios.md) · [架构](docs/architecture.md) · [参与贡献](docs/contributing.md)
++
++[![CI](https://github.com/iiwish/dsh-testkit/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/dsh-testkit/actions/workflows/ci.yml)
++[![npm](https://img.shields.io/npm/v/dsh-testkit?color=cb3837)](https://www.npmjs.com/package/dsh-testkit)
++[![Node.js](https://img.shields.io/node/v/dsh-testkit)](package.json)
++[![License: MIT](https://img.shields.io/badge/license-MIT-0b7285)](LICENSE)
++
++</div>
++
++DSH Testkit 会打包插件，在一次性环境中将其与精确版本的 DSH 一同安装，启动真实宿主，执行确定性能力探测，卸载插件，重启同一个 profile，并保留可复核的证据。整个过程不调用模型，也不需要模型 API Key。
++
++```text
++resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
++        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
++```
++
++## 快速开始
++
++运行要求：Node.js 22 或更高版本，以及 Docker。
++
++```bash
++pnpm add -D dsh-testkit
++pnpm dsh-test . --dsh 0.1.0-rc.6 \
++  --expect-row tool-my-plugin \
++  --expect-tool my_tool
++```
++
++Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `report.json`、`junit.xml`、`report.md`、脱敏命令日志和各阶段证据。
++
++当前 adapter 仅支持 `@deepseek-ai/dsh@0.1.0-rc.6`。未知版本会在创建 runner 之前以退出码 `4` 停止，避免把宿主版本漂移误报成插件故障。
++
++## 它能证明什么
++
++| 信号 | 测试方式 |
++|---|---|
++| 包完整性 | 本地目录必须经过 `npm pack`，软链接和未发布文件无法掩盖打包缺陷。 |
++| 真实注册 | 配置 row 来自 DSH `--dump-config`；service 和 tool schema 来自进程内 Cordis probe。 |
++| 确定性执行 | 基础 runtime probe 和声明的 tool 调用都经过真实 tool runtime，不依赖模型选择。 |
++| 干净卸载 | 卸载后重启同一 profile，并检查 bundle、能力、进程、端口和归属路径残留。 |
++| 可重复性 | `--suite full` 运行五次隔离尝试；语义结果不一致时返回 `flaky`。 |
++| 观测边界 | 不可用的 observer 会明确披露；必需 observer 不可用时返回 `unsupported`，不会伪造通过。 |
++
++它**不能**证明任意可执行代码是安全的，也不能证明插件生成的模型结果质量足够高。
++
++## 选择正确的检查工具
++
++这些工具彼此互补，而不是相互替代。
++
++| 需求 | 合适的工具 |
++|---|---|
++| 快速静态检查、manifest 诊断、依赖建议 | `dsh-plugin-doctor` 或 plugin preflight check |
++| 多个 bundle 在 assemble 前后发生冲突 | `dsh-composition-check` |
++| 插件自身的单元逻辑 | 你的测试框架 |
++| 在真实宿主验证安装、启动、执行、卸载、重启、恢复、残留与重复性 | **DSH Testkit** |
++
++DSH Testkit 当前刻意让每个隔离生命周期只包含一个被测插件。只有真实案例证明“单插件生命周期测试 + composition check”无法复现某类故障时，才会扩展多插件状态归属和更新顺序的场景契约。
++
++## 场景即代码
++
++在插件项目中创建 `dsh-testkit.yaml`：
++
++```yaml
++schemaVersion: 1
++name: my-plugin-quick
++subject:
++  source: .
++dsh:
++  version: 0.1.0-rc.6
++expect:
++  boot: success
++  rows: [tool-my-plugin]
++  services: [myService]
++  tools: [my_tool]
++exercise:
++  - tool: my_tool
++    arguments:
++      value: smoke
++observers:
++  filesystem: required
++  process: preferred
++  ports: preferred
++  network: off
++  canary: preferred
++```
++
++[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略和单阶段重跑说明。
++
++## CI 证据
++
++在 GitHub Actions 中使用固定的滚动主版本 tag：
++
++```yaml
++- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++  with:
++    plugin: .
++    dsh-version: 0.1.0-rc.6
++```
++
++Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check 名称、输出路径和保留时间均可配置；artifact ID、URL 和 digest 可作为输出使用。由于 `actions/upload-artifact@v4+` 不支持 GHES，GitHub Enterprise Server 和其他 CI 可直接调用 CLI 并保留相同证据。
++
++稳定退出码为：`0` 通过、`1` 生命周期失败、`2` 输入无效、`3` 基础设施错误、`4` 能力不支持、`5` 结果不稳定。JSON Schema 发布在 `dsh-testkit/schemas/report-v1.json` 和 `dsh-testkit/schemas/scenario-v1.json`。
++
++## DSH 原生工具
++
++DSH Testkit 还提供一个可选的、由社区维护的 DSH-native Profile Bundle：
++
++```bash
++dsh plugin --profile web add dsh-testkit@0.2.1
++dsh --profile web --dump-config
++```
++
++该 bundle 注册 `dsh_test`，它只是同一个生命周期引擎的薄 adapter。工具默认测试当前 workspace，要求 `confirm: true`，始终使用 Docker，忽略仓库中的隐式配置，拒绝 workspace 之外的路径，也不暴露 unsafe-local 执行和任意 CLI 参数。
++
++当 DSH 已经健康运行时，这种入口更方便。外部 CLI 或 CI Action 仍应作为独立的恢复和发布门禁，因为宿主在 tool 注册前就启动失败时，宿主内工具无法诊断自己。
++
++## 社区验证
++
++维护者可以在明确确认信任边界后，对精确版本的公开插件运行 cohort：
++
++```bash
++pnpm exec dsh-test-community \
++  --acknowledge-untrusted-code \
++  --dsh 0.1.0-rc.6 \
++  --plugin example-plugin@1.2.3 \
++  --output /tmp/dsh-testkit-cohort
++```
++
++Runner 会从子进程中移除模型、npm、GitHub、云平台和 Docker registry 凭证。带名称的详细报告只保存在本地，另行生成不含插件身份的聚合摘要，用于负责任的公开报告。
++
++[v0.2.1 社区验证报告](docs/community-validation.md)记录了样本选择方法、聚合证据、限制条件和由此形成的产品决策。
++
++## 安全边界
++
++插件是可执行代码：生命周期测试会运行 package script 和 runtime 代码。Docker 可以缩小默认影响范围，但它**不是经过强化的恶意代码沙箱**。测试未知代码时应使用一次性基础设施；绝不能对不受信任的插件使用 `--runner local --unsafe-local`。
++
++原生工具需要访问 Docker daemon，并可能在 runner 内执行具有网络访问能力的 package script。确认执行是一项信任决策，不是安全认证。私有插件始终留在 CI runner；DSH Testkit 不依赖 SaaS，也不会上传源码或凭证。
++
++更多信任边界见[架构说明](docs/architecture.md)，私密漏洞报告流程见[安全策略](SECURITY.md)。
++
++## 参与贡献
++
++高质量故障报告应包含精确插件版本、DSH 版本、失败阶段、`report.json` 和脱敏日志。请先阅读[贡献指南](docs/contributing.md)，再使用 lifecycle-failure issue 模板提交可复现的宿主行为。
++
++DSH Testkit 是独立、非官方的社区项目，采用 [MIT License](LICENSE) 发布。
+diff --git a/SECURITY.md b/SECURITY.md
+index be02fd2..9944d4e 100644
+--- a/SECURITY.md
++++ b/SECURITY.md
+@@ -9 +9,2 @@ Security fixes are provided for the latest published minor release.
+-| 0.1.x | Yes |
++| 0.2.x | Yes |
++| 0.1.x | No |
+diff --git a/docs/community-validation-v0.2.1.json b/docs/community-validation-v0.2.1.json
+new file mode 100644
+index 0000000..2b22f6f
+--- /dev/null
++++ b/docs/community-validation-v0.2.1.json
+@@ -0,0 +1,15 @@
++{
++  "schemaVersion": 1,
++  "cohortSize": 10,
++  "dshVersion": "0.1.0-rc.6",
++  "testkitVersion": "0.2.1",
++  "completedAt": "2026-08-15T14:04:18.442Z",
++  "verdicts": {
++    "failed": 8,
++    "passed": 2
++  },
++  "firstFailureStages": {
++    "boot": 5,
++    "uninstall": 3
++  }
++}
+diff --git a/docs/community-validation.md b/docs/community-validation.md
+new file mode 100644
+index 0000000..3bef8e0
+--- /dev/null
++++ b/docs/community-validation.md
+@@ -0,0 +1,40 @@
++# Community Validation
++
++This page records environment-bound compatibility evidence for DSH Testkit v0.2.1. It is not a plugin ranking, security assessment, or claim that a failing subject is defective.
++
++## v0.2.1 Cohort
++
++- Completed: 2026-08-15
++- Testkit: `0.2.1`
++- DSH: `0.1.0-rc.6`
++- Runner: Docker, Linux arm64, Node.js 22.23.2, pnpm 11.1.3
++- Runner image: `dsh-testkit-runner:0.2.1-b88cac3d08b2`
++- Subject count: 10 exact npm versions
++
++Selection required a public npm release and a declared DSH bundle patch. The cohort covered tool, UI, MCP, usage, memory, update, and workflow-oriented bundles available on the collection date. Versions were fixed before execution; no dist-tag or mutable source entered the run.
++
++| Verdict | Count |
++|---|---:|
++| Passed | 2 |
++| Failed | 8 |
++
++| First failure stage | Count |
++|---|---:|
++| Boot | 5 |
++| Uninstall | 3 |
++
++All subjects ran sequentially through the Docker quick suite. The controller supplied an isolated `HOME` and `DSH_HOME`, public npm registry configuration, telemetry disablement, and a strict environment allowlist. Model, npm, GitHub, cloud, remote Docker, certificate, and Docker registry credentials were not inherited.
++
++## Interpretation
++
++Five first failures occurred because the isolated minimal profile did not provide a service required by the subject at activation time. This is evidence for a declarative prerequisite profile or support-bundle fixture, not enough evidence for arbitrary multi-plugin update and uninstall orchestration.
++
++The remaining first failures occurred during uninstall. Their local evidence separates package-policy rejection, command timeout, and owned-root residue rather than flattening them into a compatibility score. Named findings remain private until independently reproduced and accompanied by maintainer-ready evidence.
++
++The cohort therefore supports three current product decisions:
++
++1. Keep the deterministic, single-subject lifecycle as the stable contract.
++2. Explore declarative prerequisite profiles before a general multi-plugin lifecycle model.
++3. Keep static dependency guidance and cross-bundle composition analysis in doctor/preflight and composition-check tools.
++
++Observer limitations remain material: filesystem, process, port, and output-canary coverage were available; network tracing was not. Absence of observed egress is not proof that no egress occurred.
+diff --git a/package.json b/package.json
+index d2a7714..fc2d988 100644
+--- a/package.json
++++ b/package.json
+@@ -3 +3 @@
+-  "version": "0.2.0",
++  "version": "0.2.1",
+@@ -36 +36,2 @@
+-    "dsh-test": "dist/src/cli.js"
++    "dsh-test": "dist/src/cli.js",
++    "dsh-test-community": "scripts/run-community-validation.mjs"
+@@ -55,0 +57 @@
++    "scripts/run-community-validation.mjs",
+@@ -56,0 +59 @@
++    "README.zh-CN.md",
+@@ -65,0 +69 @@
++    "community:validate": "pnpm build && node scripts/run-community-validation.mjs",
+@@ -87,0 +92,11 @@
++  "peerDependenciesMeta": {
++    "@deepseek-ai/cordis": {
++      "optional": true
++    },
++    "@deepseek-ai/dsh-invariants": {
++      "optional": true
++    },
++    "@deepseek-ai/dsh-tools": {
++      "optional": true
++    }
++  },
+diff --git a/scripts/check-dsh-release-train.mjs b/scripts/check-dsh-release-train.mjs
+new file mode 100644
+index 0000000..76d5fa6
+--- /dev/null
++++ b/scripts/check-dsh-release-train.mjs
+@@ -0,0 +1,31 @@
++#!/usr/bin/env node
++import { readFile, writeFile } from 'node:fs/promises'
++import { parseArgs } from 'node:util'
++
++import { discoverDshReleaseTrain } from '../dist/src/adapters/dsh/release-train.js'
++import { SUPPORTED_DSH_NPM_VERSIONS } from '../dist/src/adapters/dsh/support.js'
++
++const { values } = parseArgs({
++  options: { metadata: { type: 'string' } },
++  strict: true,
++})
++
++const metadata = values.metadata === undefined
++  ? await fetch('https://registry.npmjs.org/@deepseek-ai%2fdsh', {
++      signal: AbortSignal.timeout(30_000),
++    }).then(async response => {
++      if (!response.ok) throw new Error(`npm registry returned HTTP ${response.status}`)
++      return await response.json()
++    })
++  : JSON.parse(await readFile(values.metadata, 'utf8'))
++
++const result = discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS)
++process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
++if (process.env.GITHUB_OUTPUT !== undefined) {
++  await writeFile(process.env.GITHUB_OUTPUT, [
++    `tagged_versions=${JSON.stringify(result.taggedVersions)}`,
++    `canary_versions=${JSON.stringify(result.canaryVersions)}`,
++    `has_canaries=${String(result.canaryVersions.length > 0)}`,
++    '',
++  ].join('\n'), { flag: 'a' })
++}
+diff --git a/scripts/check-release-readiness.mjs b/scripts/check-release-readiness.mjs
+index 0a9bfe6..39ebe30 100644
+--- a/scripts/check-release-readiness.mjs
++++ b/scripts/check-release-readiness.mjs
+@@ -24,4 +24,10 @@ for (const path of [
+-const readme = await readFile('README.md', 'utf8')
+-if (readme.includes('YOUR_ORG')) throw new Error('README.md contains an unresolved repository placeholder')
+-if (!readme.includes('dsh plugin --profile web add dsh-testkit@0.2.0')) {
+-  throw new Error('README.md must document the native DSH bundle installation path')
++const readmes = await Promise.all([
++  readFile('README.md', 'utf8'),
++  readFile('README.zh-CN.md', 'utf8'),
++])
++for (const [index, readme] of readmes.entries()) {
++  const path = index === 0 ? 'README.md' : 'README.zh-CN.md'
++  if (readme.includes('YOUR_ORG')) throw new Error(`${path} contains an unresolved repository placeholder`)
++  if (!readme.includes(`dsh plugin --profile web add dsh-testkit@${manifest.version}`)) {
++    throw new Error(`${path} must document the current native DSH bundle installation path`)
++  }
+@@ -30 +36,26 @@ if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') {
+-  throw new Error('package.json must declare the official DSH bundle patch')
++  throw new Error('package.json must declare the DSH bundle patch')
++}
++
++const positioningFiles = [
++  'README.md',
++  'README.zh-CN.md',
++  '.ai-platform/docs/product-design.md',
++  '.ai-platform/docs/technology-decision-record.md',
++  '.ai-platform/docs/release-report.md',
++  '.ai-platform/specs/lifecycle-runner/spec.md',
++  '.ai-platform/specs/lifecycle-runner/plan.md',
++  '.ai-platform/specs/lifecycle-runner/tasks.md',
++]
++const unsupportedClaims = [
++  'official DSH Profile Bundle',
++  'Official DSH Profile Bundle',
++  'Official directory',
++  'Official plugin directory',
++  '官方 bundle 形态',
++  '官方 `dsh.bundle.patch`',
++  '官方 DSH Profile Bundle',
++]
++for (const path of positioningFiles) {
++  const contents = await readFile(path, 'utf8')
++  const claim = unsupportedClaims.find(candidate => contents.includes(candidate))
++  if (claim !== undefined) throw new Error(`${path} makes an unsupported official-status claim: ${claim}`)
+diff --git a/scripts/enable-dsh-canary.mjs b/scripts/enable-dsh-canary.mjs
+new file mode 100644
+index 0000000..aa6bc6c
+--- /dev/null
++++ b/scripts/enable-dsh-canary.mjs
+@@ -0,0 +1,40 @@
++#!/usr/bin/env node
++import { readFile, writeFile } from 'node:fs/promises'
++import { parseArgs } from 'node:util'
++
++import ts from 'typescript'
++
++const EXACT_SEMVER = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
++
++const { values, positionals } = parseArgs({
++  options: { file: { type: 'string', default: 'src/adapters/dsh/support.ts' } },
++  allowPositionals: true,
++  strict: true,
++})
++const version = positionals[0]
++if (positionals.length !== 1 || version === undefined || !EXACT_SEMVER.test(version)) {
++  throw new Error('provide one exact semantic version to enable as a disposable canary')
++}
++
++const sourceText = await readFile(values.file, 'utf8')
++const source = ts.createSourceFile(values.file, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
++let versions
++function visit(node) {
++  if (ts.isVariableDeclaration(node)
++    && ts.isIdentifier(node.name)
++    && node.name.text === 'SUPPORTED_DSH_NPM_VERSIONS') {
++    const initializer = ts.isAsExpression(node.initializer) ? node.initializer.expression : node.initializer
++    if (ts.isArrayLiteralExpression(initializer)) versions = initializer
++  }
++  ts.forEachChild(node, visit)
++}
++visit(source)
++if (versions === undefined) throw new Error(`${values.file} does not declare SUPPORTED_DSH_NPM_VERSIONS as an array`)
++if (versions.elements.some(element => ts.isStringLiteral(element) && element.text === version)) process.exit(0)
++
++const multiline = sourceText.slice(versions.getStart(source), versions.end).includes('\n')
++const insertion = versions.elements.length === 0
++  ? `'${version}'`
++  : multiline ? `,\n  '${version}'` : `, '${version}'`
++const updated = `${sourceText.slice(0, versions.end - 1)}${insertion}${sourceText.slice(versions.end - 1)}`
++await writeFile(values.file, updated)
+diff --git a/scripts/run-community-validation.mjs b/scripts/run-community-validation.mjs
+new file mode 100644
+index 0000000..34cf07b
+--- /dev/null
++++ b/scripts/run-community-validation.mjs
+@@ -0,0 +1,138 @@
++#!/usr/bin/env node
++import { spawn } from 'node:child_process'
++import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++import { parseArgs } from 'node:util'
++
++import {
++  aggregateCommunityReports,
++  isExactSemver,
++  parseExactNpmSpec,
++  sanitizeCommunityEnvironment,
++} from '../dist/src/community/validation.js'
++import { TESTKIT_VERSION } from '../dist/src/version.js'
++import { RunReportSchema } from '../dist/src/domain/report.js'
++
++async function main() {
++
++const { values } = parseArgs({
++  options: {
++    help: { type: 'boolean', short: 'h' },
++    'acknowledge-untrusted-code': { type: 'boolean' },
++    dsh: { type: 'string' },
++    plugin: { type: 'string', multiple: true },
++    output: { type: 'string' },
++  },
++  strict: true,
++})
++
++if (values.help === true) {
++  process.stdout.write([
++    'Usage: dsh-test-community --acknowledge-untrusted-code --dsh <exact-version>',
++    '                          --plugin <exact-npm-spec>... --output <directory>',
++    '',
++    'Runs public plugin code sequentially in disposable Docker lifecycles.',
++    'Only community-summary.json is suitable for aggregate publication.',
++    '',
++  ].join('\n'))
++  return
++}
++
++if (values['acknowledge-untrusted-code'] !== true) {
++  throw new Error('--acknowledge-untrusted-code is required because public plugins execute package and runtime code')
++}
++if (values.dsh === undefined || !isExactSemver(values.dsh)) {
++  throw new Error('--dsh must be an exact semantic version')
++}
++if (values.output === undefined) throw new Error('--output is required')
++const plugins = values.plugin ?? []
++if (plugins.length === 0) throw new Error('at least one --plugin exact npm spec is required')
++plugins.forEach(parseExactNpmSpec)
++
++const root = resolve(values.output)
++await mkdir(root, { recursive: true })
++if ((await readdir(root)).length > 0) throw new Error(`output directory must be empty: ${root}`)
++
++const privateRoot = resolve(root, '.private')
++const home = resolve(privateRoot, 'home')
++const workspace = resolve(privateRoot, 'workspace')
++await Promise.all([
++  mkdir(home, { recursive: true, mode: 0o700 }),
++  mkdir(workspace, { recursive: true, mode: 0o700 }),
++])
++
++const environment = sanitizeCommunityEnvironment(process.env, home)
++const packageRoot = resolve(import.meta.dirname, '..')
++const cli = resolve(packageRoot, 'dist/src/cli.js')
++const results = []
++const identities = []
++
++async function execute(args) {
++  return await new Promise((complete, reject) => {
++    const child = spawn(process.execPath, args, {
++      cwd: workspace,
++      env: environment,
++      shell: false,
++      stdio: ['ignore', 'pipe', 'pipe'],
++    })
++    let stdout = ''
++    let stderr = ''
++    child.stdout.setEncoding('utf8')
++    child.stderr.setEncoding('utf8')
++    child.stdout.on('data', chunk => { stdout += chunk })
++    child.stderr.on('data', chunk => { stderr += chunk })
++    child.once('error', reject)
++    child.once('close', code => complete({ code: code ?? 3, stdout, stderr }))
++  })
++}
++
++for (const [index, subject] of plugins.entries()) {
++  const sample = `sample-${String(index + 1).padStart(2, '0')}`
++  const output = resolve(privateRoot, sample)
++  const execution = await execute([
++    cli,
++    subject,
++    '--dsh', values.dsh,
++    '--runner', 'docker',
++    '--suite', 'quick',
++    '--output', output,
++    '--no-color',
++  ])
++  await writeFile(resolve(privateRoot, `${sample}.controller.log`), [
++    `exitCode=${execution.code}`,
++    '',
++    '[stdout]',
++    execution.stdout,
++    '',
++    '[stderr]',
++    execution.stderr,
++  ].join('\n'), { mode: 0o600 })
++
++  let verdict = 'infrastructure_error'
++  let firstFailureStage = null
++  try {
++    const report = RunReportSchema.parse(JSON.parse(await readFile(resolve(output, 'report.json'), 'utf8')))
++    verdict = report.verdict
++    firstFailureStage = report.stages.find(stage => stage.status === 'failed' || stage.status === 'unsupported')?.id ?? null
++  } catch {
++    // Controller evidence retains failures that happen before a canonical report exists.
++  }
++  results.push({ subject, verdict, firstFailureStage })
++  identities.push({ sample, subject, output })
++  process.stdout.write(`${sample}: ${verdict}${firstFailureStage === null ? '' : ` at ${firstFailureStage}`}\n`)
++}
++
++await writeFile(resolve(privateRoot, 'subjects.private.json'), `${JSON.stringify(identities, null, 2)}\n`, { mode: 0o600 })
++const summary = aggregateCommunityReports(results, {
++  dshVersion: values.dsh,
++  testkitVersion: TESTKIT_VERSION,
++  completedAt: new Date().toISOString(),
++})
++await writeFile(resolve(root, 'community-summary.json'), `${JSON.stringify(summary, null, 2)}\n`, { mode: 0o644 })
++process.stdout.write(`aggregate: ${resolve(root, 'community-summary.json')}\n`)
++}
++
++await main().catch(error => {
++  process.stderr.write(`dsh-test-community: ${error instanceof Error ? error.message : String(error)}\n`)
++  process.exitCode = 2
++})
+diff --git a/src/adapters/dsh/release-train.ts b/src/adapters/dsh/release-train.ts
+new file mode 100644
+index 0000000..448ec1b
+--- /dev/null
++++ b/src/adapters/dsh/release-train.ts
+@@ -0,0 +1,34 @@
++import { isExactSemver } from '../../community/validation.js'
++
++export interface DshRegistryMetadata {
++  'dist-tags'?: Record<string, unknown>
++}
++
++export interface DshReleaseTrain {
++  taggedVersions: string[]
++  supportedVersions: string[]
++  canaryVersions: string[]
++}
++
++export function discoverDshReleaseTrain(
++  metadata: DshRegistryMetadata,
++  supportedVersions: readonly string[],
++): DshReleaseTrain {
++  const tags = metadata['dist-tags'] ?? {}
++  for (const tag of ['latest', 'next']) {
++    const value = tags[tag]
++    if (value !== undefined && (typeof value !== 'string' || !isExactSemver(value))) {
++      throw new Error(`DSH npm dist-tag ${tag} is not an exact semantic version`)
++    }
++  }
++  const taggedVersions = [...new Set(['latest', 'next'].flatMap(tag => {
++    const value = tags[tag]
++    return typeof value === 'string' && isExactSemver(value) ? [value] : []
++  }))].sort((left, right) => left.localeCompare(right))
++  const supported = [...new Set(supportedVersions)].sort((left, right) => left.localeCompare(right))
++  return {
++    taggedVersions,
++    supportedVersions: supported,
++    canaryVersions: taggedVersions.filter(version => !supported.includes(version)),
++  }
++}
+diff --git a/src/community/validation.ts b/src/community/validation.ts
+new file mode 100644
+index 0000000..5cec0b5
+--- /dev/null
++++ b/src/community/validation.ts
+@@ -0,0 +1,88 @@
++import type { StageId, Verdict } from '../domain/report.js'
++
++const EXACT_SEMVER = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
++const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
++
++export interface ExactNpmSpec {
++  name: string
++  version: string
++}
++
++export interface CommunityResult {
++  subject: string
++  verdict: Verdict
++  firstFailureStage: StageId | null
++}
++
++export interface CommunitySummaryContext {
++  dshVersion: string
++  testkitVersion: string
++  completedAt: string
++}
++
++export interface CommunitySummary {
++  schemaVersion: 1
++  cohortSize: number
++  dshVersion: string
++  testkitVersion: string
++  completedAt: string
++  verdicts: Record<string, number>
++  firstFailureStages: Record<string, number>
++}
++
++export function isExactSemver(value: string): boolean {
++  return EXACT_SEMVER.test(value)
++}
++
++export function parseExactNpmSpec(input: string): ExactNpmSpec {
++  const separator = input.lastIndexOf('@')
++  const name = input.slice(0, separator)
++  const version = input.slice(separator + 1)
++  if (separator <= 0 || !PACKAGE_NAME.test(name) || !isExactSemver(version)) {
++    throw new Error(`community subjects must use an exact npm version: ${input}`)
++  }
++  return { name, version }
++}
++
++export function sanitizeCommunityEnvironment(
++  input: NodeJS.ProcessEnv,
++  isolatedHome: string,
++): NodeJS.ProcessEnv {
++  const environment: NodeJS.ProcessEnv = {}
++  for (const key of ['PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'TMP', 'TEMP', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT']) {
++    if (input[key] !== undefined) environment[key] = input[key]
++  }
++  return {
++    ...environment,
++    HOME: isolatedHome,
++    DSH_HOME: `${isolatedHome}/.dsh`,
++    DSH_TELEMETRY_DISABLED: '1',
++    CI: '1',
++    NO_COLOR: '1',
++    NPM_CONFIG_REGISTRY: 'https://registry.npmjs.org/',
++    NPM_CONFIG_AUDIT: 'false',
++    NPM_CONFIG_FUND: 'false',
++    NPM_CONFIG_UPDATE_NOTIFIER: 'false',
++  }
++}
++
++function count(values: readonly string[]): Record<string, number> {
++  const result: Record<string, number> = {}
++  for (const value of values) result[value] = (result[value] ?? 0) + 1
++  return Object.fromEntries(Object.entries(result).sort(([left], [right]) => left.localeCompare(right)))
++}
++
++export function aggregateCommunityReports(
++  reports: readonly CommunityResult[],
++  context: CommunitySummaryContext,
++): CommunitySummary {
++  return {
++    schemaVersion: 1,
++    cohortSize: reports.length,
++    dshVersion: context.dshVersion,
++    testkitVersion: context.testkitVersion,
++    completedAt: context.completedAt,
++    verdicts: count(reports.map(report => report.verdict)),
++    firstFailureStages: count(reports.flatMap(report => report.firstFailureStage ?? [])),
++  }
++}
+diff --git a/src/dsh-plugin.ts b/src/dsh-plugin.ts
+index aa09f44..d518e5c 100644
+--- a/src/dsh-plugin.ts
++++ b/src/dsh-plugin.ts
+@@ -5,3 +5 @@ import { isAbsolute, join, relative, resolve } from 'node:path'
+-import type { Context } from '@deepseek-ai/cordis'
+-import { defineTool } from '@deepseek-ai/dsh-tools'
+-import type { PreToolDecision } from '@deepseek-ai/dsh-tools'
++import { z } from 'zod'
+@@ -40,0 +39,39 @@ export interface DshTestResult {
++export type DshPreToolDecision =
++  | { kind: 'allow' }
++  | { kind: 'deny', reason: string }
++  | { kind: 'ask', reason?: string }
++
++export interface DshToolExecution {
++  readonly name: string
++  readonly arguments: unknown
++  readonly agent?: unknown
++}
++
++export interface DshToolRunContext {
++  readonly signal: AbortSignal
++}
++
++export interface DshToolDefinition {
++  readonly name: string
++  readonly description: string
++  readonly parameters: Record<string, unknown>
++  readonly output: {
++    readonly schema: Record<string, unknown>
++    render(args: unknown, value: unknown): Array<{ type: 'text', text: string }>
++  }
++  execute(args: unknown, exec: DshToolRunContext): Promise<unknown>
++}
++
++export interface DshPluginContext {
++  on(
++    event: 'tools/pre-execute',
++    listener: (
++      exec: DshToolExecution,
++      next: () => Promise<DshPreToolDecision>,
++    ) => Promise<DshPreToolDecision>,
++  ): unknown
++  readonly tools: {
++    register(definition: DshToolDefinition): unknown
++  }
++}
++
+@@ -217,2 +254,24 @@ export async function executeDshTest(
+-export function createDshTestTool() {
+-  return defineTool({
++const DshTestArgumentsSchema = z.strictObject({
++  confirm: z.boolean(),
++  source: z.string().optional(),
++  dshVersion: z.string().optional(),
++  suite: z.enum(['quick', 'full']).optional(),
++  lifecycleCase: z.enum(LIFECYCLE_STAGE_IDS).optional(),
++  expectedRows: z.array(z.string()).optional(),
++  expectedServices: z.array(z.string()).optional(),
++  expectedTools: z.array(z.string()).optional(),
++  updateFrom: z.string().optional(),
++})
++
++function parseToolArguments(args: unknown): DshTestArguments {
++  const result = DshTestArgumentsSchema.safeParse(args)
++  if (result.success) return result.data as DshTestArguments
++  const violations = result.error.issues.map((issue) => {
++    const path = issue.path.length === 0 ? 'arguments' : issue.path.join('.')
++    return `${path}: ${issue.message}`
++  })
++  throw new Error(`invalid arguments: ${violations.join('; ')}`)
++}
++
++export function createDshTestTool(): DshToolDefinition {
++  return {
+@@ -225,41 +284,44 @@ export function createDshTestTool() {
+-      confirm: {
+-        type: 'boolean',
+-        required: true,
+-        description: 'Must be true after the user explicitly confirms Docker execution of plugin code.',
+-      },
+-      source: {
+-        type: 'string',
+-        description: 'Workspace-relative plugin directory/tarball, exact npm package, or pinned Git source. Defaults to the active workspace.',
+-      },
+-      dshVersion: {
+-        type: 'string',
+-        description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
+-      },
+-      suite: {
+-        type: 'string',
+-        enum: ['quick', 'full'],
+-        description: 'Lifecycle suite. Defaults to quick.',
+-      },
+-      lifecycleCase: {
+-        type: 'string',
+-        enum: LIFECYCLE_STAGE_IDS,
+-        description: 'Optional lifecycle stage to rerun with its required prefix.',
+-      },
+-      expectedRows: {
+-        type: 'array',
+-        items: { type: 'string' },
+-        description: 'Expected effective-config row IDs.',
+-      },
+-      expectedServices: {
+-        type: 'array',
+-        items: { type: 'string' },
+-        description: 'Expected Cordis service names.',
+-      },
+-      expectedTools: {
+-        type: 'array',
+-        items: { type: 'string' },
+-        description: 'Expected registered DSH tool names.',
+-      },
+-      updateFrom: {
+-        type: 'string',
+-        description: 'Optional older workspace-relative, exact npm, or pinned Git source for the update stage.',
++      type: 'object',
++      additionalProperties: false,
++      properties: {
++        confirm: {
++          type: 'boolean',
++          description: 'Must be true after the user explicitly confirms Docker execution of plugin code.',
++        },
++        source: {
++          type: 'string',
++          description: 'Workspace-relative plugin directory/tarball, exact npm package, or pinned Git source. Defaults to the active workspace.',
++        },
++        dshVersion: {
++          type: 'string',
++          description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
++        },
++        suite: {
++          type: 'string',
++          enum: ['quick', 'full'],
++          description: 'Lifecycle suite. Defaults to quick.',
++        },
++        lifecycleCase: {
++          type: 'string',
++          enum: LIFECYCLE_STAGE_IDS,
++          description: 'Optional lifecycle stage to rerun with its required prefix.',
++        },
++        expectedRows: {
++          type: 'array',
++          items: { type: 'string' },
++          description: 'Expected effective-config row IDs.',
++        },
++        expectedServices: {
++          type: 'array',
++          items: { type: 'string' },
++          description: 'Expected Cordis service names.',
++        },
++        expectedTools: {
++          type: 'array',
++          items: { type: 'string' },
++          description: 'Expected registered DSH tool names.',
++        },
++        updateFrom: {
++          type: 'string',
++          description: 'Optional older workspace-relative, exact npm, or pinned Git source for the update stage.',
++        },
+@@ -266,0 +329 @@ export function createDshTestTool() {
++      required: ['confirm'],
+@@ -273 +336 @@ export function createDshTestTool() {
+-          exitCode: { type: 'integer', required: true },
++          exitCode: { type: 'integer' },
+@@ -276 +338,0 @@ export function createDshTestTool() {
+-            required: true,
+@@ -279 +341 @@ export function createDshTestTool() {
+-          runDirectory: { type: 'string', required: true },
++          runDirectory: { type: 'string' },
+@@ -281 +342,0 @@ export function createDshTestTool() {
+-            required: true,
+@@ -284,2 +345,2 @@ export function createDshTestTool() {
+-          summary: { type: 'string', required: true },
+-          diagnostics: { type: 'string', required: true },
++          summary: { type: 'string' },
++          diagnostics: { type: 'string' },
+@@ -286,0 +348,8 @@ export function createDshTestTool() {
++        required: [
++          'exitCode',
++          'verdict',
++          'runDirectory',
++          'reportPath',
++          'summary',
++          'diagnostics',
++        ],
+@@ -290,2 +359,2 @@ export function createDshTestTool() {
+-    execute: (args, exec) => executeDshTest(args, {}, exec.signal),
+-  })
++    execute: async (args, exec) => executeDshTest(parseToolArguments(args), {}, exec.signal),
++  }
+@@ -294,2 +363,2 @@ export function createDshTestTool() {
+-export function apply(ctx: Context): void {
+-  ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
++export function apply(ctx: DshPluginContext): void {
++  ctx.on('tools/pre-execute', async (exec, next): Promise<DshPreToolDecision> => {
+diff --git a/src/index.ts b/src/index.ts
+index b1850e8..847716a 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -1,0 +2,2 @@ export * from './adapters/dsh/support.js'
++export * from './adapters/dsh/release-train.js'
++export * from './community/validation.js'
+diff --git a/src/version.ts b/src/version.ts
+index 0c48f7f..81f348c 100644
+--- a/src/version.ts
++++ b/src/version.ts
+@@ -1 +1 @@
+-export const TESTKIT_VERSION = '0.2.0'
++export const TESTKIT_VERSION = '0.2.1'
+diff --git a/tests/contracts/documentation.test.ts b/tests/contracts/documentation.test.ts
+new file mode 100644
+index 0000000..6fb328f
+--- /dev/null
++++ b/tests/contracts/documentation.test.ts
+@@ -0,0 +1,37 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++
++const root = resolve(import.meta.dirname, '../..')
++
++describe('bilingual project entrypoints', () => {
++  it('ships reciprocal English and Simplified Chinese README files', async () => {
++    const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
++    const english = await readFile(resolve(root, 'README.md'), 'utf8')
++    const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
++
++    expect(manifest.version).toBe('0.2.1')
++    expect(manifest.files).toContain('README.zh-CN.md')
++    expect(english).toContain('[简体中文](README.zh-CN.md)')
++    expect(chinese).toContain('[English](README.md)')
++    for (const contents of [english, chinese]) {
++      expect(contents).toContain('dsh-testkit@0.2.1')
++      expect(contents).toContain('0.1.0-rc.6')
++      expect(contents).toContain('dsh-composition-check')
++      expect(contents).toContain('dsh-plugin-doctor')
++      expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
++    }
++    expect(english).toContain('not a hardened malware sandbox')
++    expect(chinese).toContain('不是经过强化的恶意代码沙箱')
++  })
++
++  it('records the patch release in the changelog and security support table', async () => {
++    const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
++    const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
++
++    expect(changelog).toContain('## [0.2.1] - 2026-08-15')
++    expect(changelog).toContain('[0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1')
++    expect(security).toContain('| 0.2.x | Yes |')
++  })
++})
+diff --git a/tests/contracts/dsh-bundle.test.ts b/tests/contracts/dsh-bundle.test.ts
+index 604c14c..470a932 100644
+--- a/tests/contracts/dsh-bundle.test.ts
++++ b/tests/contracts/dsh-bundle.test.ts
+@@ -13 +13 @@ describe('published DSH bundle contract', () => {
+-    expect(manifest.version).toBe('0.2.0')
++    expect(manifest.version).toBe('0.2.1')
+@@ -23,0 +24 @@ describe('published DSH bundle contract', () => {
++      '@deepseek-ai/dsh-invariants': '>=0.1.0-rc.6 <0.2.0',
+@@ -25,0 +27,5 @@ describe('published DSH bundle contract', () => {
++    expect(manifest.peerDependenciesMeta).toEqual({
++      '@deepseek-ai/cordis': { optional: true },
++      '@deepseek-ai/dsh-invariants': { optional: true },
++      '@deepseek-ai/dsh-tools': { optional: true },
++    })
+diff --git a/tests/e2e/pack-consumer.mjs b/tests/e2e/pack-consumer.mjs
+index a2c3789..ba24fbd 100644
+--- a/tests/e2e/pack-consumer.mjs
++++ b/tests/e2e/pack-consumer.mjs
+@@ -2 +2 @@ import { execFile } from 'node:child_process'
+-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+@@ -36 +36 @@ try {
+-  await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
++  const installed = await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
+@@ -39,0 +40 @@ try {
++    env: { ...process.env, PNPM_CONFIG_AUTO_INSTALL_PEERS: 'false' },
+@@ -40,0 +42,11 @@ try {
++  const installLog = `${installed.stdout}\n${installed.stderr}`
++  if (/peer dependenc|missing peer|unmet peer/i.test(installLog)) {
++    throw new Error(`packed install emitted a peer warning:\n${installLog}`)
++  }
++  for (const peer of ['cordis', 'dsh-invariants', 'dsh-tools']) {
++    await access(join(consumerDir, 'node_modules', '@deepseek-ai', peer))
++      .then(() => { throw new Error(`optional host peer was installed into the clean consumer: ${peer}`) })
++      .catch((error) => {
++        if (error instanceof Error && !('code' in error && error.code === 'ENOENT')) throw error
++      })
++  }
+@@ -47,0 +60,8 @@ try {
++  const communityHelp = await executeFile(
++    join(consumerDir, 'node_modules', '.bin', 'dsh-test-community'),
++    ['--help'],
++    { cwd: consumerDir, timeout: 30_000 },
++  )
++  if (!communityHelp.stdout.includes('Only community-summary.json is suitable for aggregate publication.')) {
++    throw new Error('packed community CLI help is missing its disclosure boundary')
++  }
+@@ -54,0 +75,11 @@ try {
++  const [englishReadme, chineseReadme] = await Promise.all([
++    readFile(join(installedPackage, 'README.md'), 'utf8'),
++    readFile(join(installedPackage, 'README.zh-CN.md'), 'utf8'),
++  ])
++  if (!englishReadme.includes('[简体中文](README.zh-CN.md)') || !chineseReadme.includes('[English](README.md)')) {
++    throw new Error('packed README language entrypoints are not reciprocal')
++  }
++  const adapterTypes = await readFile(join(installedPackage, 'dist', 'src', 'dsh-plugin.d.ts'), 'utf8')
++  if (adapterTypes.includes("from '@deepseek-ai/")) {
++    throw new Error('published root types must not require optional DSH host peers')
++  }
+@@ -57 +88,4 @@ try {
+-  if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js') throw new Error('packed bin mapping is invalid')
++  if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js'
++    || manifest.bin?.['dsh-test-community'] !== 'scripts/run-community-validation.mjs') {
++    throw new Error('packed bin mapping is invalid')
++  }
+diff --git a/tests/e2e/real-dsh-bundle.test.ts b/tests/e2e/real-dsh-bundle.test.ts
+index ffa30c4..1c6596f 100644
+--- a/tests/e2e/real-dsh-bundle.test.ts
++++ b/tests/e2e/real-dsh-bundle.test.ts
+@@ -28 +28 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
+-    const dshVersion = SUPPORTED_DSH_NPM_VERSIONS[0]
++    const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
+@@ -80 +80 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
+-      await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
++      const installed = await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
+@@ -85,0 +86 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
++      expect(`${installed.stdout}\n${installed.stderr}`).not.toMatch(/peer dependenc|missing peer|unmet peer/i)
+diff --git a/tests/fixtures/dsh-registry-candidate.json b/tests/fixtures/dsh-registry-candidate.json
+new file mode 100644
+index 0000000..77c2e32
+--- /dev/null
++++ b/tests/fixtures/dsh-registry-candidate.json
+@@ -0,0 +1,6 @@
++{
++  "dist-tags": {
++    "latest": "0.1.0-rc.6",
++    "next": "0.1.0-rc.7"
++  }
++}
+diff --git a/tests/fixtures/dsh-registry-current.json b/tests/fixtures/dsh-registry-current.json
+new file mode 100644
+index 0000000..de5a134
+--- /dev/null
++++ b/tests/fixtures/dsh-registry-current.json
+@@ -0,0 +1,6 @@
++{
++  "dist-tags": {
++    "latest": "0.1.0-rc.6",
++    "next": "0.1.0-rc.6"
++  }
++}
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 1b2b9c6..c9d3010 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -252 +252 @@ describe('CLI integration', () => {
+-    expect(stdout.join('')).toBe('0.2.0\n')
++    expect(stdout.join('')).toBe('0.2.1\n')
+diff --git a/tests/unit/community-validation.test.ts b/tests/unit/community-validation.test.ts
+new file mode 100644
+index 0000000..79ac818
+--- /dev/null
++++ b/tests/unit/community-validation.test.ts
+@@ -0,0 +1,68 @@
++import { describe, expect, it } from 'vitest'
++
++import {
++  aggregateCommunityReports,
++  parseExactNpmSpec,
++  sanitizeCommunityEnvironment,
++} from '../../src/community/validation.js'
++
++describe('community validation protocol', () => {
++  it('accepts only exact immutable npm versions', () => {
++    expect(parseExactNpmSpec('example-plugin@1.2.3')).toEqual({
++      name: 'example-plugin',
++      version: '1.2.3',
++    })
++    expect(parseExactNpmSpec('@scope/example-plugin@1.2.3-rc.4')).toEqual({
++      name: '@scope/example-plugin',
++      version: '1.2.3-rc.4',
++    })
++    for (const mutable of ['example-plugin', 'example-plugin@latest', 'example-plugin@^1.2.3', 'github:owner/repo']) {
++      expect(() => parseExactNpmSpec(mutable)).toThrow('exact npm version')
++    }
++  })
++
++  it('constructs a credential-free child environment with an isolated home', () => {
++    const environment = sanitizeCommunityEnvironment({
++      PATH: '/usr/bin',
++      HOME: '/home/user',
++      NPM_TOKEN: 'secret',
++      NODE_AUTH_TOKEN: 'secret',
++      GH_TOKEN: 'secret',
++      OPENAI_API_KEY: 'secret',
++      DOCKER_AUTH_CONFIG: 'secret',
++      DOCKER_HOST: 'tcp://remote.example:2376',
++      DOCKER_CERT_PATH: '/secret/certs',
++    }, '/tmp/cohort-home')
++
++    expect(environment).toMatchObject({
++      PATH: '/usr/bin',
++      HOME: '/tmp/cohort-home',
++      DSH_HOME: '/tmp/cohort-home/.dsh',
++      DSH_TELEMETRY_DISABLED: '1',
++      NPM_CONFIG_REGISTRY: 'https://registry.npmjs.org/',
++    })
++    expect(JSON.stringify(environment)).not.toContain('secret')
++    expect(environment).not.toHaveProperty('DOCKER_HOST')
++    expect(environment).not.toHaveProperty('DOCKER_CERT_PATH')
++  })
++
++  it('publishes aggregate verdicts without subject identities', () => {
++    const summary = aggregateCommunityReports([
++      { subject: 'alpha@1.0.0', verdict: 'passed', firstFailureStage: null },
++      { subject: 'beta@2.0.0', verdict: 'failed', firstFailureStage: 'boot' },
++      { subject: 'gamma@3.0.0', verdict: 'failed', firstFailureStage: 'boot' },
++    ], {
++      dshVersion: '0.1.0-rc.6',
++      testkitVersion: '0.2.1',
++      completedAt: '2026-08-15T00:00:00.000Z',
++    })
++
++    expect(summary).toMatchObject({
++      schemaVersion: 1,
++      cohortSize: 3,
++      verdicts: { passed: 1, failed: 2 },
++      firstFailureStages: { boot: 2 },
++    })
++    expect(JSON.stringify(summary)).not.toMatch(/alpha|beta|gamma/)
++  })
++})
+diff --git a/tests/unit/dsh-plugin.test.ts b/tests/unit/dsh-plugin.test.ts
+index ea0dca6..3568d33 100644
+--- a/tests/unit/dsh-plugin.test.ts
++++ b/tests/unit/dsh-plugin.test.ts
+@@ -55,0 +56,8 @@ describe('native DSH tool adapter', () => {
++  it('validates model arguments before executing the adapter', async () => {
++    const tool = createDshTestTool()
++
++    await expect(tool.execute({ confirm: 'yes' }, {
++      signal: new AbortController().signal,
++    } as never)).rejects.toThrow('invalid arguments')
++  })
++
+diff --git a/tests/unit/dsh-release-train.test.ts b/tests/unit/dsh-release-train.test.ts
+new file mode 100644
+index 0000000..5bf9f21
+--- /dev/null
++++ b/tests/unit/dsh-release-train.test.ts
+@@ -0,0 +1,60 @@
++import { execFile } from 'node:child_process'
++import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { resolve } from 'node:path'
++import { promisify } from 'node:util'
++
++import { describe, expect, it } from 'vitest'
++
++import { discoverDshReleaseTrain } from '../../src/adapters/dsh/release-train.js'
++
++const fixtures = resolve(import.meta.dirname, '../fixtures')
++const root = resolve(import.meta.dirname, '../..')
++const executeFile = promisify(execFile)
++
++describe('DSH release-train discovery', () => {
++  it('reports no canary when latest and next are supported', async () => {
++    const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-current.json'), 'utf8'))
++
++    expect(discoverDshReleaseTrain(metadata, ['0.1.0-rc.6'])).toEqual({
++      taggedVersions: ['0.1.0-rc.6'],
++      supportedVersions: ['0.1.0-rc.6'],
++      canaryVersions: [],
++    })
++  })
++
++  it('deduplicates dist-tags and exposes unseen exact candidates', async () => {
++    const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-candidate.json'), 'utf8'))
++
++    expect(discoverDshReleaseTrain(metadata, ['0.1.0-rc.6'])).toEqual({
++      taggedVersions: ['0.1.0-rc.6', '0.1.0-rc.7'],
++      supportedVersions: ['0.1.0-rc.6'],
++      canaryVersions: ['0.1.0-rc.7'],
++    })
++  })
++
++  it('rejects mutable or malformed dist-tag values', () => {
++    expect(() => discoverDshReleaseTrain({
++      'dist-tags': { latest: 'latest' },
++    }, ['0.1.0-rc.6'])).toThrow('not an exact semantic version')
++  })
++
++  it('enables a candidate only in the requested disposable source file', async () => {
++    const temporary = await mkdtemp(resolve(tmpdir(), 'dsh-testkit-canary-'))
++    const support = resolve(temporary, 'support.ts')
++    try {
++      await writeFile(support, "export const SUPPORTED_DSH_NPM_VERSIONS = ['0.1.0-rc.6'] as const\n")
++
++      await executeFile(process.execPath, [
++        resolve(root, 'scripts/enable-dsh-canary.mjs'),
++        '--file', support,
++        '0.1.0-rc.7',
++      ], { cwd: root })
++
++      expect(await readFile(support, 'utf8')).toContain("['0.1.0-rc.6', '0.1.0-rc.7']")
++      expect(await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')).not.toContain('0.1.0-rc.7')
++    } finally {
++      await rm(temporary, { recursive: true, force: true })
++    }
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index dc94abb..adebd8b 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -47 +47 @@ describe('Docker runner command planning', () => {
+-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.2.0-aaaaaaaaaaaa')
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.2.1-aaaaaaaaaaaa')

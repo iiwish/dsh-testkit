@@ -44,7 +44,7 @@ Source: DSH 官方文档、社区仓库源码和成熟插件生态官方测试�
 
 当前没有发现完成 install、assemble、boot、register、exercise、update、uninstall、reboot、recover 和 residue 全链路的独立执行器。
 
-`dsh-plugin-check` 同时证明了官方 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
+`dsh-plugin-check` 同时证明了 DSH 原生 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
 
 ## 3. Mature Ecosystem Evidence
 

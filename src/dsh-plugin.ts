@@ -2,9 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { access, lstat, mkdir, readFile, realpath } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 
-import type { Context } from '@deepseek-ai/cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { PreToolDecision } from '@deepseek-ai/dsh-tools'
+import { z } from 'zod'
 
 import { SUPPORTED_DSH_NPM_VERSIONS } from './adapters/dsh/support.js'
 import { runCli } from './cli.js'
@@ -36,6 +34,45 @@ export interface DshTestResult {
   reportPath: string | null
   summary: string
   diagnostics: string
+}
+
+export type DshPreToolDecision =
+  | { kind: 'allow' }
+  | { kind: 'deny', reason: string }
+  | { kind: 'ask', reason?: string }
+
+export interface DshToolExecution {
+  readonly name: string
+  readonly arguments: unknown
+  readonly agent?: unknown
+}
+
+export interface DshToolRunContext {
+  readonly signal: AbortSignal
+}
+
+export interface DshToolDefinition {
+  readonly name: string
+  readonly description: string
+  readonly parameters: Record<string, unknown>
+  readonly output: {
+    readonly schema: Record<string, unknown>
+    render(args: unknown, value: unknown): Array<{ type: 'text', text: string }>
+  }
+  execute(args: unknown, exec: DshToolRunContext): Promise<unknown>
+}
+
+export interface DshPluginContext {
+  on(
+    event: 'tools/pre-execute',
+    listener: (
+      exec: DshToolExecution,
+      next: () => Promise<DshPreToolDecision>,
+    ) => Promise<DshPreToolDecision>,
+  ): unknown
+  readonly tools: {
+    register(definition: DshToolDefinition): unknown
+  }
 }
 
 type RunCliFunction = (argv: string[], overrides?: Partial<CliDependencies>) => Promise<number>
@@ -214,85 +251,117 @@ export async function executeDshTest(
   }
 }
 
-export function createDshTestTool() {
-  return defineTool({
+const DshTestArgumentsSchema = z.strictObject({
+  confirm: z.boolean(),
+  source: z.string().optional(),
+  dshVersion: z.string().optional(),
+  suite: z.enum(['quick', 'full']).optional(),
+  lifecycleCase: z.enum(LIFECYCLE_STAGE_IDS).optional(),
+  expectedRows: z.array(z.string()).optional(),
+  expectedServices: z.array(z.string()).optional(),
+  expectedTools: z.array(z.string()).optional(),
+  updateFrom: z.string().optional(),
+})
+
+function parseToolArguments(args: unknown): DshTestArguments {
+  const result = DshTestArgumentsSchema.safeParse(args)
+  if (result.success) return result.data as DshTestArguments
+  const violations = result.error.issues.map((issue) => {
+    const path = issue.path.length === 0 ? 'arguments' : issue.path.join('.')
+    return `${path}: ${issue.message}`
+  })
+  throw new Error(`invalid arguments: ${violations.join('; ')}`)
+}
+
+export function createDshTestTool(): DshToolDefinition {
+  return {
     name: 'dsh_test',
     description:
       'Run real-host lifecycle tests for a DSH plugin. This executes package build/install code inside ' +
       'a hardened Docker runner, may use network access, and requires access to the Docker daemon. ' +
       'Ask the user for confirmation, then set confirm=true. Local inputs are restricted to the active workspace.',
     parameters: {
-      confirm: {
-        type: 'boolean',
-        required: true,
-        description: 'Must be true after the user explicitly confirms Docker execution of plugin code.',
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        confirm: {
+          type: 'boolean',
+          description: 'Must be true after the user explicitly confirms Docker execution of plugin code.',
+        },
+        source: {
+          type: 'string',
+          description: 'Workspace-relative plugin directory/tarball, exact npm package, or pinned Git source. Defaults to the active workspace.',
+        },
+        dshVersion: {
+          type: 'string',
+          description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
+        },
+        suite: {
+          type: 'string',
+          enum: ['quick', 'full'],
+          description: 'Lifecycle suite. Defaults to quick.',
+        },
+        lifecycleCase: {
+          type: 'string',
+          enum: LIFECYCLE_STAGE_IDS,
+          description: 'Optional lifecycle stage to rerun with its required prefix.',
+        },
+        expectedRows: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Expected effective-config row IDs.',
+        },
+        expectedServices: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Expected Cordis service names.',
+        },
+        expectedTools: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Expected registered DSH tool names.',
+        },
+        updateFrom: {
+          type: 'string',
+          description: 'Optional older workspace-relative, exact npm, or pinned Git source for the update stage.',
+        },
       },
-      source: {
-        type: 'string',
-        description: 'Workspace-relative plugin directory/tarball, exact npm package, or pinned Git source. Defaults to the active workspace.',
-      },
-      dshVersion: {
-        type: 'string',
-        description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
-      },
-      suite: {
-        type: 'string',
-        enum: ['quick', 'full'],
-        description: 'Lifecycle suite. Defaults to quick.',
-      },
-      lifecycleCase: {
-        type: 'string',
-        enum: LIFECYCLE_STAGE_IDS,
-        description: 'Optional lifecycle stage to rerun with its required prefix.',
-      },
-      expectedRows: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Expected effective-config row IDs.',
-      },
-      expectedServices: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Expected Cordis service names.',
-      },
-      expectedTools: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Expected registered DSH tool names.',
-      },
-      updateFrom: {
-        type: 'string',
-        description: 'Optional older workspace-relative, exact npm, or pinned Git source for the update stage.',
-      },
+      required: ['confirm'],
     },
     output: {
       schema: {
         type: 'object',
         additionalProperties: false,
         properties: {
-          exitCode: { type: 'integer', required: true },
+          exitCode: { type: 'integer' },
           verdict: {
             type: 'string',
-            required: true,
             enum: ['passed', 'failed', 'flaky', 'unsupported', 'invalid', 'infrastructure_error'],
           },
-          runDirectory: { type: 'string', required: true },
+          runDirectory: { type: 'string' },
           reportPath: {
-            required: true,
             oneOf: [{ type: 'string' }, { type: 'null' }],
           },
-          summary: { type: 'string', required: true },
-          diagnostics: { type: 'string', required: true },
+          summary: { type: 'string' },
+          diagnostics: { type: 'string' },
         },
+        required: [
+          'exitCode',
+          'verdict',
+          'runDirectory',
+          'reportPath',
+          'summary',
+          'diagnostics',
+        ],
       },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
     },
-    execute: (args, exec) => executeDshTest(args, {}, exec.signal),
-  })
+    execute: async (args, exec) => executeDshTest(parseToolArguments(args), {}, exec.signal),
+  }
 }
 
-export function apply(ctx: Context): void {
-  ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
+export function apply(ctx: DshPluginContext): void {
+  ctx.on('tools/pre-execute', async (exec, next): Promise<DshPreToolDecision> => {
     const downstream = await next()
     const confirmed = typeof exec.arguments === 'object'
       && exec.arguments !== null

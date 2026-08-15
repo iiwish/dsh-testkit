@@ -6,7 +6,7 @@ Last updated: 2026-08-15
 
 ## Implemented
 
-- Added the official `dsh.bundle.patch` manifest and `tool-dsh-testkit` Cordis row.
+- Added the DSH `dsh.bundle.patch` manifest and `tool-dsh-testkit` Cordis row.
 - Added `dsh_test` as a typed adapter over `runCli`, with no second lifecycle engine.
 - Forced Docker, disabled implicit workspace config, constrained local inputs and evidence output, and removed unsafe-local/mutable/output/argv controls from the tool schema.
 - Added DSH pre-execution approval for confirmed agent calls while preserving downstream denial decisions.
@@ -14,8 +14,10 @@ Last updated: 2026-08-15
 - Added native DSH install, registration, invocation and removal E2E plus packed-consumer contract checks.
 - Updated package version, release workflows, docs and canonical governance artifacts for v0.2.0.
 - Merged [PR #7](https://github.com/iiwish/dsh-testkit/pull/7), published the reviewed merge commit through npm trusted publishing, and created the `v0.2.0` GitHub release.
-- Submitted [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) for official directory discovery.
+- Submitted [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) for community directory discovery.
 - Preserved required `real-host` and Action smoke check identities on documentation-only pull requests while bypassing only their expensive execution steps.
+- Canonical documentation identifies the package as DSH-native without claiming official endorsement or official directory status.
+- DSH host packages remain bounded optional peers, while the root runtime and declarations stay independent of them; clean and profile installs emit no missing-peer warning.
 
 ## Review
 

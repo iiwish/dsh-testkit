@@ -25,7 +25,7 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
     const packDirectory = join(temporary, 'pack')
     const logs = join(temporary, 'logs')
     const profile = 'testkit-bundle-e2e'
-    const dshVersion = SUPPORTED_DSH_NPM_VERSIONS[0]
+    const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
 
     try {
       await Promise.all([
@@ -77,12 +77,13 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
         PNPM_CONFIG_DANGEROUSLY_ALLOW_ALL_BUILDS: 'true',
       }
 
-      await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
+      const installed = await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
         cwd: workspace,
         env: dshEnvironment,
         timeout: 300_000,
         maxBuffer: 16 * 1024 * 1024,
       })
+      expect(`${installed.stdout}\n${installed.stderr}`).not.toMatch(/peer dependenc|missing peer|unmet peer/i)
       const dumped = await executeFile(dsh, ['--profile', profile, '--dump-config'], {
         cwd: workspace,
         env: dshEnvironment,

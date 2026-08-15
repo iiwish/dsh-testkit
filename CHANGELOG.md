@@ -4,11 +4,29 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-15
+
+### Added
+
+- Added equivalent English and Simplified Chinese project entrypoints with an explicit boundary between lifecycle testing, doctor/preflight checks, and composition checks.
+- Added a credential-free, exact-version community cohort protocol with aggregate-only public reporting.
+- Added scheduled DSH dist-tag discovery and disposable real-host canaries for unrecognized release candidates.
+
+### Fixed
+
+- Made DSH host peers optional so clean CLI consumers do not install host packages or receive peer warnings.
+- Removed runtime and declaration imports of DSH host packages from the native bundle adapter.
+- Corrected the bundle positioning to describe a DSH-native community integration without implying official status.
+
+### Security
+
+- Kept community subject identities and detailed reports local, stripped credentials from cohort subprocesses, and required explicit acknowledgement before public plugin code runs.
+
 ## [0.2.0] - 2026-08-15
 
 ### Added
 
-- Added the official `dsh.bundle.patch` manifest so `dsh-testkit` installs directly into DSH profiles.
+- Added a DSH-native `dsh.bundle.patch` manifest so `dsh-testkit` installs directly into DSH profiles.
 - Added the native `dsh_test` tool as a thin adapter over the existing lifecycle engine.
 - Added real DSH bundle install, registration, invocation, removal, and packed-consumer verification.
 
@@ -55,7 +73,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/iiwish/dsh-testkit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/iiwish/dsh-testkit/compare/v0.1.0...v0.1.1

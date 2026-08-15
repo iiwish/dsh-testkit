@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "cohortSize": 10,
+  "dshVersion": "0.1.0-rc.6",
+  "testkitVersion": "0.2.1",
+  "completedAt": "2026-08-15T14:04:18.442Z",
+  "verdicts": {
+    "failed": 8,
+    "passed": 2
+  },
+  "firstFailureStages": {
+    "boot": 5,
+    "uninstall": 3
+  }
+}
