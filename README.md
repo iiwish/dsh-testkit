@@ -124,7 +124,7 @@ The canonical file also ships in npm at the exported subpath `dsh-testkit/skills
 DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.3.0
+dsh plugin --profile web add dsh-testkit@0.3.1
 dsh --profile web --dump-config
 ```
 

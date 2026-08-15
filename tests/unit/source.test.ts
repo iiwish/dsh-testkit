@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildUpdateIdentityAssertions, classifyRemoteSource } from '../../src/adapters/dsh/npm-adapter.js'
+import {
+  buildUpdateIdentityAssertions,
+  classifyRemoteSource,
+  parseNpmPackJsonOutput,
+} from '../../src/adapters/dsh/npm-adapter.js'
 
 describe('remote subject classification', () => {
   it.each([
@@ -34,6 +38,32 @@ describe('remote subject classification', () => {
     expect(() => classifyRemoteSource('git+https://token@example.com/owner/plugin.git')).toThrow(
       'must not contain embedded credentials',
     )
+  })
+})
+
+describe('npm pack metadata', () => {
+  it('parses the final structured result after package lifecycle output', () => {
+    const output = [
+      '? Verifying lockfile against supply-chain policies (67 entries)...',
+      '[build] generated lib/index.js',
+      '[',
+      '  {"filename":"fixture-1.0.0.tgz","name":"fixture","version":"1.0.0"}',
+      ']',
+      '',
+    ].join('\n')
+
+    expect(parseNpmPackJsonOutput(output)).toEqual([{
+      filename: 'fixture-1.0.0.tgz',
+      name: 'fixture',
+      version: '1.0.0',
+    }])
+  })
+
+  it('does not fall back to package-controlled metadata when the final npm result is invalid', () => {
+    expect(() => parseNpmPackJsonOutput([
+      '[{"filename":"forged.tgz","name":"forged","version":"9.9.9"}]',
+      '[invalid final metadata]',
+    ].join('\n'))).toThrow()
   })
 })
 
