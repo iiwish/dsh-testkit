@@ -1,6 +1,6 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
@@ -22,7 +22,7 @@ Last updated: 2026-08-15
 - Checklist: `.ai-platform/specs/lifecycle-runner/checklists/requirements.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 - TDD default: all behavior tasks require verified RED, GREEN and fresh validation.
-- Isolation: this new project has no pre-existing code or user edits; tasks run sequentially in the current project directory.
+- Isolation: tasks run sequentially in the current project directory; the user-owned untracked `AGENTS.md` is outside every task boundary.
 
 ## Epic E001: Publishable DSH Lifecycle Testkit MVP
 
@@ -51,6 +51,7 @@ Tasks:
 - [x] T003 [US-001, US-002, US-005] Add fixtures, real-host proof, Action, docs and release verification.
 - [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
 - [x] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
+- [ ] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
 
 ## Task Details
 
@@ -440,9 +441,87 @@ Evidence required:
 - Commit, tag, GitHub release, npm version and provenance identities.
 - Residual risks and external repository-setting changes.
 
+### T006: Native DSH Bundle And v0.2.0 Release
+
+Status: Running
+Priority: P0
+Depends on: T005
+Blocks: v0.2.0 public release and plugin-directory submission
+Story / Requirement: US-006, FR-019 through FR-022, NFR-002 through NFR-004, NFR-008, NFR-012, SC-011, SC-012
+Parallel: No
+Conflicts with: None
+
+Goal:
+Make `dsh-testkit` an official installable DSH bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
+
+Allowed files:
+- `.ai-platform/**`
+- `.github/**`
+- `src/**`
+- `tests/**`
+- `scripts/**`
+- `docs/**`
+- `examples/**`
+- `cordis.patch.yml`
+- `package.json`
+- `pnpm-lock.yaml`
+- `README.md`
+- `CHANGELOG.md`
+
+Test targets:
+- `tests/unit/dsh-plugin.test.ts`
+- `tests/unit/command.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/contracts/dsh-bundle.test.ts`
+- `tests/e2e/pack-consumer.mjs`
+- `tests/e2e/real-dsh-bundle.test.ts`
+
+Deliverables:
+- Official `dsh.bundle.patch` and Cordis plugin export.
+- Typed `dsh_test` tool with explicit consent, workspace containment, Docker-only execution, cancellation and bounded structured output.
+- Packed-consumer and real DSH install/registration/invocation evidence.
+- v0.2.0 npm package, GitHub tag/release, moving `v0` tag and plugin-directory submission.
+
+Acceptance criteria:
+- `dsh plugin --profile <name> add <packed-tarball>` activates the Testkit bundle and `--dump-config` contains its row.
+- A real DSH runtime probe sees `dsh_test`, and one confirmed call runs the healthy fixture through Docker.
+- Missing confirmation, workspace escape and symlink escape fail before runner construction.
+- Tool arguments cannot select local execution, mutable inputs, arbitrary output paths or implicit repository configuration.
+- DSH cancellation reaches the owned Docker subprocess and settles without leaving the named run container.
+- CLI, Action and report compatibility tests remain green.
+- v0.2.0 is published from the reviewed merge commit with npm provenance.
+
+Definition of Done:
+- Focused tests demonstrate RED before implementation and GREEN after it.
+- Full validation, real-host lifecycle, native-bundle E2E and packed-consumer gates pass.
+- Protected-branch PR merges, release workflow succeeds and public package/bundle identities verify.
+- Plugin-directory PR is open with the released installable package.
+
+Validation commands:
+- `pnpm validate`
+- `pnpm test:e2e`
+- `pnpm test:bundle-e2e`
+- `pnpm test:pack`
+- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T006`
+
+TDD plan:
+- RED: add tool consent, containment, forced-Docker, cancellation, bundle-contract and real-host tests before implementation.
+- GREEN: implement the smallest adapter and cancellation plumbing that satisfies those tests.
+- REFACTOR: run complete CLI/Action/package regression and real DSH acceptance before release.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`
+
+Evidence required:
+- RED/GREEN outputs and security-boundary traceability.
+- Full validation, packed consumer and real DSH bundle results.
+- Commit, PR, CI, tag, GitHub release, npm provenance and marketplace submission identities.
+- Residual risks and any external repository-setting changes.
+
 ## Gate
 
 - User explicitly authorized continuation on 2026-08-15.
 - Checklist is Completed and analysis has no unresolved Critical/High findings.
 - Each task executes only from its packet and remains `Needs_Review` until final user acceptance.
 - The user explicitly approved T004 and all release fixes on 2026-08-15.
+- The user explicitly approved the native DSH bundle direction and v0.2.0 release on 2026-08-15.

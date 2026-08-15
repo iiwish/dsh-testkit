@@ -1,6 +1,6 @@
 # DSH Testkit MVP Implementation Plan
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Last updated: 2026-08-15
 Source: confirmed Product Design and Technology Decision Record
@@ -28,6 +28,7 @@ tests/
   integration/
   e2e/
 .github/actions/dsh-test/action.yml
+cordis.patch.yml
 ```
 
 ## Implementation Sequence
@@ -61,6 +62,14 @@ tests/
 - Add composite GitHub Action and CI workflow.
 - Write contributor, scenario and architecture documentation.
 - Pack and consume the tarball in a clean temporary project.
+
+### Slice 4: Native DSH Bundle
+
+- Add the official `dsh.bundle.patch` manifest and Cordis plugin export.
+- Register a typed `dsh_test` tool that delegates to the existing CLI engine.
+- Require confirmation, constrain workspace paths, disable implicit config and force Docker.
+- Forward DSH cancellation through runner-owned subprocesses.
+- Verify package contracts, real DSH install/config/tool registration and a healthy Docker invocation.
 
 ## Validation Strategy
 

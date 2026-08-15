@@ -1,6 +1,6 @@
-# DSH Testkit v0.1 Release Acceptance Plan
+# DSH Testkit v0.2 Release Acceptance Plan
 
-Version: v0.1
+Version: v0.2
 Status: Active
 Release channel: Public preview
 Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
@@ -124,6 +124,18 @@ Requirements: Constitution 2.6 and 3.
 - README documents installation, default isolation, evidence, exit codes, safety boundary and supported DSH version.
 - License, contribution guidance, security-reporting policy, repository links and package provenance metadata are ready before npm publication.
 - Package name availability is rechecked immediately before publication.
+
+### G10 Native DSH Bundle And Tool Boundary
+
+Requirements: US-006, FR-019 through FR-022, SC-011, SC-012.
+
+- Packed package declares `dsh.bundle.patch`, ships the patch and exports the Cordis plugin entry.
+- A clean real DSH profile installs the tarball, activates the bundle layer and registers `dsh_test`.
+- The real DSH tool runtime invokes `dsh_test` against the healthy fixture and receives a passed Docker-isolated lifecycle report.
+- Tool execution requires explicit confirmation and exposes no local runner, unsafe-local, mutable-source, config, output or arbitrary argv control.
+- Local input and output symlink escapes fail before runner construction.
+- DSH cancellation propagates through image inspection/build and runner subprocesses, which reach quiescence.
+- Tool response is bounded and points to complete canonical evidence on disk.
 
 ## 5. Public-Preview Field Gates
 

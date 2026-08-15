@@ -42,6 +42,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate
       - run: pnpm test:e2e
+      - run: pnpm test:bundle-e2e
       - run: pnpm test:pack
       - name: Publish with npm Trusted Publishing
         run: npm publish --access public

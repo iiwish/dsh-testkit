@@ -1,6 +1,6 @@
 # DSH Testkit Technology Decision Record
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Last updated: 2026-08-15
 Review: User authorized continuation to implementation after SSOT review
@@ -355,6 +355,74 @@ Mitigations:
 
 Task impact:
 - T005 adds the workflow, release checks and public verification evidence.
+
+## TDR-015: One Package, Two Entrypoints, One Engine
+
+Decision:
+Publish `dsh-testkit` as both the existing CLI/library package and an official DSH Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
+
+Requirement mapping:
+- US-006, FR-019, FR-020, SC-011
+
+Rationale:
+- DSH native installation and tool discovery materially reduce adoption friction.
+- A thin adapter preserves one lifecycle state machine, report contract and release identity across CLI, Action and DSH.
+
+Alternatives considered:
+- Separate plugin package: adds coordinated releases and version drift without an independent product boundary.
+- CLI-only distribution: remains useful for CI but is absent from DSH-native plugin discovery.
+- Copy lifecycle logic into the tool: creates divergent behavior and evidence.
+
+Risks:
+- DSH peer APIs are in Developer Preview and can break across release candidates.
+
+Mitigations:
+- Declare bounded peer ranges, compile against the supported DSH tool API and gate each supported adapter with real-host E2E.
+
+Task impact:
+- T006 adds the bundle manifest, Cordis entry, packed consumer contract and native DSH E2E.
+
+## TDR-016: Docker-Only DSH Tool Safety Boundary
+
+Decision:
+The `dsh_test` tool requires `confirm: true`, forces `--runner docker`, disables implicit workspace configuration, does not expose unsafe-local or mutable-source flags, and chooses an owned output directory. Local directory and tarball inputs, including symlink targets, must resolve inside the current workspace. npm and pinned Git inputs remain subject to the lifecycle engine's immutable-source validation.
+
+Requirement mapping:
+- FR-020, FR-021, NFR-002, NFR-003, NFR-004, SC-012
+
+Rationale:
+- Installing a DSH tool gives an agent a host-process entrypoint; that must not become an arbitrary local code loader or filesystem reader.
+- Docker still executes untrusted package scripts with network access and Docker-daemon authority, so explicit user confirmation remains required.
+
+Alternatives considered:
+- Expose the full CLI argv surface: permits unsafe-local, arbitrary outputs and mutable inputs.
+- Trust a repository `dsh-testkit.yaml`: can redirect local sources outside the active workspace.
+- Execute on the host for lower latency: violates the product's default isolation guarantee.
+
+Risks:
+- Cancellation is cooperative and Docker shutdown can take a short grace period.
+- Docker isolation is not a security proof against a malicious container escape.
+
+Mitigations:
+- Forward the DSH `AbortSignal` through runner and subprocess layers, retain existing Docker hardening, and document the boundary in the tool description and README.
+
+Task impact:
+- T006 adds cancellation plumbing and focused containment, consent and forced-runner tests.
+
+## TDR-017: Bounded Structured Tool Result
+
+Decision:
+Return a JSON object containing exit code, lifecycle verdict, absolute run/report paths, and bounded terminal summary and diagnostics. Full reports and command logs remain files under `.dsh-testkit/runs`.
+
+Requirement mapping:
+- FR-022, NFR-008, NFR-012
+
+Rationale:
+- Agents need a stable result they can reason about, while full lifecycle reports are too large for routine model context.
+- File paths preserve access to complete canonical evidence without truncating the stored artifacts.
+
+Task impact:
+- T006 adds the output schema and result-projection tests.
 
 ## User Review Gate
 

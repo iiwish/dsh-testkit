@@ -1,6 +1,6 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
 Last updated: 2026-08-15
@@ -70,6 +70,15 @@ Scenario:
 2. 工具执行预定义恢复动作。
 3. DSH 再次启动，报告保留故障、恢复和残留证据。
 
+### US-006: DSH 用户在宿主内发起插件测试
+
+As a DSH user, I want to invoke Testkit as a native DSH tool, so that I can test the current plugin workspace without leaving the DSH workflow.
+
+Scenario:
+1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装官方 bundle 形态。
+2. DSH 注册 `dsh_test` tool；用户明确确认后，tool 以当前 workspace 为默认输入。
+3. Testkit 仍只通过 Docker runner 加载和执行被测插件，并返回 verdict、摘要和证据路径。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -101,6 +110,10 @@ Scenario:
 - FR-016: CLI 必须提供稳定退出码，区分 test failure、flaky、unsupported、invalid input 和 infrastructure failure。
 - FR-017: Runner 中断、超时或宿主崩溃后，Testkit 必须尽力收集阶段证据并清理临时资源。
 - FR-018: 用户必须能重跑单个失败 case，并使用同一环境指纹生成复现命令。
+- FR-019: npm 包必须声明官方 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
+- FR-020: `dsh_test` 必须复用同一个生命周期引擎，强制 Docker runner，不暴露 `--unsafe-local`、任意输出目录或可变来源开关。
+- FR-021: `dsh_test` 必须要求显式执行确认，将本地输入限制在当前 workspace 的真实路径内，并把 DSH 取消信号传递到所拥有的 runner 进程。
+- FR-022: tool 结果必须是有界的结构化值，至少包含退出码、verdict、运行目录、报告路径、摘要和诊断；完整证据保存在 Testkit 运行目录。
 
 ## 6. Non-Functional Requirements
 
@@ -130,6 +143,13 @@ Scenario:
 - 终端、JSON、JUnit 和 Markdown 输出。
 - GitHub Action 和普通 CI 可调用的非交互 CLI。
 
+### v0.2 范围
+
+- 保留 v0.1 CLI、Action、report schema 和生命周期语义。
+- 将同一个 npm 包发布为官方 DSH Profile Bundle。
+- 注册一个薄 `dsh_test` tool adapter，只负责安全参数收敛、Docker 调用、取消和结果投影。
+- 使用真实 DSH profile 验证 bundle 安装、配置组装、tool 注册和确定性调用。
+
 ### 后续候选
 
 - macOS 和 Windows runner。
@@ -146,6 +166,8 @@ Scenario:
 - 不复制 `dsh-plugin-check` 一类静态仓库扫描器。
 - 不重复实现 MCP 协议 Conformance。
 - 不建设插件市场、搜索、排行榜、SSO、审批门户或企业 Inventory。
+- 不在 DSH tool adapter 中复制生命周期引擎、静态扫描器或包管理逻辑。
+- 不允许 DSH tool adapter 直接在宿主进程加载被测插件或启用 unsafe local runner。
 - 不成为新的包管理器；安装始终调用 DSH 和现有包管理入口。
 - v0.1 不提供 Web UI。
 
@@ -196,6 +218,8 @@ Scenario:
 - SC-008: runner 完成、失败或被中断后，不在测试宿主留下由本次运行创建且被当前 observer 覆盖的活动子进程、监听端口或可启动 profile；报告明确未覆盖的资源类型。
 - SC-009: 至少一个企业私有 Git 仓库能在不上传源码和真实 Secret 的情况下运行相同 suite。
 - SC-010: DSH 官方实现等价能力时，场景和 fixture 能被上游直接采用，而不是只能依赖项目私有服务。
+- SC-011: npm 安装包可被 DSH 标准 profile 命令识别为 bundle，且真实宿主能注册并调用 `dsh_test`。
+- SC-012: tool 调用的被测插件执行只发生在 Docker 中，workspace 越界、本地 symlink 逃逸、缺少确认和取消均有自动化回归测试。
 
 ## 13. 验收标准
 
@@ -208,6 +232,8 @@ Scenario:
 - 被中断运行完成可观察资源清理，并明确报告证据完整性与 observer coverage。
 - GitHub Action 能将 JUnit 结果显示为 PR check，并保存支持包 artifact。
 - 10 个真实插件测试结果中至少形成 3 个可提交给插件作者或 DSH 上游的可复现问题。
+- `npm pack` 的干净消费者可验证 bundle manifest、patch、Cordis 入口和 `dsh_test` schema。
+- 真实 DSH profile 可安装打包后的 Testkit、观察 bundle layer，并对 healthy fixture 完成一次 `dsh_test` Docker 调用。
 
 ## 14. Clarifications
 
@@ -223,6 +249,8 @@ Scenario:
   A: 否。进入官方脚手架、CI 或测试仓库是项目成功路径之一。
 - Q: 为什么不直接扩展现有静态检查器？
   A: 真实宿主执行需要隔离 runner、生命周期状态机和恢复语义，与只读扫描器的安全模型和架构边界不同；Testkit 可以组合其结果而不复制规则。
+- Q: 将 Testkit 做成 DSH 插件是否改变产品定位？
+  A: 否。DSH bundle 是现有生命周期引擎的原生入口和分发形态，不是第二套测试实现，也不把项目扩张成市场或通用 Harness 契约。
 
 ## 15. 开放问题
 

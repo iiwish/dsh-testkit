@@ -1,6 +1,6 @@
 # DSH Testkit Requirements Checklist
 
-Version: v0.1
+Version: v0.2
 Status: Completed
 Source spec: `.ai-platform/docs/product-design.md`
 Last updated: 2026-08-15
@@ -25,6 +25,9 @@ Last updated: 2026-08-15
 - [x] 产品审核没有 blocking open question，技术选型明确留给 TDR。[Readiness]
 - [x] `pass` 的含义限定在版本、环境、场景和 observer coverage 内。[Safety]
 - [x] 企业 Catalog 被定义为消费者而非首版功能。[Boundary]
+- [x] DSH bundle 被定义为现有测试引擎的入口，而不是市场或第二套实现。[Scope]
+- [x] DSH tool 明确要求确认、Docker 强制、workspace containment、取消传递和有界输出。[Safety]
+- [x] FR-019 至 FR-022 均映射到 T006 的单元、契约、打包和真实宿主测试。[Traceability]
 
 ## Findings Summary
 

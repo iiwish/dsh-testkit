@@ -1,0 +1,1823 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 1afd098..4bf4a2f 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -72,0 +73,9 @@ Scenario:
++### US-006: DSH 用户在宿主内发起插件测试
++
++As a DSH user, I want to invoke Testkit as a native DSH tool, so that I can test the current plugin workspace without leaving the DSH workflow.
++
++Scenario:
++1. 用户通过 `dsh plugin --profile <name> add dsh-testkit` 安装官方 bundle 形态。
++2. DSH 注册 `dsh_test` tool；用户明确确认后，tool 以当前 workspace 为默认输入。
++3. Testkit 仍只通过 Docker runner 加载和执行被测插件，并返回 verdict、摘要和证据路径。
++
+@@ -103,0 +113,4 @@ Scenario:
++- FR-019: npm 包必须声明官方 `dsh.bundle.patch`，并通过 Cordis row 在 DSH profile 中注册 `dsh_test` tool。
++- FR-020: `dsh_test` 必须复用同一个生命周期引擎，强制 Docker runner，不暴露 `--unsafe-local`、任意输出目录或可变来源开关。
++- FR-021: `dsh_test` 必须要求显式执行确认，将本地输入限制在当前 workspace 的真实路径内，并把 DSH 取消信号传递到所拥有的 runner 进程。
++- FR-022: tool 结果必须是有界的结构化值，至少包含退出码、verdict、运行目录、报告路径、摘要和诊断；完整证据保存在 Testkit 运行目录。
+@@ -132,0 +146,7 @@ Scenario:
++### v0.2 范围
++
++- 保留 v0.1 CLI、Action、report schema 和生命周期语义。
++- 将同一个 npm 包发布为官方 DSH Profile Bundle。
++- 注册一个薄 `dsh_test` tool adapter，只负责安全参数收敛、Docker 调用、取消和结果投影。
++- 使用真实 DSH profile 验证 bundle 安装、配置组装、tool 注册和确定性调用。
++
+@@ -148,0 +169,2 @@ Scenario:
++- 不在 DSH tool adapter 中复制生命周期引擎、静态扫描器或包管理逻辑。
++- 不允许 DSH tool adapter 直接在宿主进程加载被测插件或启用 unsafe local runner。
+@@ -198,0 +221,2 @@ Scenario:
++- SC-011: npm 安装包可被 DSH 标准 profile 命令识别为 bundle，且真实宿主能注册并调用 `dsh_test`。
++- SC-012: tool 调用的被测插件执行只发生在 Docker 中，workspace 越界、本地 symlink 逃逸、缺少确认和取消均有自动化回归测试。
+@@ -210,0 +235,2 @@ Scenario:
++- `npm pack` 的干净消费者可验证 bundle manifest、patch、Cordis 入口和 `dsh_test` schema。
++- 真实 DSH profile 可安装打包后的 Testkit、观察 bundle layer，并对 healthy fixture 完成一次 `dsh_test` Docker 调用。
+@@ -225,0 +252,2 @@ Scenario:
++- Q: 将 Testkit 做成 DSH 插件是否改变产品定位？
++  A: 否。DSH bundle 是现有生命周期引擎的原生入口和分发形态，不是第二套测试实现，也不把项目扩张成市场或通用 Harness 契约。
+diff --git a/.ai-platform/docs/release-acceptance-plan.md b/.ai-platform/docs/release-acceptance-plan.md
+index 2bc1386..a183f19 100644
+--- a/.ai-platform/docs/release-acceptance-plan.md
++++ b/.ai-platform/docs/release-acceptance-plan.md
+@@ -1 +1 @@
+-# DSH Testkit v0.1 Release Acceptance Plan
++# DSH Testkit v0.2 Release Acceptance Plan
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -127,0 +128,12 @@ Requirements: Constitution 2.6 and 3.
++### G10 Native DSH Bundle And Tool Boundary
++
++Requirements: US-006, FR-019 through FR-022, SC-011, SC-012.
++
++- Packed package declares `dsh.bundle.patch`, ships the patch and exports the Cordis plugin entry.
++- A clean real DSH profile installs the tarball, activates the bundle layer and registers `dsh_test`.
++- The real DSH tool runtime invokes `dsh_test` against the healthy fixture and receives a passed Docker-isolated lifecycle report.
++- Tool execution requires explicit confirmation and exposes no local runner, unsafe-local, mutable-source, config, output or arbitrary argv control.
++- Local input and output symlink escapes fail before runner construction.
++- DSH cancellation propagates through image inspection/build and runner subprocesses, which reach quiescence.
++- Tool response is bounded and points to complete canonical evidence on disk.
++
+diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index 27a6b31..a6475e3 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -3,3 +3,3 @@
+-Version: v0.1.2
+-Status: Published Public Preview
+-Decision: GO
++Version: v0.2.0
++Status: Release Candidate
++Decision: CONDITIONAL_GO
+@@ -7 +7 @@ Last updated: 2026-08-15
+-Release commit: `01d0a344f06d170238106a3a867f44f13caf7d1e`
++Release commit: Pending reviewed merge commit
+@@ -11 +11 @@ Release commit: `01d0a344f06d170238106a3a867f44f13caf7d1e`
+-DSH Testkit v0.1.2 tests packed DeepSeek Harness plugins in a real supported DSH host, preserves versioned JSON/JUnit evidence, and supports focused lifecycle-stage reruns without bypassing their required prefix.
++DSH Testkit v0.2.0 preserves the CLI, GitHub Action and v1 report contracts while publishing the same lifecycle engine as an official DSH Profile Bundle. The bundle registers `dsh_test`, requires both a confirmation argument and DSH pre-execution approval for agent-originated calls, constrains local inputs and outputs to the active workspace, and always executes the tested plugin through Docker.
+@@ -13 +13 @@ DSH Testkit v0.1.2 tests packed DeepSeek Harness plugins in a real supported DSH
+-The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versions return exit code 4 before runner creation. The v1 scenario contract remains unchanged; the v1 report contract adds the optional `scenario.case` field and retains compatibility with v0.1.1 fixtures.
++The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bounded structured result and points to the complete canonical evidence under `.dsh-testkit/runs`.
+@@ -19,17 +19,13 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
+-| TDD RED | Passed: focused tests failed for missing case selection, support gating, Action identity and compatibility fixtures |
+-| `pnpm validate` | Passed: 13 test files, 76 tests, typecheck, contract checks, coverage and build |
+-| Coverage | Passed: 51.09% statements, 75.70% branches, 54.76% functions and 51.09% lines |
+-| Real DSH E2E | Passed: 7 local-runner fixtures/cases in 285.284 seconds plus the targeted Docker boot-failure regression in 91.016 seconds |
+-| Single-case real host | Passed: resolve through boot executed, later stages skipped, cleanup retained |
+-| Packed consumer | Passed: dynamic v0.1.2 identity, embedded source maps, schemas, lock generation and Docker build |
+-| Contract compatibility | Passed: v0.1.1 scenario and report fixtures validate with runtime and published JSON schemas |
+-| Composite Action | Passed in PR CI `31878982044` and main CI `31879201445`: healthy and boot-failure matrix entries produced isolated checks and artifacts |
+-| Workflow validation | `actionlint v1.7.12` and immutable Action-reference checks passed |
+-| Package quality | `publint v0.3.23` passed |
+-| Dependency security | No known production or development vulnerabilities from the public npm advisory endpoint |
+-| Hosted release gate | Release workflow `31879424206` passed validate, real DSH E2E, packed-consumer, trusted publish and public verification in 4m30s |
+-| Static security | CodeQL default setup run `31879314348` passed for JavaScript/TypeScript |
+-| npm artifact | `dsh-testkit@0.1.2` is public with SHA-1 `b54bffab1b1ce41c737f188748f6347f80e775d6` and SHA-512 integrity metadata |
+-| Provenance | npm exposes SLSA v1 provenance generated by GitHub OIDC trusted publishing |
+-| Cold consumer | A clean temporary directory installed the public package and rendered `dsh-test --help` successfully |
+-| Delivery artifacts | T005 packet, implementation evidence, public identities and residual risks are recorded |
++| TDD RED | Passed: missing plugin module, bundle patch and AbortSignal forwarding produced the expected failures |
++| `pnpm validate` | Passed: 15 test files, 85 tests, typecheck, contract checks, coverage and build |
++| Coverage | Passed: 54.07% statements, 74.15% branches, 58.60% functions and 54.07% lines |
++| Existing real DSH lifecycle | Passed: 8 fixtures/cases against rc.6 in 630.796 seconds, including the Docker boot-failure case |
++| Native DSH bundle | Passed: packed install, active config layer, `dsh_test` registration, real runtime invocation, healthy Docker lifecycle and removal in 152.021 seconds |
++| Packed consumer | Passed: v0.2.0 CLI/library import, DSH manifest, patch export, tool schema, embedded sources and Docker image build |
++| Tool safety regressions | Passed: confirmation, DSH approval gate, downstream denial preservation, credential rejection, workspace escape, symlink escape, output-parent escape, forced Docker and bounded projection |
++| Workflow validation | `actionlint v1.7.12` passed for CI and release workflows |
++| Package quality | `publint v0.3.23` passed; dry-run tarball is under 150 KB and contains the declared bundle/runtime assets |
++| Dependency security | No known high or critical production vulnerability from the public npm advisory endpoint |
++| Delivery artifacts | T006 packet, implementation evidence and residual risks are recorded |
++| Hosted PR and release gates | Pending protected-branch PR, required checks and trusted publishing |
++| npm and marketplace | Pending `dsh-testkit@0.2.0` publication and official directory submission |
+@@ -39,5 +35,5 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
+-- Spec compliance: Passed for FR-018 case reruns and the existing v0.1 product boundary.
+-- Engineering quality: Passed with no open P0 or P1 finding.
+-- QA acceptance: Passed in local, pull-request, main and release-workflow environments.
+-- Release acceptance: Passed. The immutable `v0.1.2` tag and moving `v0` tag resolve to the reviewed release commit, and the npm artifact is public with provenance.
+-- Governed task status: Needs_Review until the user explicitly accepts the published result.
++- Spec compliance: Passed locally for US-006 and FR-019 through FR-022.
++- Engineering quality: Passed locally with no open P0 or P1 finding.
++- Security boundary: Passed locally; the tool preserves downstream denials and adds DSH approval only when an agent originates a confirmed call.
++- QA acceptance: Passed locally across unit, contract, existing real-host, native-bundle and packed-consumer paths.
++- Release acceptance: Conditional on protected-branch CI, immutable tag, trusted npm publication and public verification.
+@@ -47,2 +43,2 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
+-- The DSH adapter has real-host coverage but low instrumented unit coverage because its subprocess behavior runs outside V8 coverage collection.
+-- `actions/upload-artifact@v7` is unavailable on GitHub Enterprise Server; GHES users invoke the CLI directly.
++- DSH and its tool APIs remain release-candidate contracts; each newly supported version requires a peer-range review and real-host bundle case.
++- Docker isolation is not a proof against malicious code, and the tool requires Docker-daemon plus package-download network access.
+@@ -49,0 +46 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
++- The complete real-host suite takes about ten minutes locally, and the additional native-bundle gate takes about three minutes with warm caches.
+@@ -55,6 +52,3 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
+-- Release tag: [v0.1.2](https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.2)
+-- npm package: [dsh-testkit@0.1.2](https://www.npmjs.com/package/dsh-testkit/v/0.1.2)
+-- npm provenance: [SLSA attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.1.2)
+-- Main CI: [run 31879201445](https://github.com/iiwish/dsh-testkit/actions/runs/31879201445)
+-- Release workflow: [run 31879424206](https://github.com/iiwish/dsh-testkit/actions/runs/31879424206)
+-- CodeQL: [run 31879314348](https://github.com/iiwish/dsh-testkit/actions/runs/31879314348)
++- Release tag: `v0.2.0` pending
++- npm package: `dsh-testkit@0.2.0` pending
++- Official plugin directory submission: pending
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index beec8fe..7bca9f1 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -17 +17 @@ Last updated: 2026-08-15
+-The four governed tasks execute sequentially. Each task requires its packet, RED/GREEN evidence and two-pass review before the next task begins. User acceptance is required before any task becomes `Accepted` or the release report becomes final.
++The governed tasks execute sequentially. Each behavior task requires its packet, RED/GREEN evidence and review before release. User acceptance is required before any task becomes `Accepted` or the release report becomes final.
+@@ -32 +32 @@ Goal:
+-Complete the confirmed lifecycle-runner feature work graph and release-hardening gate.
++Complete the confirmed lifecycle-runner work graph, native DSH bundle and release gates.
+@@ -41 +41 @@ Deliverables:
+-- T001 through T004 implementation, evidence and review.
++- T001 through T006 implementation, evidence and review.
+@@ -60 +60 @@ Packet path:
+-- Feature packets are `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T004.yaml`.
++- Feature packets are `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T006.yaml`.
+@@ -87,0 +88,12 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T004.yaml`
++
++#### Work Item T005: v0.1.2 Contract, CI And Release Hardening
++
++Status: Needs_Review
++Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t005-v012-contract-ci-and-release-hardening`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
++
++#### Work Item T006: Native DSH Bundle And v0.2.0 Release
++
++Status: Running
++Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t006-native-dsh-bundle-and-v020-release`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index bf5888e..0eecd5b 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -358,0 +359,68 @@ Task impact:
++## TDR-015: One Package, Two Entrypoints, One Engine
++
++Decision:
++Publish `dsh-testkit` as both the existing CLI/library package and an official DSH Profile Bundle. The package declares `dsh.bundle.patch`; its root Cordis entry registers `dsh_test`, and the tool delegates to `runCli` instead of implementing lifecycle behavior again.
++
++Requirement mapping:
++- US-006, FR-019, FR-020, SC-011
++
++Rationale:
++- DSH native installation and tool discovery materially reduce adoption friction.
++- A thin adapter preserves one lifecycle state machine, report contract and release identity across CLI, Action and DSH.
++
++Alternatives considered:
++- Separate plugin package: adds coordinated releases and version drift without an independent product boundary.
++- CLI-only distribution: remains useful for CI but is absent from DSH-native plugin discovery.
++- Copy lifecycle logic into the tool: creates divergent behavior and evidence.
++
++Risks:
++- DSH peer APIs are in Developer Preview and can break across release candidates.
++
++Mitigations:
++- Declare bounded peer ranges, compile against the supported DSH tool API and gate each supported adapter with real-host E2E.
++
++Task impact:
++- T006 adds the bundle manifest, Cordis entry, packed consumer contract and native DSH E2E.
++
++## TDR-016: Docker-Only DSH Tool Safety Boundary
++
++Decision:
++The `dsh_test` tool requires `confirm: true`, forces `--runner docker`, disables implicit workspace configuration, does not expose unsafe-local or mutable-source flags, and chooses an owned output directory. Local directory and tarball inputs, including symlink targets, must resolve inside the current workspace. npm and pinned Git inputs remain subject to the lifecycle engine's immutable-source validation.
++
++Requirement mapping:
++- FR-020, FR-021, NFR-002, NFR-003, NFR-004, SC-012
++
++Rationale:
++- Installing a DSH tool gives an agent a host-process entrypoint; that must not become an arbitrary local code loader or filesystem reader.
++- Docker still executes untrusted package scripts with network access and Docker-daemon authority, so explicit user confirmation remains required.
++
++Alternatives considered:
++- Expose the full CLI argv surface: permits unsafe-local, arbitrary outputs and mutable inputs.
++- Trust a repository `dsh-testkit.yaml`: can redirect local sources outside the active workspace.
++- Execute on the host for lower latency: violates the product's default isolation guarantee.
++
++Risks:
++- Cancellation is cooperative and Docker shutdown can take a short grace period.
++- Docker isolation is not a security proof against a malicious container escape.
++
++Mitigations:
++- Forward the DSH `AbortSignal` through runner and subprocess layers, retain existing Docker hardening, and document the boundary in the tool description and README.
++
++Task impact:
++- T006 adds cancellation plumbing and focused containment, consent and forced-runner tests.
++
++## TDR-017: Bounded Structured Tool Result
++
++Decision:
++Return a JSON object containing exit code, lifecycle verdict, absolute run/report paths, and bounded terminal summary and diagnostics. Full reports and command logs remain files under `.dsh-testkit/runs`.
++
++Requirement mapping:
++- FR-022, NFR-008, NFR-012
++
++Rationale:
++- Agents need a stable result they can reason about, while full lifecycle reports are too large for routine model context.
++- File paths preserve access to complete canonical evidence without truncating the stored artifacts.
++
++Task impact:
++- T006 adds the output schema and result-projection tests.
++
+diff --git a/.ai-platform/evidence/T006/summary.md b/.ai-platform/evidence/T006/summary.md
+new file mode 100644
+index 0000000..9f6ba05
+--- /dev/null
++++ b/.ai-platform/evidence/T006/summary.md
+@@ -0,0 +1,29 @@
++# T006 Delivery Summary
++
++Status: Running
++Task: Native DSH Bundle And v0.2.0 Release
++Last updated: 2026-08-15
++
++## Implemented
++
++- Added the official `dsh.bundle.patch` manifest and `tool-dsh-testkit` Cordis row.
++- Added `dsh_test` as a typed adapter over `runCli`, with no second lifecycle engine.
++- Forced Docker, disabled implicit workspace config, constrained local inputs and evidence output, and removed unsafe-local/mutable/output/argv controls from the tool schema.
++- Added DSH pre-execution approval for confirmed agent calls while preserving downstream denial decisions.
++- Forwarded AbortSignal through CLI, runner, Docker image and subprocess layers.
++- Added native DSH install, registration, invocation and removal E2E plus packed-consumer contract checks.
++- Updated package version, release workflows, docs and canonical governance artifacts for v0.2.0.
++
++## Review
++
++- Spec compliance: Pass.
++- Bug and code quality: Pass, no open P0/P1 finding.
++- Security boundary: Pass for the implemented Docker/workspace/approval boundary.
++- QA acceptance: Local gates pass; hosted PR and release gates pending.
++- Release acceptance: Conditional until the reviewed merge commit is tagged and published.
++
++## Residual Risks
++
++- DSH rc APIs can change and remain isolated behind bounded peers and the existing adapter registry.
++- Docker daemon authority and network access require an informed approval; Docker is not a malware-proof sandbox.
++- Network activity is not traced by v0.2.0.
+diff --git a/.ai-platform/evidence/T006/test-results.md b/.ai-platform/evidence/T006/test-results.md
+new file mode 100644
+index 0000000..01e4370
+--- /dev/null
++++ b/.ai-platform/evidence/T006/test-results.md
+@@ -0,0 +1,30 @@
++# T006 Test Results
++
++Last updated: 2026-08-15
++
++## RED
++
++`pnpm test -- tests/unit/dsh-plugin.test.ts tests/contracts/dsh-bundle.test.ts tests/unit/command.test.ts`
++
++- Failed because `src/dsh-plugin.ts` and `cordis.patch.yml` did not exist.
++- AbortSignal regression waited for timeout instead of terminating the child process.
++- Existing unrelated tests remained green.
++
++## GREEN And Local Acceptance
++
++- `pnpm validate`: passed, 15 files and 85 tests.
++- Coverage: 54.07% statements, 74.15% branches, 58.60% functions, 54.07% lines.
++- `pnpm test:e2e`: passed, 8 real DSH lifecycle cases in 630.796 seconds.
++- `pnpm test:bundle-e2e`: passed, one real DSH bundle/install/tool/Docker/removal case in 152.021 seconds.
++- `pnpm test:pack`: passed for the final `dsh-testkit-0.2.0.tgz` candidate after the approval and output-containment refinements.
++- `publint v0.3.23`: passed.
++- `actionlint v1.7.12`: passed.
++- `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
++- `npm pack --dry-run --json`: passed; bundle patch and compiled plugin entry are included.
++
++## Pending Hosted Evidence
++
++- Pull request and required checks.
++- Merge commit and protected tag.
++- Trusted npm publication and provenance.
++- GitHub release and plugin-directory submission.
+diff --git a/.ai-platform/specs/lifecycle-runner/analysis.md b/.ai-platform/specs/lifecycle-runner/analysis.md
+index f37adae..78a4145 100644
+--- a/.ai-platform/specs/lifecycle-runner/analysis.md
++++ b/.ai-platform/specs/lifecycle-runner/analysis.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -5 +5 @@ Status: Completed
+-Scope: lifecycle-runner MVP
++Scope: lifecycle-runner and native DSH bundle
+@@ -15 +15 @@ Last updated: 2026-08-15
+-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T003.yaml`
++- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T006.yaml`
+@@ -19 +19 @@ Last updated: 2026-08-15
+-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 all map to T001 or T002; release acceptance and SC-001 through SC-010 map to T003.
++- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006.
+@@ -44,6 +43,0 @@ Last updated: 2026-08-15
+-### Medium: Public namespace is not reserved
+-
+-- Location: `.ai-platform/specs/lifecycle-runner/research.md`, Naming Decision.
+-- Impact: Another project could claim the npm or GitHub name before release.
+-- Recommended action: Recheck immediately before user-approved public repository creation or npm publication. This does not block local implementation.
+-
+@@ -55,0 +50,6 @@ Last updated: 2026-08-15
++### Low: DSH tool APIs remain release-candidate contracts
++
++- Location: TDR-015 and TDR-016.
++- Impact: A future DSH release can require a peer range, tool-schema or Cordis adapter update.
++- Recommended action: Keep the supported-version registry explicit and require one real-host bundle case for each added DSH version.
++
+diff --git a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+index 4c8f410..eba6dea 100644
+--- a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
++++ b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -27,0 +28,3 @@ Last updated: 2026-08-15
++- [x] DSH bundle 被定义为现有测试引擎的入口，而不是市场或第二套实现。[Scope]
++- [x] DSH tool 明确要求确认、Docker 强制、workspace containment、取消传递和有界输出。[Safety]
++- [x] FR-019 至 FR-022 均映射到 T006 的单元、契约、打包和真实宿主测试。[Traceability]
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T006.yaml b/.ai-platform/specs/lifecycle-runner/packets/T006.yaml
+new file mode 100644
+index 0000000..63c90b1
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T006.yaml
+@@ -0,0 +1,115 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T006
++task_id: T006
++feature_id: lifecycle-runner
++mode: execute_one_task
++adapter: codex
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  product_contract: .ai-platform/docs/product-design.md
++  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
++  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
++  technical_decisions: .ai-platform/docs/technology-decision-record.md
++  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
++  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
++  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
++  approval_gates:
++    constitution: Confirmed
++    product_or_spec: Confirmed
++    technical_plan_and_work_graph: Confirmed
++    native_bundle_and_release: User approved the reviewed native DSH bundle direction and v0.2.0 release on 2026-08-15
++work_unit:
++  title: Native DSH bundle and v0.2.0 release
++  goal: Publish the existing lifecycle engine through a safe DSH-native tool and release the verified package.
++  epic: E001
++  story: US-006
++  requirements: [FR-019, FR-020, FR-021, FR-022, NFR-002, NFR-003, NFR-004, NFR-008, NFR-012, SC-011, SC-012]
++  priority: P0
++  depends_on: [T005]
++  blocks: [v0.2.0 public release, plugin-directory submission]
++  parallel: false
++  conflicts_with: []
++codebase_context:
++  local_instructions: [AGENTS.md]
++  relevant_files:
++    - package.json
++    - src/index.ts
++    - src/cli.ts
++    - src/runners/**
++    - src/process/command.ts
++    - tests/e2e/**
++  existing_patterns:
++    - runCli is the only controller entry into lifecycle execution.
++    - Docker is the default isolated runner and local execution requires explicit unsafe consent.
++    - The canonical report is persisted before terminal projection.
++  interfaces_or_contracts:
++    - official dsh.bundle.patch package manifest
++    - Cordis apply(ctx) plugin entry
++    - @deepseek-ai/dsh-tools defineTool schema
++  forbidden_changes:
++    - Do not duplicate the lifecycle engine inside the DSH adapter.
++    - Do not expose unsafe-local, mutable-source, arbitrary argv or arbitrary output paths.
++    - Do not permit local path or symlink escape outside the active workspace.
++    - Do not add, modify or commit the user-owned AGENTS.md file.
++execution_constraints:
++  branch_or_worktree: codex/dsh-bundle-v0.2.0
++  allowed_files:
++    - .ai-platform/**
++    - .github/**
++    - src/**
++    - tests/**
++    - scripts/**
++    - docs/**
++    - examples/**
++    - cordis.patch.yml
++    - package.json
++    - pnpm-lock.yaml
++    - README.md
++    - CHANGELOG.md
++  test_targets:
++    - tests/unit/dsh-plugin.test.ts
++    - tests/unit/command.test.ts
++    - tests/integration/cli.test.ts
++    - tests/contracts/dsh-bundle.test.ts
++    - tests/e2e/pack-consumer.mjs
++    - tests/e2e/real-dsh-bundle.test.ts
++  ownership_notes:
++    - Preserve the untracked AGENTS.md exactly as found.
++tdd_plan:
++  required: true
++  exception: Documentation, manifest metadata and release operations use static or hosted validation.
++  red:
++    command: pnpm test -- tests/unit/dsh-plugin.test.ts tests/contracts/dsh-bundle.test.ts tests/unit/command.test.ts
++    expected_failure: Native tool module, official manifest and cancellation forwarding do not exist.
++  green:
++    command: pnpm validate
++    expected_signal: Tool, contract, cancellation, compatibility, coverage, typecheck and build tests pass.
++  refactor:
++    command: pnpm test:e2e && pnpm test:bundle-e2e && pnpm test:pack
++    expected_signal: Existing lifecycle, real DSH bundle and clean packed-consumer acceptance pass.
++validation_loop:
++  commands:
++    - pnpm validate
++    - pnpm test:e2e
++    - pnpm test:bundle-e2e
++    - pnpm test:pack
++    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T006
++  retry_budget: 3
++  failure_policy:
++    first_failure: Fix the smallest implementation or contract defect within the approved adapter scope.
++    second_failure: Add diagnostics and verify DSH, Docker, peer dependency or profile assumptions.
++    third_failure: Classify a genuine external blocker without weakening acceptance.
++    beyond_budget: Stop and record blocked evidence.
++evidence_contract:
++  summary: .ai-platform/evidence/T006/summary.md
++  diff: .ai-platform/evidence/T006/diff.patch
++  test_results: .ai-platform/evidence/T006/test-results.md
++  required: [RED/GREEN results, security-boundary traceability, full release validation, public identities, marketplace submission, residual risks]
++review_contract:
++  required_passes: [spec_compliance, bug_code_quality, security_boundary, qa_acceptance, release_acceptance]
++  acceptance_rule: Public release requires a verified merge commit, green CI, real DSH bundle proof and successful npm verification.
++handoff:
++  external_issue: null
++  pull_request: null
++  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit official plugin directory entry]
++stop_conditions: [Docker unavailable for final E2E, real DSH bundle incompatibility, npm trusted publisher unavailable, unresolved release blocker]
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index 9327d36..93c3f07 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -30,0 +31 @@ tests/
++cordis.patch.yml
+@@ -64,0 +66,8 @@ tests/
++### Slice 4: Native DSH Bundle
++
++- Add the official `dsh.bundle.patch` manifest and Cordis plugin export.
++- Register a typed `dsh_test` tool that delegates to the existing CLI engine.
++- Require confirmation, constrain workspace paths, disable implicit config and force Docker.
++- Forward DSH cancellation through runner-owned subprocesses.
++- Verify package contracts, real DSH install/config/tool registration and a healthy Docker invocation.
++
+diff --git a/.ai-platform/specs/lifecycle-runner/research.md b/.ai-platform/specs/lifecycle-runner/research.md
+index 168916f..9bb9db7 100644
+--- a/.ai-platform/specs/lifecycle-runner/research.md
++++ b/.ai-platform/specs/lifecycle-runner/research.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -46,0 +47,2 @@ Source: DSH 官方文档、社区仓库源码和成熟插件生态官方测试
++`dsh-plugin-check` 同时证明了官方 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
++
+@@ -124,0 +127,6 @@ Catalog 复用 Git、制品库、身份、签名和通用 Registry；DSH Testkit
++
++## 9. v0.2 Distribution Decision
++
++截至 2026-08-15，DSH 官方发布规范将可安装插件定义为声明 `dsh.bundle.patch` 的 npm bundle；`awesome-dsh-plugin` 只收录可由 `dsh plugin add` 安装的 bundle，`dsh-market` 从该目录同步。仅发布 CLI 会错过 DSH 原生发现和调用路径。
++
++v0.2 采用双入口单引擎：继续保留 `dsh-test` CLI 和 GitHub Action，同时让包根导出 Cordis `apply` 并注册 `dsh_test`。Tool adapter 不复制测试逻辑，只收敛输入并强制 Docker。这个增量同时满足官方协议、市场可发现性和安全边界，不依赖非官方公共契约。
+diff --git a/.ai-platform/specs/lifecycle-runner/spec.md b/.ai-platform/specs/lifecycle-runner/spec.md
+index a7641a9..c37a5e6 100644
+--- a/.ai-platform/specs/lifecycle-runner/spec.md
++++ b/.ai-platform/specs/lifecycle-runner/spec.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -30,0 +31 @@ This feature specification does not redefine those requirements. The Product Des
++- Official DSH Profile Bundle manifest and a Docker-only `dsh_test` tool adapter over the same engine.
+@@ -38 +39 @@ This feature specification does not redefine those requirements. The Product Des
+-- Public release or npm publication without a later explicit user approval.
++- DSH marketplace implementation or a second lifecycle engine inside the tool adapter.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index c93fae3..a6313d2 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -3 +3 @@
+-Version: v0.1
++Version: v0.2
+@@ -25 +25 @@ Last updated: 2026-08-15
+-- Isolation: this new project has no pre-existing code or user edits; tasks run sequentially in the current project directory.
++- Isolation: tasks run sequentially in the current project directory; the user-owned untracked `AGENTS.md` is outside every task boundary.
+@@ -53,0 +54 @@ Tasks:
++- [ ] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
+@@ -442,0 +444,77 @@ Evidence required:
++### T006: Native DSH Bundle And v0.2.0 Release
++
++Status: Running
++Priority: P0
++Depends on: T005
++Blocks: v0.2.0 public release and plugin-directory submission
++Story / Requirement: US-006, FR-019 through FR-022, NFR-002 through NFR-004, NFR-008, NFR-012, SC-011, SC-012
++Parallel: No
++Conflicts with: None
++
++Goal:
++Make `dsh-testkit` an official installable DSH bundle whose `dsh_test` tool safely delegates to the existing Docker lifecycle engine, then publish and verify v0.2.0.
++
++Allowed files:
++- `.ai-platform/**`
++- `.github/**`
++- `src/**`
++- `tests/**`
++- `scripts/**`
++- `docs/**`
++- `examples/**`
++- `cordis.patch.yml`
++- `package.json`
++- `pnpm-lock.yaml`
++- `README.md`
++- `CHANGELOG.md`
++
++Test targets:
++- `tests/unit/dsh-plugin.test.ts`
++- `tests/unit/command.test.ts`
++- `tests/integration/cli.test.ts`
++- `tests/contracts/dsh-bundle.test.ts`
++- `tests/e2e/pack-consumer.mjs`
++- `tests/e2e/real-dsh-bundle.test.ts`
++
++Deliverables:
++- Official `dsh.bundle.patch` and Cordis plugin export.
++- Typed `dsh_test` tool with explicit consent, workspace containment, Docker-only execution, cancellation and bounded structured output.
++- Packed-consumer and real DSH install/registration/invocation evidence.
++- v0.2.0 npm package, GitHub tag/release, moving `v0` tag and plugin-directory submission.
++
++Acceptance criteria:
++- `dsh plugin --profile <name> add <packed-tarball>` activates the Testkit bundle and `--dump-config` contains its row.
++- A real DSH runtime probe sees `dsh_test`, and one confirmed call runs the healthy fixture through Docker.
++- Missing confirmation, workspace escape and symlink escape fail before runner construction.
++- Tool arguments cannot select local execution, mutable inputs, arbitrary output paths or implicit repository configuration.
++- DSH cancellation reaches the owned Docker subprocess and settles without leaving the named run container.
++- CLI, Action and report compatibility tests remain green.
++- v0.2.0 is published from the reviewed merge commit with npm provenance.
++
++Definition of Done:
++- Focused tests demonstrate RED before implementation and GREEN after it.
++- Full validation, real-host lifecycle, native-bundle E2E and packed-consumer gates pass.
++- Protected-branch PR merges, release workflow succeeds and public package/bundle identities verify.
++- Plugin-directory PR is open with the released installable package.
++
++Validation commands:
++- `pnpm validate`
++- `pnpm test:e2e`
++- `pnpm test:bundle-e2e`
++- `pnpm test:pack`
++- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T006`
++
++TDD plan:
++- RED: add tool consent, containment, forced-Docker, cancellation, bundle-contract and real-host tests before implementation.
++- GREEN: implement the smallest adapter and cancellation plumbing that satisfies those tests.
++- REFACTOR: run complete CLI/Action/package regression and real DSH acceptance before release.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`
++
++Evidence required:
++- RED/GREEN outputs and security-boundary traceability.
++- Full validation, packed consumer and real DSH bundle results.
++- Commit, PR, CI, tag, GitHub release, npm provenance and marketplace submission identities.
++- Residual risks and any external repository-setting changes.
++
+@@ -448,0 +527 @@ Evidence required:
++- The user explicitly approved the native DSH bundle direction and v0.2.0 release on 2026-08-15.
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1e15bae..a2d738d 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -36 +36 @@ jobs:
+-            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
++            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|cordis\.patch\.yml$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
+@@ -71,0 +72 @@ jobs:
++      - run: pnpm test:bundle-e2e
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 60af983..8d4d0d2 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -44,0 +45 @@ jobs:
++      - run: pnpm test:bundle-e2e
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 6f8d629..c4e8eb9 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,0 +7,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
++## [0.2.0] - 2026-08-15
++
++### Added
++
++- Added the official `dsh.bundle.patch` manifest so `dsh-testkit` installs directly into DSH profiles.
++- Added the native `dsh_test` tool as a thin adapter over the existing lifecycle engine.
++- Added real DSH bundle install, registration, invocation, removal, and packed-consumer verification.
++
++### Security
++
++- Required explicit confirmation for native tool execution and forced every tool-triggered run through Docker.
++- Restricted local tool inputs and symlink targets to the active workspace, disabled implicit repository configuration, and bounded tool output.
++- Forwarded DSH cancellation signals through the runner and owned subprocess group.
++
+@@ -44 +58,2 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...HEAD
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...HEAD
++[0.2.0]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...v0.2.0
+diff --git a/README.md b/README.md
+index bda376a..4b1cf69 100644
+--- a/README.md
++++ b/README.md
+@@ -13,0 +14,9 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 \
++DSH Testkit is also an official DSH Profile Bundle. Install it into the profile where you want the tool available:
++
++```bash
++dsh plugin --profile web add dsh-testkit@0.2.0
++dsh --profile web --dump-config
++```
++
++The bundle registers `dsh_test`. It tests the active workspace by default, accepts the same expected row/service/tool assertions, and returns the verdict plus paths to the complete report. The tool always uses Docker, ignores implicit `dsh-testkit.yaml` configuration, restricts local inputs to the active workspace, requires `confirm: true`, and asks through DSH's pre-execution approval pipeline for agent-originated calls. It never exposes unsafe-local execution or arbitrary CLI arguments.
++
+@@ -108,0 +118,2 @@ DSH Testkit tests DSH lifecycle behavior. It is not a plugin marketplace, cross-
++The native `dsh_test` tool requires access to the Docker daemon and can execute package scripts with network access inside the runner. Confirmation is a deliberate trust decision, not a security certification.
++
+diff --git a/cordis.patch.yml b/cordis.patch.yml
+new file mode 100644
+index 0000000..a573741
+--- /dev/null
++++ b/cordis.patch.yml
+@@ -0,0 +1,3 @@
++- insert:
++    - id: tool-dsh-testkit
++      name: dsh-testkit
+diff --git a/package.json b/package.json
+index 8079135..d2a7714 100644
+--- a/package.json
++++ b/package.json
+@@ -3 +3 @@
+-  "version": "0.1.2",
++  "version": "0.2.0",
+@@ -6,0 +7 @@
++    "deepseek-harness",
+@@ -7,0 +9 @@
++    "dsh-plugin",
+@@ -39 +41,2 @@
+-      "import": "./dist/src/index.js"
++      "import": "./dist/src/index.js",
++      "default": "./dist/src/index.js"
+@@ -40,0 +44,2 @@
++    "./cordis.patch.yml": "./cordis.patch.yml",
++    "./package.json": "./package.json",
+@@ -45,0 +51 @@
++    "cordis.patch.yml",
+@@ -65,0 +72 @@
++    "test:bundle-e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh-bundle.test.ts",
+@@ -75,0 +83,10 @@
++  "peerDependencies": {
++    "@deepseek-ai/cordis": "^4.0.1",
++    "@deepseek-ai/dsh-invariants": ">=0.1.0-rc.6 <0.2.0",
++    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.6 <0.2.0"
++  },
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    }
++  },
+@@ -76,0 +94,3 @@
++    "@deepseek-ai/cordis": "4.0.1",
++    "@deepseek-ai/dsh-invariants": "0.1.0-rc.6",
++    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 914b1c3..d68ae6a 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -23,0 +24,9 @@ importers:
++      '@deepseek-ai/cordis':
++        specifier: 4.0.1
++        version: 4.0.1
++      '@deepseek-ai/dsh-invariants':
++        specifier: 0.1.0-rc.6
++        version: 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-tools':
++        specifier: 0.1.0-rc.6
++        version: 0.1.0-rc.6(f8724372086ccc1457fc84e7becee2e0)
+@@ -69,0 +79,123 @@ packages:
++  '@deepseek-ai/cordis@4.0.1':
++    resolution: {integrity: sha512-YBdskTU2Po1kru3GgcUWUbkTsPMA9LkSQDAY8rBkFJeajdgcQad3QPJZE26JyK99Xb6HaASvoXg2DSUTeN/0Nw==}
++    hasBin: true
++    peerDependencies:
++      '@deepseek-ai/cordis-plugin-include': ^1.0.6
++      '@deepseek-ai/cordis-plugin-loader': ^1.0.2
++    peerDependenciesMeta:
++      '@deepseek-ai/cordis-plugin-include':
++        optional: true
++      '@deepseek-ai/cordis-plugin-loader':
++        optional: true
++
++  '@deepseek-ai/cosmokit@1.8.2':
++    resolution: {integrity: sha512-muBOKtSrUKU5m/xpq8ZXWL6hQ/jgd4PhU2PqH97bcxIiLEJfNwZOGQEx4t/aS/GgxRAR+ra9pMHPMtTHU4sqqA==}
++
++  '@deepseek-ai/dsh-agent@0.1.0-rc.6':
++    resolution: {integrity: sha512-vtqq2pWTrzn0dKfj5kREZRpP82AwtGjGx9V1lYnKvF+Uc/a8zyWbSvjDE7V1d3YQAQJzs2cWO31hURWDekDXIA==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-session': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-typert-protocol': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-attachment@0.1.0-rc.6':
++    resolution: {integrity: sha512-3P6N17NQ8jqSQGzeCs+svCIqArU8oq0YmgEAo+axN9aVuUDferWU4DLRSX59UGpmyldX4LQn81toA+c+DqMcHg==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-brand': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-brand@0.1.0-rc.6':
++    resolution: {integrity: sha512-E8j9Nby24qP4rfrdcfc7bpt1CHpGT3tYmycOJJkEOH4ptIdT1m2ro9nmnSd5CWYukTr64A77vjm2WGqHRI92UA==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-code-runtime@0.1.0-rc.6':
++    resolution: {integrity: sha512-aw8D4IOeMo11A3uxQeE4LFoW3bvaQnVkGFqqtS+lsINDARrOCJHXLUgecoKpys+Lc5erZZ4UQDnymJmL4OCcKA==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-invariants@0.1.0-rc.6':
++    resolution: {integrity: sha512-WfEfOi99a4cpOugRAHTBSTnesLieu3ist1q9PXDXFBHX++K1rAl9+sB7YrdnbB8LH0UOY532gS9xJUYU6w0SLw==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++
++  '@deepseek-ai/dsh-llm@0.1.0-rc.6':
++    resolution: {integrity: sha512-kuFGC8bHlzGTwlRxQhXjf3CYWl8M4NzH+EYIkrW8rri4iMc9W53xrdvkil5No/DUlMm8g1u7GdeiWYFy0TMvtA==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-attachment': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-brand': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-timeout': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-scope@0.1.0-rc.6':
++    resolution: {integrity: sha512-UlDLV4syLoJinNg9imhXrSAHrdaTa5Ff8gg46rzjFJGPUOhAk3DZff0hryT5OhrBi0A5Tj92qVpg2pRVvxnUzQ==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-session@0.1.0-rc.6':
++    resolution: {integrity: sha512-8tu8I6VWC7050GAUXWhcEWQw4pakALQc8TlhKr52m7Y4+kIKeNt3FBgP86PaGPBtpK0p5zUPRQNkFpzZbBdxyw==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-brand': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-typert-protocol': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-system-prompt@0.1.0-rc.6':
++    resolution: {integrity: sha512-E7g+XChh4q4/wX++v56z1pV4SA1Rtz42xkznLPPi9FlXrrzJxwHMOUzBZ9Rz3Y1kLhQ++HJG3ZatmNx3rjFilg==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-timeout@0.1.0-rc.6':
++    resolution: {integrity: sha512-CUean0fAnfsJVszFEip7PsU/S26W+JfDFfsza2dCtlw8n6xlkbHA9Gjxdk2aTwqDGCgXEPkRW7mYkdJ0n6FR7w==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-tools@0.1.0-rc.6':
++    resolution: {integrity: sha512-Tu08EPK3JyK0iNjH4FGzu/1uADynNSS6SmwOLdfytUN0YNqwNuKFSt2OJUg19famNlTgy992DcHfDu0T+gLXFg==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-agent': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-code-runtime': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-session': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-user-approval': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-typert-protocol@0.1.0-rc.6':
++    resolution: {integrity: sha512-weWzN8r01YCkoDCAM7BsKw2YhRrD4zL8N2SAZu9hovYtXSq8xHXsP4Zh8RLYIlYcuotjyff/6hic+0TJPd14YA==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++
++  '@deepseek-ai/dsh-user-approval@0.1.0-rc.6':
++    resolution: {integrity: sha512-9rnkSDGOpu2XUeGwbPeTzVUTFWTND1PMPM5L/ZQPptV5yyZlQiNxM2rCC6OdL+ZVerwxEqrRhZIQn/KVtQfKag==}
++    peerDependencies:
++      '@deepseek-ai/cordis': ^4.0.1
++      '@deepseek-ai/dsh-agent': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-brand': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-session': ^0.1.0-rc.6
++      '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.6
++
++  '@deepseek-ai/schemastery@3.18.1':
++    resolution: {integrity: sha512-Qn0FCSwCQnpnj6SB31I6i2sIKgKWnkbJM8O0EU91Gv2UsYVvtZTl6IA0sCwk2e2MZf5S8w5hpq9QkeVvK9qwxg==}
++
+@@ -416,0 +549,3 @@ packages:
++  '@standard-schema/spec@1.1.0':
++    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
++
+@@ -944,0 +1080,109 @@ snapshots:
++  '@deepseek-ai/cordis@4.0.1':
++    dependencies:
++      '@deepseek-ai/cosmokit': 1.8.2
++      '@standard-schema/spec': 1.1.0
++
++  '@deepseek-ai/cosmokit@1.8.2': {}
++
++  '@deepseek-ai/dsh-agent@0.1.0-rc.6(b0514d7a320728b6d8f5a31eb3960e10)':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(6fd26f59436a18b115f326d6060415e6)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++
++  '@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-code-runtime@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/schemastery': 3.18.1
++
++  '@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-attachment': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-timeout': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/schemastery': 3.18.1
++
++  '@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-session@0.1.0-rc.6(6fd26f59436a18b115f326d6060415e6)':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++
++  '@deepseek-ai/dsh-system-prompt@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/schemastery': 3.18.1
++
++  '@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-tools@0.1.0-rc.6(f8724372086ccc1457fc84e7becee2e0)':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(b0514d7a320728b6d8f5a31eb3960e10)
++      '@deepseek-ai/dsh-code-runtime': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(6fd26f59436a18b115f326d6060415e6)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-user-approval': 0.1.0-rc.6(dbdaba06c174c5e30e3a58edf3cc27a9)
++      '@deepseek-ai/schemastery': 3.18.1
++
++  '@deepseek-ai/dsh-typert-protocol@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++
++  '@deepseek-ai/dsh-user-approval@0.1.0-rc.6(dbdaba06c174c5e30e3a58edf3cc27a9)':
++    dependencies:
++      '@deepseek-ai/cordis': 4.0.1
++      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(b0514d7a320728b6d8f5a31eb3960e10)
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(6fd26f59436a18b115f326d6060415e6)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/schemastery': 3.18.1
++
++  '@deepseek-ai/schemastery@3.18.1':
++    dependencies:
++      '@deepseek-ai/cosmokit': 1.8.2
++      '@standard-schema/spec': 1.1.0
++
+@@ -1148,0 +1393,2 @@ snapshots:
++  '@standard-schema/spec@1.1.0': {}
++
+diff --git a/scripts/check-release-readiness.mjs b/scripts/check-release-readiness.mjs
+index 9d2cb9a..0a9bfe6 100644
+--- a/scripts/check-release-readiness.mjs
++++ b/scripts/check-release-readiness.mjs
+@@ -25,0 +26,10 @@ if (readme.includes('YOUR_ORG')) throw new Error('README.md contains an unresolv
++if (!readme.includes('dsh plugin --profile web add dsh-testkit@0.2.0')) {
++  throw new Error('README.md must document the native DSH bundle installation path')
++}
++if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') {
++  throw new Error('package.json must declare the official DSH bundle patch')
++}
++const bundlePatch = await readFile('cordis.patch.yml', 'utf8')
++if (!bundlePatch.includes('id: tool-dsh-testkit') || !bundlePatch.includes('name: dsh-testkit')) {
++  throw new Error('cordis.patch.yml must register the dsh-testkit Cordis row')
++}
+@@ -40 +50 @@ const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+-for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'npm publish --access public']) {
++for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'pnpm test:bundle-e2e', 'npm publish --access public']) {
+diff --git a/src/cli.ts b/src/cli.ts
+index e6ba654..25226bd 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -54,0 +55,2 @@ export interface CliDependencies {
++  signal: AbortSignal | undefined
++  useDefaultConfig: boolean
+@@ -80,0 +83,2 @@ function defaultDependencies(): CliDependencies {
++    signal: undefined,
++    useDefaultConfig: true,
+@@ -210 +214 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
+-    const configPath = explicitConfig ?? (await exists(defaultConfig) ? defaultConfig : undefined)
++    const configPath = explicitConfig ?? (deps.useDefaultConfig && await exists(defaultConfig) ? defaultConfig : undefined)
+@@ -312 +316 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
+-      reports.push(await persistReport(await runner.run(request), attemptDir))
++      reports.push(await persistReport(await runner.run(request, deps.signal), attemptDir))
+diff --git a/src/dsh-plugin.ts b/src/dsh-plugin.ts
+new file mode 100644
+index 0000000..aa09f44
+--- /dev/null
++++ b/src/dsh-plugin.ts
+@@ -0,0 +1,309 @@
++import { randomUUID } from 'node:crypto'
++import { access, lstat, mkdir, readFile, realpath } from 'node:fs/promises'
++import { isAbsolute, join, relative, resolve } from 'node:path'
++
++import type { Context } from '@deepseek-ai/cordis'
++import { defineTool } from '@deepseek-ai/dsh-tools'
++import type { PreToolDecision } from '@deepseek-ai/dsh-tools'
++
++import { SUPPORTED_DSH_NPM_VERSIONS } from './adapters/dsh/support.js'
++import { runCli } from './cli.js'
++import type { CliDependencies } from './cli.js'
++import { LIFECYCLE_STAGE_IDS, RunReportSchema } from './domain/report.js'
++import type { StageId, Verdict } from './domain/report.js'
++
++const TOOL_OUTPUT_LIMIT = 16 * 1024
++
++export const name = 'dsh-testkit'
++export const inject = ['tools']
++
++export interface DshTestArguments {
++  confirm: boolean
++  source?: string
++  dshVersion?: string
++  suite?: 'quick' | 'full'
++  lifecycleCase?: StageId
++  expectedRows?: string[]
++  expectedServices?: string[]
++  expectedTools?: string[]
++  updateFrom?: string
++}
++
++export interface DshTestResult {
++  exitCode: number
++  verdict: Verdict
++  runDirectory: string
++  reportPath: string | null
++  summary: string
++  diagnostics: string
++}
++
++type RunCliFunction = (argv: string[], overrides?: Partial<CliDependencies>) => Promise<number>
++
++export interface DshTestDependencies {
++  cwd: string
++  runCli: RunCliFunction
++  makeRunId: () => string
++}
++
++function defaultDependencies(): DshTestDependencies {
++  return {
++    cwd: process.cwd(),
++    runCli,
++    makeRunId: () => {
++      const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
++      return `tool-${timestamp}-${randomUUID().slice(0, 8)}`
++    },
++  }
++}
++
++async function exists(path: string): Promise<boolean> {
++  try {
++    await access(path)
++    return true
++  } catch {
++    return false
++  }
++}
++
++function isRemoteSource(source: string): boolean {
++  return source.startsWith('@') || /^(?:git\+|git@|github:|https?:\/\/)/.test(source)
++}
++
++function hasEmbeddedUrlCredentials(source: string): boolean {
++  const normalized = source.startsWith('git+') ? source.slice(4) : source
++  if (!/^https?:\/\//.test(normalized)) return false
++  try {
++    const url = new URL(normalized)
++    return url.username !== '' || url.password !== ''
++  } catch {
++    return false
++  }
++}
++
++function isContained(root: string, candidate: string): boolean {
++  const path = relative(root, candidate)
++  return path === '' || (!/^\.\.(?:[\\/]|$)/.test(path) && !isAbsolute(path))
++}
++
++async function normalizeToolSource(source: string, workspace: string): Promise<string> {
++  const value = source.trim()
++  if (value === '') throw new Error('dsh_test: source must not be empty')
++  if (value.startsWith('file:')) {
++    throw new Error('dsh_test: file: sources are not allowed; use a workspace-relative path')
++  }
++  if (hasEmbeddedUrlCredentials(value)) {
++    throw new Error('dsh_test: source URLs must not contain embedded credentials')
++  }
++  if (isRemoteSource(value)) return value
++
++  const candidate = resolve(workspace, value)
++  const looksLocal = isAbsolute(value)
++    || value.startsWith('.')
++    || value.includes('/')
++    || value.includes('\\')
++    || await exists(candidate)
++  if (!looksLocal) return value
++  if (!await exists(candidate)) throw new Error(`dsh_test: local source does not exist: ${value}`)
++
++  const resolved = await realpath(candidate)
++  if (!isContained(workspace, resolved)) {
++    throw new Error(`dsh_test: local source resolves outside the active workspace: ${value}`)
++  }
++  const metadata = await lstat(resolved)
++  if (!metadata.isDirectory() && !metadata.isFile()) {
++    throw new Error(`dsh_test: local source must be a directory or regular file: ${value}`)
++  }
++  return resolved
++}
++
++async function ensureOwnedRunDirectory(workspace: string, runDirectory: string): Promise<void> {
++  for (const directory of [join(workspace, '.dsh-testkit'), join(workspace, '.dsh-testkit', 'runs')]) {
++    try {
++      const metadata = await lstat(directory)
++      if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
++        throw new Error(`dsh_test: output parent must be a real directory: ${directory}`)
++      }
++    } catch (error) {
++      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
++      await mkdir(directory, { mode: 0o700 })
++    }
++  }
++  await mkdir(runDirectory, { mode: 0o700 })
++  if (!isContained(workspace, await realpath(runDirectory))) {
++    throw new Error('dsh_test: output directory resolves outside the active workspace')
++  }
++}
++
++function appendBounded(current: string, value: string): string {
++  if (Buffer.byteLength(current) >= TOOL_OUTPUT_LIMIT) return current
++  const remaining = TOOL_OUTPUT_LIMIT - Buffer.byteLength(current)
++  const bytes = Buffer.from(value)
++  const retained = bytes.subarray(0, remaining).toString('utf8')
++  return `${current}${retained}${bytes.length > remaining ? '\n[output truncated]\n' : ''}`
++}
++
++function verdictForExitCode(exitCode: number): Verdict {
++  return ({
++    0: 'passed',
++    1: 'failed',
++    2: 'invalid',
++    3: 'infrastructure_error',
++    4: 'unsupported',
++    5: 'flaky',
++  } as Record<number, Verdict>)[exitCode] ?? 'infrastructure_error'
++}
++
++export async function executeDshTest(
++  args: DshTestArguments,
++  overrides: Partial<DshTestDependencies> = {},
++  signal?: AbortSignal,
++): Promise<DshTestResult> {
++  if (args.confirm !== true) {
++    throw new Error('dsh_test requires confirm=true before executing plugin code in Docker')
++  }
++  signal?.throwIfAborted()
++  const deps = { ...defaultDependencies(), ...overrides }
++  const workspace = await realpath(deps.cwd)
++  const source = await normalizeToolSource(args.source ?? '.', workspace)
++  const updateFrom = args.updateFrom === undefined
++    ? undefined
++    : await normalizeToolSource(args.updateFrom, workspace)
++  const runDirectory = join(workspace, '.dsh-testkit', 'runs', deps.makeRunId())
++  await ensureOwnedRunDirectory(workspace, runDirectory)
++  const reportPath = join(runDirectory, 'report.json')
++  let stdout = ''
++  let stderr = ''
++  const argv = [
++    source,
++    '--dsh', args.dshVersion ?? SUPPORTED_DSH_NPM_VERSIONS[0],
++    '--runner', 'docker',
++    '--suite', args.suite ?? 'quick',
++    ...(args.lifecycleCase === undefined ? [] : ['--case', args.lifecycleCase]),
++    ...(args.expectedRows ?? []).flatMap(row => ['--expect-row', row]),
++    ...(args.expectedServices ?? []).flatMap(service => ['--expect-service', service]),
++    ...(args.expectedTools ?? []).flatMap(tool => ['--expect-tool', tool]),
++    ...(updateFrom === undefined ? [] : ['--update-from', updateFrom]),
++    '--output', runDirectory,
++  ]
++  const exitCode = await deps.runCli(argv, {
++    cwd: workspace,
++    useDefaultConfig: false,
++    signal,
++    stdout: value => { stdout = appendBounded(stdout, value) },
++    stderr: value => { stderr = appendBounded(stderr, value) },
++  })
++  signal?.throwIfAborted()
++
++  let verdict = verdictForExitCode(exitCode)
++  let persistedReportPath: string | null = null
++  try {
++    const report = RunReportSchema.parse(JSON.parse(await readFile(reportPath, 'utf8')))
++    verdict = report.verdict
++    persistedReportPath = reportPath
++  } catch {
++    // Invalid input and infrastructure failures can settle before a report exists.
++  }
++  return {
++    exitCode,
++    verdict,
++    runDirectory,
++    reportPath: persistedReportPath,
++    summary: stdout.trim() || `dsh-test exited with code ${exitCode}`,
++    diagnostics: stderr.trim(),
++  }
++}
++
++export function createDshTestTool() {
++  return defineTool({
++    name: 'dsh_test',
++    description:
++      'Run real-host lifecycle tests for a DSH plugin. This executes package build/install code inside ' +
++      'a hardened Docker runner, may use network access, and requires access to the Docker daemon. ' +
++      'Ask the user for confirmation, then set confirm=true. Local inputs are restricted to the active workspace.',
++    parameters: {
++      confirm: {
++        type: 'boolean',
++        required: true,
++        description: 'Must be true after the user explicitly confirms Docker execution of plugin code.',
++      },
++      source: {
++        type: 'string',
++        description: 'Workspace-relative plugin directory/tarball, exact npm package, or pinned Git source. Defaults to the active workspace.',
++      },
++      dshVersion: {
++        type: 'string',
++        description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
++      },
++      suite: {
++        type: 'string',
++        enum: ['quick', 'full'],
++        description: 'Lifecycle suite. Defaults to quick.',
++      },
++      lifecycleCase: {
++        type: 'string',
++        enum: LIFECYCLE_STAGE_IDS,
++        description: 'Optional lifecycle stage to rerun with its required prefix.',
++      },
++      expectedRows: {
++        type: 'array',
++        items: { type: 'string' },
++        description: 'Expected effective-config row IDs.',
++      },
++      expectedServices: {
++        type: 'array',
++        items: { type: 'string' },
++        description: 'Expected Cordis service names.',
++      },
++      expectedTools: {
++        type: 'array',
++        items: { type: 'string' },
++        description: 'Expected registered DSH tool names.',
++      },
++      updateFrom: {
++        type: 'string',
++        description: 'Optional older workspace-relative, exact npm, or pinned Git source for the update stage.',
++      },
++    },
++    output: {
++      schema: {
++        type: 'object',
++        additionalProperties: false,
++        properties: {
++          exitCode: { type: 'integer', required: true },
++          verdict: {
++            type: 'string',
++            required: true,
++            enum: ['passed', 'failed', 'flaky', 'unsupported', 'invalid', 'infrastructure_error'],
++          },
++          runDirectory: { type: 'string', required: true },
++          reportPath: {
++            required: true,
++            oneOf: [{ type: 'string' }, { type: 'null' }],
++          },
++          summary: { type: 'string', required: true },
++          diagnostics: { type: 'string', required: true },
++        },
++      },
++      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
++    },
++    execute: (args, exec) => executeDshTest(args, {}, exec.signal),
++  })
++}
++
++export function apply(ctx: Context): void {
++  ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
++    const downstream = await next()
++    const confirmed = typeof exec.arguments === 'object'
++      && exec.arguments !== null
++      && (exec.arguments as Record<string, unknown>).confirm === true
++    if (exec.name !== 'dsh_test' || exec.agent === undefined || !confirmed || downstream.kind !== 'allow') {
++      return downstream
++    }
++    return {
++      kind: 'ask',
++      reason: 'dsh_test executes plugin package scripts in Docker with Docker daemon and network access',
++    }
++  })
++  ctx.tools.register(createDshTestTool())
++}
+diff --git a/src/index.ts b/src/index.ts
+index 1f4f563..b1850e8 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -6,0 +7 @@ export * from './domain/scenario.js'
++export * from './dsh-plugin.js'
+diff --git a/src/process/command.ts b/src/process/command.ts
+index 8bfeede..201c74f 100644
+--- a/src/process/command.ts
++++ b/src/process/command.ts
+@@ -17,0 +18 @@ export interface CommandOptions {
++  signal?: AbortSignal
+@@ -64,0 +66 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
++  options.signal?.throwIfAborted()
+@@ -154,0 +157 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
++    const onAbort = () => { forwardSignal('SIGTERM') }
+@@ -156,0 +160,2 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
++    options.signal?.addEventListener('abort', onAbort, { once: true })
++    if (options.signal?.aborted === true) onAbort()
+@@ -162,0 +168 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
++      options.signal?.removeEventListener('abort', onAbort)
+@@ -200,0 +207 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
++      options.signal?.removeEventListener('abort', onAbort)
+diff --git a/src/runners/docker.ts b/src/runners/docker.ts
+index 4e47bf0..9dfa3a1 100644
+--- a/src/runners/docker.ts
++++ b/src/runners/docker.ts
+@@ -95 +95 @@ export class DockerRunner implements Runner {
+-  async run(request: WorkerRequest): Promise<RunReport> {
++  async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
+@@ -104,2 +104,2 @@ export class DockerRunner implements Runner {
+-        await this.ensureImage(image, contextDigest, root, controllerLogsDir)
+-        const imageId = await this.imageId(image, root, controllerLogsDir)
++        await this.ensureImage(image, contextDigest, root, controllerLogsDir, signal)
++        const imageId = await this.imageId(image, root, controllerLogsDir, signal)
+@@ -147,0 +148 @@ export class DockerRunner implements Runner {
++          ...(signal === undefined ? {} : { signal }),
+@@ -187 +188,7 @@ export class DockerRunner implements Runner {
+-  private async ensureImage(image: string, contextDigest: string, root: string, logsDir: string): Promise<void> {
++  private async ensureImage(
++    image: string,
++    contextDigest: string,
++    root: string,
++    logsDir: string,
++    signal?: AbortSignal,
++  ): Promise<void> {
+@@ -194,0 +202 @@ export class DockerRunner implements Runner {
++      ...(signal === undefined ? {} : { signal }),
+@@ -210,0 +219 @@ export class DockerRunner implements Runner {
++      ...(signal === undefined ? {} : { signal }),
+@@ -217 +226,6 @@ export class DockerRunner implements Runner {
+-  private async imageId(image: string, root: string, logsDir: string): Promise<string> {
++  private async imageId(
++    image: string,
++    root: string,
++    logsDir: string,
++    signal?: AbortSignal,
++  ): Promise<string> {
+@@ -224,0 +239 @@ export class DockerRunner implements Runner {
++      ...(signal === undefined ? {} : { signal }),
+diff --git a/src/runners/local.ts b/src/runners/local.ts
+index dd5e183..81027d7 100644
+--- a/src/runners/local.ts
++++ b/src/runners/local.ts
+@@ -13 +13 @@ export class LocalRunner implements Runner {
+-  async run(request: WorkerRequest): Promise<RunReport> {
++  async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
+@@ -28,0 +29 @@ export class LocalRunner implements Runner {
++      ...(signal === undefined ? {} : { signal }),
+diff --git a/src/runners/types.ts b/src/runners/types.ts
+index d614f21..e519b39 100644
+--- a/src/runners/types.ts
++++ b/src/runners/types.ts
+@@ -7 +7 @@ export interface Runner {
+-  run(request: WorkerRequest): Promise<RunReport>
++  run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport>
+diff --git a/src/version.ts b/src/version.ts
+index 42d1c50..0c48f7f 100644
+--- a/src/version.ts
++++ b/src/version.ts
+@@ -1 +1 @@
+-export const TESTKIT_VERSION = '0.1.2'
++export const TESTKIT_VERSION = '0.2.0'
+diff --git a/tests/contracts/dsh-bundle.test.ts b/tests/contracts/dsh-bundle.test.ts
+new file mode 100644
+index 0000000..604c14c
+--- /dev/null
++++ b/tests/contracts/dsh-bundle.test.ts
+@@ -0,0 +1,28 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++import { parse } from 'yaml'
++import { describe, expect, it } from 'vitest'
++
++describe('published DSH bundle contract', () => {
++  it('declares an installable bundle and exports the Cordis entry', async () => {
++    const root = resolve(import.meta.dirname, '../..')
++    const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
++    const patch = parse(await readFile(resolve(root, 'cordis.patch.yml'), 'utf8'))
++
++    expect(manifest.version).toBe('0.2.0')
++    expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
++    expect(manifest.exports['.']).toMatchObject({
++      types: './dist/src/index.d.ts',
++      import: './dist/src/index.js',
++      default: './dist/src/index.js',
++    })
++    expect(manifest.exports['./cordis.patch.yml']).toBe('./cordis.patch.yml')
++    expect(manifest.files).toContain('cordis.patch.yml')
++    expect(manifest.peerDependencies).toMatchObject({
++      '@deepseek-ai/cordis': '^4.0.1',
++      '@deepseek-ai/dsh-tools': '>=0.1.0-rc.6 <0.2.0',
++    })
++    expect(patch).toEqual([{ insert: [{ id: 'tool-dsh-testkit', name: 'dsh-testkit' }] }])
++  })
++})
+diff --git a/tests/e2e/pack-consumer.mjs b/tests/e2e/pack-consumer.mjs
+index 10457b4..a2c3789 100644
+--- a/tests/e2e/pack-consumer.mjs
++++ b/tests/e2e/pack-consumer.mjs
+@@ -49,2 +49,2 @@ try {
+-    "import { ScenarioSchema, TESTKIT_VERSION } from 'dsh-testkit'",
+-    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}') process.exit(1)`,
++    "import { ScenarioSchema, TESTKIT_VERSION, createDshTestTool } from 'dsh-testkit'",
++    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}' || createDshTestTool().name !== 'dsh_test') process.exit(1)`,
+@@ -57,0 +58,6 @@ try {
++  if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('packed DSH bundle manifest is invalid')
++  if (manifest.exports?.['./cordis.patch.yml'] !== './cordis.patch.yml') throw new Error('packed bundle patch export is missing')
++  const patch = await readFile(join(installedPackage, 'cordis.patch.yml'), 'utf8')
++  if (!patch.includes('id: tool-dsh-testkit') || !patch.includes('name: dsh-testkit')) {
++    throw new Error('packed bundle patch does not register dsh-testkit')
++  }
+diff --git a/tests/e2e/real-dsh-bundle.test.ts b/tests/e2e/real-dsh-bundle.test.ts
+new file mode 100644
+index 0000000..ffa30c4
+--- /dev/null
++++ b/tests/e2e/real-dsh-bundle.test.ts
+@@ -0,0 +1,172 @@
++import { execFile } from 'node:child_process'
++import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { pathToFileURL } from 'node:url'
++import { promisify } from 'node:util'
++
++import { describe, expect, it } from 'vitest'
++
++import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
++import { RunReportSchema } from '../../src/domain/report.js'
++import { runCommand } from '../../src/process/command.js'
++
++const executeFile = promisify(execFile)
++const root = resolve(import.meta.dirname, '../..')
++const enabled = process.env.DSH_TESTKIT_E2E === '1'
++
++describe.skipIf(!enabled).sequential('native DSH bundle', () => {
++  it('installs, registers and invokes dsh_test through a real DSH profile', async () => {
++    const temporary = await mkdtemp(join(tmpdir(), 'dsh-testkit-bundle-e2e-'))
++    const harness = join(temporary, 'harness')
++    const workspace = join(temporary, 'workspace')
++    const home = join(temporary, 'home')
++    const userHome = join(temporary, 'user-home')
++    const packDirectory = join(temporary, 'pack')
++    const logs = join(temporary, 'logs')
++    const profile = 'testkit-bundle-e2e'
++    const dshVersion = SUPPORTED_DSH_NPM_VERSIONS[0]
++
++    try {
++      await Promise.all([
++        mkdir(harness, { recursive: true }),
++        mkdir(workspace, { recursive: true }),
++        mkdir(home, { recursive: true }),
++        mkdir(userHome, { recursive: true }),
++        mkdir(packDirectory, { recursive: true }),
++        mkdir(logs, { recursive: true }),
++      ])
++      await writeFile(join(harness, 'package.json'), `${JSON.stringify({
++        name: 'dsh-testkit-bundle-e2e-host',
++        private: true,
++        version: '0.0.0',
++        packageManager: 'pnpm@11.1.3',
++      }, null, 2)}\n`)
++      await writeFile(join(harness, 'pnpm-workspace.yaml'), [
++        'packages:',
++        '  - .',
++        'dangerouslyAllowAllBuilds: true',
++        '',
++      ].join('\n'))
++      await cp(join(root, 'fixtures', 'healthy-plugin'), join(workspace, 'healthy-plugin'), { recursive: true })
++
++      await executeFile('pnpm', ['add', '--save-exact', `@deepseek-ai/dsh@${dshVersion}`], {
++        cwd: harness,
++        timeout: 300_000,
++        maxBuffer: 16 * 1024 * 1024,
++        env: { ...process.env, NPM_CONFIG_AUDIT: 'false', NPM_CONFIG_FUND: 'false' },
++      })
++      const packed = await executeFile('npm', ['pack', '--json', '--pack-destination', packDirectory], {
++        cwd: root,
++        timeout: 180_000,
++        maxBuffer: 16 * 1024 * 1024,
++      })
++      const packMetadata = JSON.parse(packed.stdout) as Array<{ filename?: string }>
++      const filename = packMetadata[0]?.filename
++      if (filename === undefined) throw new Error('npm pack returned no filename')
++      const tarball = join(packDirectory, filename)
++      const dsh = join(harness, 'node_modules', '.bin', 'dsh')
++      const dshEnvironment = {
++        ...process.env,
++        DSH_HOME: home,
++        HOME: userHome,
++        DSH_TELEMETRY_DISABLED: '1',
++        PATH: `${join(harness, 'node_modules', '.bin')}:${process.env.PATH ?? ''}`,
++        NPM_CONFIG_AUDIT: 'false',
++        NPM_CONFIG_FUND: 'false',
++        PNPM_CONFIG_DANGEROUSLY_ALLOW_ALL_BUILDS: 'true',
++      }
++
++      await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
++        cwd: workspace,
++        env: dshEnvironment,
++        timeout: 300_000,
++        maxBuffer: 16 * 1024 * 1024,
++      })
++      const dumped = await executeFile(dsh, ['--profile', profile, '--dump-config'], {
++        cwd: workspace,
++        env: dshEnvironment,
++        timeout: 60_000,
++        maxBuffer: 16 * 1024 * 1024,
++      })
++      expect(dumped.stdout).toContain('# == dsh-testkit')
++      expect(dumped.stdout).toContain('id: tool-dsh-testkit')
++
++      const profileManifest = JSON.parse(await readFile(join(home, 'profiles', profile, 'package.json'), 'utf8'))
++      expect(profileManifest.dsh.profile.bundles).toContain('dsh-testkit')
++
++      const probeOutput = join(temporary, 'probe.json')
++      const probePatch = join(temporary, 'probe.patch.yml')
++      const probeModule = pathToFileURL(join(root, 'dist', 'src', 'probe', 'runtime.js')).href
++      await writeFile(probePatch, [
++        '- insert:',
++        '    - id: dsh-testkit-bundle-e2e-probe',
++        `      name: ${JSON.stringify(probeModule)}`,
++        '',
++      ].join('\n'))
++      const probeConfig = {
++        schemaVersion: 1,
++        output: probeOutput,
++        mode: 'present',
++        services: [],
++        tools: ['dsh_test'],
++        exercise: [{
++          tool: 'dsh_test',
++          arguments: {
++            confirm: true,
++            source: './healthy-plugin',
++            dshVersion,
++            expectedRows: ['fixture-healthy'],
++            expectedServices: ['fixtureHealthy'],
++            expectedTools: ['fixture_echo'],
++          },
++        }],
++        settleMs: 500,
++      }
++      const boot = await runCommand({
++        executable: dsh,
++        args: ['--profile', profile, '--patch', probePatch],
++        cwd: workspace,
++        env: { ...dshEnvironment, DSH_TESTKIT_PROBE_CONFIG: JSON.stringify(probeConfig) },
++        timeoutMs: 900_000,
++        logDir: logs,
++        logName: 'bundle-host',
++        completionFile: probeOutput,
++      })
++      expect(boot.timedOut).toBe(false)
++      expect(boot.stoppedAfterCompletion).toBe(true)
++      const probe = JSON.parse(await readFile(probeOutput, 'utf8')) as {
++        tools: string[]
++        exercises: Array<{ id: string, status: string, message: string }>
++      }
++      expect(probe.tools).toContain('dsh_test')
++      expect(probe.exercises).toContainEqual(expect.objectContaining({
++        id: 'exercise.dsh_test.1',
++        status: 'passed',
++      }))
++
++      const runsDirectory = join(workspace, '.dsh-testkit', 'runs')
++      const runs = await readdir(runsDirectory)
++      expect(runs).toHaveLength(1)
++      const report = RunReportSchema.parse(JSON.parse(
++        await readFile(join(runsDirectory, runs[0]!, 'report.json'), 'utf8'),
++      ))
++      expect(report).toMatchObject({
++        verdict: 'passed',
++        subject: { packageName: '@dsh-testkit/fixture-healthy' },
++        environment: { isolation: 'docker-container', unsafeLocal: false },
++      })
++
++      await executeFile(dsh, ['plugin', '--profile', profile, 'remove', 'dsh-testkit'], {
++        cwd: workspace,
++        env: dshEnvironment,
++        timeout: 300_000,
++        maxBuffer: 16 * 1024 * 1024,
++      })
++      const removedManifest = JSON.parse(await readFile(join(home, 'profiles', profile, 'package.json'), 'utf8'))
++      expect(removedManifest.dsh.profile.bundles).not.toContain('dsh-testkit')
++    } finally {
++      await rm(temporary, { recursive: true, force: true })
++    }
++  }, 1_200_000)
++})
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 849b07e..1b2b9c6 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -252 +252 @@ describe('CLI integration', () => {
+-    expect(stdout.join('')).toBe('0.1.2\n')
++    expect(stdout.join('')).toBe('0.2.0\n')
+diff --git a/tests/unit/command.test.ts b/tests/unit/command.test.ts
+index 1ed1efa..650e64f 100644
+--- a/tests/unit/command.test.ts
++++ b/tests/unit/command.test.ts
+@@ -58,0 +59,21 @@ describe('command runner', () => {
++  it('forwards an AbortSignal to the owned process group', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-command-abort-'))
++    const controller = new AbortController()
++    const running = runCommand({
++      executable: process.execPath,
++      args: ['-e', 'setInterval(() => {}, 1000)'],
++      cwd: root,
++      timeoutMs: 5_000,
++      logDir: root,
++      logName: 'abort',
++      signal: controller.signal,
++    })
++    setTimeout(() => controller.abort(), 50)
++
++    const result = await running
++    expect(result.timedOut).toBe(false)
++    expect(result.interruptedBy).toBe('SIGTERM')
++    expect(result.exitCode).not.toBe(0)
++    expect(result.durationMs).toBeLessThan(2_000)
++  })
++
+diff --git a/tests/unit/dsh-plugin.test.ts b/tests/unit/dsh-plugin.test.ts
+new file mode 100644
+index 0000000..ea0dca6
+--- /dev/null
++++ b/tests/unit/dsh-plugin.test.ts
+@@ -0,0 +1,137 @@
++import { mkdir, mkdtemp, realpath, symlink } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++
++import { describe, expect, it, vi } from 'vitest'
++
++import { apply, createDshTestTool, executeDshTest } from '../../src/dsh-plugin.js'
++
++describe('native DSH tool adapter', () => {
++  it('registers one typed dsh_test tool without unsafe CLI controls', () => {
++    const register = vi.fn()
++    const on = vi.fn()
++    apply({ on, tools: { register } } as never)
++
++    expect(register).toHaveBeenCalledOnce()
++    expect(on).toHaveBeenCalledWith('tools/pre-execute', expect.any(Function))
++    const tool = register.mock.calls[0]?.[0] as ReturnType<typeof createDshTestTool>
++    const parameters = tool.parameters as { required: string[], properties: Record<string, unknown> }
++    expect(tool.name).toBe('dsh_test')
++    expect(parameters.required).toContain('confirm')
++    expect(Object.keys(parameters.properties)).toEqual(expect.arrayContaining([
++      'confirm', 'source', 'dshVersion', 'suite', 'lifecycleCase',
++      'expectedRows', 'expectedServices', 'expectedTools', 'updateFrom',
++    ]))
++    expect(Object.keys(parameters.properties)).not.toEqual(expect.arrayContaining([
++      'runner', 'unsafeLocal', 'allowMutableSource', 'output', 'config', 'argv',
++    ]))
++  })
++
++  it('asks for interactive approval without overriding a downstream denial', async () => {
++    let gate: ((exec: { name: string, agent?: object, arguments?: unknown }, next: () => Promise<{ kind: 'allow' | 'deny' }>) => Promise<unknown>) | undefined
++    apply({
++      on: (_event: string, listener: typeof gate) => { gate = listener },
++      tools: { register: () => undefined },
++    } as never)
++
++    await expect(gate?.({ name: 'dsh_test', agent: {}, arguments: { confirm: true } }, async () => ({ kind: 'allow' })))
++      .resolves.toMatchObject({ kind: 'ask' })
++    await expect(gate?.({ name: 'dsh_test', agent: {}, arguments: { confirm: true } }, async () => ({ kind: 'deny' })))
++      .resolves.toMatchObject({ kind: 'deny' })
++    await expect(gate?.({ name: 'dsh_test', arguments: { confirm: true } }, async () => ({ kind: 'allow' })))
++      .resolves.toMatchObject({ kind: 'allow' })
++    await expect(gate?.({ name: 'dsh_test', agent: {}, arguments: { confirm: false } }, async () => ({ kind: 'allow' })))
++      .resolves.toMatchObject({ kind: 'allow' })
++  })
++
++  it('requires explicit confirmation before constructing a run', async () => {
++    const runCli = vi.fn()
++    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-consent-'))
++
++    await expect(executeDshTest({ confirm: false }, { cwd: root, runCli }))
++      .rejects.toThrow('confirm=true')
++    expect(runCli).not.toHaveBeenCalled()
++  })
++
++  it('forces Docker, disables implicit config and returns a bounded structured result', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-run-'))
++    const workspace = await realpath(root)
++    await mkdir(join(root, 'plugin'))
++    const signal = new AbortController().signal
++    const runCli = vi.fn(async (_argv, overrides) => {
++      overrides.stdout?.('PASSED\n')
++      overrides.stderr?.('diagnostic\n')
++      expect(overrides).toMatchObject({ cwd: workspace, useDefaultConfig: false, signal })
++      return 0
++    })
++
++    const result = await executeDshTest({
++      confirm: true,
++      source: './plugin',
++      dshVersion: '0.1.0-rc.6',
++      suite: 'quick',
++      lifecycleCase: 'boot',
++      expectedRows: ['plugin-row'],
++      expectedServices: ['pluginService'],
++      expectedTools: ['plugin_tool'],
++    }, { cwd: root, runCli, makeRunId: () => 'tool-test' }, signal)
++
++    const argv = runCli.mock.calls[0]?.[0] as string[]
++    expect(argv).toEqual([
++      join(workspace, 'plugin'),
++      '--dsh', '0.1.0-rc.6',
++      '--runner', 'docker',
++      '--suite', 'quick',
++      '--case', 'boot',
++      '--expect-row', 'plugin-row',
++      '--expect-service', 'pluginService',
++      '--expect-tool', 'plugin_tool',
++      '--output', join(workspace, '.dsh-testkit', 'runs', 'tool-test'),
++    ])
++    expect(argv).not.toContain('--unsafe-local')
++    expect(argv).not.toContain('--allow-mutable-source')
++    expect(result).toMatchObject({
++      exitCode: 0,
++      verdict: 'passed',
++      runDirectory: join(workspace, '.dsh-testkit', 'runs', 'tool-test'),
++      reportPath: null,
++      summary: 'PASSED',
++      diagnostics: 'diagnostic',
++    })
++  })
++
++  it('rejects local paths and symlinks that escape the active workspace', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-workspace-'))
++    const outside = await mkdtemp(join(tmpdir(), 'dsh-tool-outside-'))
++    await symlink(outside, join(root, 'escaped'))
++    const runCli = vi.fn()
++
++    await expect(executeDshTest({ confirm: true, source: outside }, { cwd: root, runCli }))
++      .rejects.toThrow('outside the active workspace')
++    await expect(executeDshTest({ confirm: true, source: './escaped' }, { cwd: root, runCli }))
++      .rejects.toThrow('outside the active workspace')
++    expect(runCli).not.toHaveBeenCalled()
++  })
++
++  it('rejects embedded URL credentials before creating an evidence directory', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-credentials-'))
++    const runCli = vi.fn()
++
++    await expect(executeDshTest({
++      confirm: true,
++      source: 'https://token@example.com/plugin.tgz',
++    }, { cwd: root, runCli })).rejects.toThrow('must not contain embedded credentials')
++    expect(runCli).not.toHaveBeenCalled()
++  })
++
++  it('rejects an output parent symlink instead of writing evidence outside the workspace', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-output-'))
++    const outside = await mkdtemp(join(tmpdir(), 'dsh-tool-output-outside-'))
++    await symlink(outside, join(root, '.dsh-testkit'))
++    const runCli = vi.fn()
++
++    await expect(executeDshTest({ confirm: true }, { cwd: root, runCli }))
++      .rejects.toThrow('output parent must be a real directory')
++    expect(runCli).not.toHaveBeenCalled()
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index 4ed4f81..dc94abb 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -47 +47 @@ describe('Docker runner command planning', () => {
+-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.2-aaaaaaaaaaaa')
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.2.0-aaaaaaaaaaaa')

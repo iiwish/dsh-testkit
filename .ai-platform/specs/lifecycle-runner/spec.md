@@ -1,6 +1,6 @@
 # DSH Lifecycle Runner Feature Specification
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Last updated: 2026-08-15
 Product contract: `.ai-platform/docs/product-design.md`
@@ -28,6 +28,7 @@ This feature specification does not redefine those requirements. The Product Des
 - Capability-aware file, process, port, network and canary observation.
 - Canonical JSON plus JUnit, Markdown and terminal projections.
 - Healthy and intentionally broken fixtures, real DSH E2E and GitHub Action.
+- Official DSH Profile Bundle manifest and a Docker-only `dsh_test` tool adapter over the same engine.
 
 ## Feature Non-Goals
 
@@ -35,7 +36,7 @@ This feature specification does not redefine those requirements. The Product Des
 - Cross-Harness conformance.
 - Model or Skill quality evaluation.
 - General static security scanning.
-- Public release or npm publication without a later explicit user approval.
+- DSH marketplace implementation or a second lifecycle engine inside the tool adapter.
 
 ## Planning Sources
 

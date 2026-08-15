@@ -1,6 +1,6 @@
 # DSH Lifecycle Runner Research
 
-Version: v0.1
+Version: v0.2
 Status: Current_Snapshot
 Last updated: 2026-08-15
 Source: DSH 官方文档、社区仓库源码和成熟插件生态官方测试文档
@@ -43,6 +43,8 @@ Source: DSH 官方文档、社区仓库源码和成熟插件生态官方测试�
 | [dsh-recovery-proof](https://github.com/dongsheng123132/dsh-recovery-proof) | 只读恢复证据验证 | 不创建 checkpoint 或执行恢复 |
 
 当前没有发现完成 install、assemble、boot、register、exercise、update、uninstall、reboot、recover 和 residue 全链路的独立执行器。
+
+`dsh-plugin-check` 同时证明了官方 bundle 分发路径已经可用：包通过 `dsh.bundle.patch` 插入 Cordis row，并用 `ctx.tools.register(defineTool(...))` 注册宿主 tool。它的职责仍是只读静态诊断，因此与 Testkit 的真实宿主生命周期执行互补。
 
 ## 3. Mature Ecosystem Evidence
 
@@ -122,3 +124,9 @@ Catalog 复用 Git、制品库、身份、签名和通用 Registry；DSH Testkit
 - [Grafana plugin E2E](https://grafana.com/developers/plugin-tools/e2e-test-a-plugin/ci)
 - [JetBrains Plugin Verifier](https://plugins.jetbrains.com/docs/intellij/verifying-plugin-compatibility.html)
 - [Jenkins Plugin Compatibility Tester](https://github.com/jenkinsci/plugin-compat-tester)
+
+## 9. v0.2 Distribution Decision
+
+截至 2026-08-15，DSH 官方发布规范将可安装插件定义为声明 `dsh.bundle.patch` 的 npm bundle；`awesome-dsh-plugin` 只收录可由 `dsh plugin add` 安装的 bundle，`dsh-market` 从该目录同步。仅发布 CLI 会错过 DSH 原生发现和调用路径。
+
+v0.2 采用双入口单引擎：继续保留 `dsh-test` CLI 和 GitHub Action，同时让包根导出 Cordis `apply` 并注册 `dsh_test`。Tool adapter 不复制测试逻辑，只收敛输入并强制 Docker。这个增量同时满足官方协议、市场可发现性和安全边界，不依赖非官方公共契约。

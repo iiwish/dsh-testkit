@@ -1,6 +1,6 @@
 # DSH Testkit Delivery Index
 
-Version: v0.1
+Version: v0.2
 Status: Confirmed
 Last updated: 2026-08-15
 
@@ -14,7 +14,7 @@ Last updated: 2026-08-15
 
 ## Release Gate
 
-The four governed tasks execute sequentially. Each task requires its packet, RED/GREEN evidence and two-pass review before the next task begins. User acceptance is required before any task becomes `Accepted` or the release report becomes final.
+The governed tasks execute sequentially. Each behavior task requires its packet, RED/GREEN evidence and review before release. User acceptance is required before any task becomes `Accepted` or the release report becomes final.
 
 ## Governed Task Index
 
@@ -29,7 +29,7 @@ Parallel: No
 Conflicts with: None
 
 Goal:
-Complete the confirmed lifecycle-runner feature work graph and release-hardening gate.
+Complete the confirmed lifecycle-runner work graph, native DSH bundle and release gates.
 
 Allowed files:
 - `.ai-platform/specs/lifecycle-runner/tasks.md` defines task-level ownership.
@@ -38,7 +38,7 @@ Test targets:
 - Task-specific targets are defined in the feature work graph.
 
 Deliverables:
-- T001 through T004 implementation, evidence and review.
+- T001 through T006 implementation, evidence and review.
 
 Acceptance criteria:
 - Confirmed Product Design acceptance criteria pass.
@@ -57,7 +57,7 @@ TDD plan:
 - REFACTOR: Full validation stays green.
 
 Packet path:
-- Feature packets are `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T004.yaml`.
+- Feature packets are `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T006.yaml`.
 
 Evidence required:
 - Task evidence summaries, diffs, test results and residual risks.
@@ -85,3 +85,15 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T003.yaml`
 Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t004-release-hardening-and-acceptance`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T004.yaml`
+
+#### Work Item T005: v0.1.2 Contract, CI And Release Hardening
+
+Status: Needs_Review
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t005-v012-contract-ci-and-release-hardening`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
+
+#### Work Item T006: Native DSH Bundle And v0.2.0 Release
+
+Status: Running
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t006-native-dsh-bundle-and-v020-release`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`

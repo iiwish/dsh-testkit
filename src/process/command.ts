@@ -15,6 +15,7 @@ export interface CommandOptions {
   completionFile?: string
   beforeCompletionStop?: (pid: number | undefined) => Promise<void>
   inheritEnv?: boolean
+  signal?: AbortSignal
 }
 
 export interface CommandResult {
@@ -62,6 +63,7 @@ export async function replaceOwnedFile(path: string, content: string | Buffer): 
 }
 
 export async function runCommand(options: CommandOptions): Promise<CommandResult> {
+  options.signal?.throwIfAborted()
   const args = options.args ?? []
   const redactions = options.redactions ?? []
   const started = Date.now()
@@ -152,14 +154,18 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
     }
     const onInterrupt = () => { forwardSignal('SIGINT') }
     const onTerminate = () => { forwardSignal('SIGTERM') }
+    const onAbort = () => { forwardSignal('SIGTERM') }
     process.once('SIGINT', onInterrupt)
     process.once('SIGTERM', onTerminate)
+    options.signal?.addEventListener('abort', onAbort, { once: true })
+    if (options.signal?.aborted === true) onAbort()
     child.once('error', (error) => {
       if (settled) return
       settled = true
       clearTimers()
       process.off('SIGINT', onInterrupt)
       process.off('SIGTERM', onTerminate)
+      options.signal?.removeEventListener('abort', onAbort)
       reject(error)
     })
 
@@ -198,6 +204,7 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
       clearTimers()
       process.off('SIGINT', onInterrupt)
       process.off('SIGTERM', onTerminate)
+      options.signal?.removeEventListener('abort', onAbort)
       const sanitizedStdout = `${redact(stdout, redactions)}${stdoutTruncated ? TRUNCATION_NOTICE : ''}`
       const sanitizedStderr = `${redact(stderr, redactions)}${stderrTruncated ? TRUNCATION_NOTICE : ''}`
       const matchedIndexes = [...redactionMatches].sort((left, right) => left - right)

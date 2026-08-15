@@ -249,7 +249,7 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(0)
     expect(factoryCalled).toBe(false)
-    expect(stdout.join('')).toBe('0.1.2\n')
+    expect(stdout.join('')).toBe('0.2.0\n')
   })
 
   it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {
