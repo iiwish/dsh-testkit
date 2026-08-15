@@ -1,0 +1,4300 @@
+commit 5cb66b68f93d3027bbd354a8dcb6c81377207315
+Author:     iiwish <num2048@163.com>
+AuthorDate: Sat Aug 15 15:59:24 2026 +0800
+Commit:     iiwish <num2048@163.com>
+CommitDate: Sat Aug 15 15:59:24 2026 +0800
+
+    feat: add DSH Testkit lifecycle runner
+
+diff --git a/.github/ISSUE_TEMPLATE/bug_report.yml b/.github/ISSUE_TEMPLATE/bug_report.yml
+new file mode 100644
+index 0000000..00a4353
+--- /dev/null
++++ b/.github/ISSUE_TEMPLATE/bug_report.yml
+@@ -0,0 +1,48 @@
++name: Bug report
++description: Report incorrect CLI, runner, report, or lifecycle behavior.
++title: "[Bug]: "
++labels: [bug]
++body:
++  - type: markdown
++    attributes:
++      value: Remove credentials and proprietary plugin source from all evidence before submitting.
++  - type: input
++    id: testkit-version
++    attributes:
++      label: DSH Testkit version
++      placeholder: 0.1.0
++    validations:
++      required: true
++  - type: input
++    id: dsh-version
++    attributes:
++      label: DSH version
++      placeholder: 0.1.0-rc.6
++    validations:
++      required: true
++  - type: dropdown
++    id: runner
++    attributes:
++      label: Runner
++      options: [Docker, unsafe-local]
++    validations:
++      required: true
++  - type: textarea
++    id: behavior
++    attributes:
++      label: Observed and expected behavior
++      description: Include the failing stage, verdict, and exit code.
++    validations:
++      required: true
++  - type: textarea
++    id: reproduction
++    attributes:
++      label: Minimal reproduction
++      description: Use an owned public fixture or sanitized package when possible.
++    validations:
++      required: true
++  - type: textarea
++    id: report
++    attributes:
++      label: Sanitized report excerpt
++      render: json
+diff --git a/.github/ISSUE_TEMPLATE/config.yml b/.github/ISSUE_TEMPLATE/config.yml
+new file mode 100644
+index 0000000..27f3163
+--- /dev/null
++++ b/.github/ISSUE_TEMPLATE/config.yml
+@@ -0,0 +1,5 @@
++blank_issues_enabled: false
++contact_links:
++  - name: Security vulnerability
++    url: https://github.com/iiwish/dsh-testkit/security/advisories/new
++    about: Report security issues privately.
+diff --git a/.github/ISSUE_TEMPLATE/lifecycle_failure.yml b/.github/ISSUE_TEMPLATE/lifecycle_failure.yml
+new file mode 100644
+index 0000000..d10528e
+--- /dev/null
++++ b/.github/ISSUE_TEMPLATE/lifecycle_failure.yml
+@@ -0,0 +1,44 @@
++name: Lifecycle compatibility failure
++description: Report a plugin and DSH combination that receives an unexpected lifecycle verdict.
++title: "[Compatibility]: "
++labels: [compatibility]
++body:
++  - type: input
++    id: immutable-subject
++    attributes:
++      label: Immutable plugin identity
++      description: Exact npm version, tarball SHA-256, or full Git commit.
++    validations:
++      required: true
++  - type: input
++    id: dsh-version
++    attributes:
++      label: Exact DSH version
++    validations:
++      required: true
++  - type: input
++    id: image
++    attributes:
++      label: Runner image and image ID
++    validations:
++      required: true
++  - type: dropdown
++    id: stage
++    attributes:
++      label: Failing stage
++      options: [resolve, install-dsh, package, install-plugin, assemble, boot, register, exercise, update, uninstall, reboot, recover, cleanup]
++    validations:
++      required: true
++  - type: textarea
++    id: assertion
++    attributes:
++      label: Failing assertion and sanitized evidence
++    validations:
++      required: true
++  - type: checkboxes
++    id: safety
++    attributes:
++      label: Safety check
++      options:
++        - label: I removed credentials, private URLs, proprietary source, and sensitive logs.
++          required: true
+diff --git a/.github/PULL_REQUEST_TEMPLATE.md b/.github/PULL_REQUEST_TEMPLATE.md
+new file mode 100644
+index 0000000..dd789e0
+--- /dev/null
++++ b/.github/PULL_REQUEST_TEMPLATE.md
+@@ -0,0 +1,14 @@
++## Scope
++
++Describe the lifecycle, contract, documentation, or fixture behavior changed.
++
++## Evidence
++
++- [ ] `pnpm validate`
++- [ ] Relevant real DSH E2E or packed-consumer test
++- [ ] Public schema and generated contract copies remain identical
++- [ ] No credentials, private source, or unsanitized logs are committed
++
++## Compatibility
++
++List report-schema, CLI, runner-image, DSH-version, or package-distribution impact.
+diff --git a/.github/actions/dsh-test/action.yml b/.github/actions/dsh-test/action.yml
+new file mode 100644
+index 0000000..216eeb3
+--- /dev/null
++++ b/.github/actions/dsh-test/action.yml
+@@ -0,0 +1,95 @@
++name: DSH Testkit
++description: Run a real-host lifecycle test for a DSH plugin and retain structured evidence.
++inputs:
++  plugin:
++    description: Plugin directory, tarball, exact npm spec, or Git spec pinned to a full commit SHA.
++    required: true
++  dsh-version:
++    description: Exact @deepseek-ai/dsh npm version.
++    required: true
++  config:
++    description: Optional scenario YAML or JSON path relative to the workspace.
++    required: false
++    default: ''
++  output:
++    description: Evidence directory relative to the workspace.
++    required: false
++    default: .dsh-testkit/action-run
++  args:
++    description: Additional dsh-test arguments.
++    required: false
++    default: ''
++outputs:
++  report:
++    description: Canonical JSON report path.
++    value: ${{ steps.paths.outputs.report }}
++  exit-code:
++    description: Stable dsh-test exit code.
++    value: ${{ steps.lifecycle.outputs.exit-code }}
++runs:
++  using: composite
++  steps:
++    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
++      with:
++        version: 11.1.3
++    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
++      with:
++        node-version: '22'
++        cache: pnpm
++        cache-dependency-path: ${{ github.action_path }}/../../../pnpm-lock.yaml
++    - name: Build DSH Testkit
++      shell: bash
++      working-directory: ${{ github.action_path }}/../../..
++      run: pnpm install --frozen-lockfile && pnpm build
++    - id: paths
++      shell: bash
++      env:
++        OUTPUT: ${{ inputs.output }}
++      run: echo "report=$GITHUB_WORKSPACE/$OUTPUT/report.json" >> "$GITHUB_OUTPUT"
++    - id: lifecycle
++      name: Run lifecycle test
++      continue-on-error: true
++      shell: bash
++      env:
++        PLUGIN: ${{ inputs.plugin }}
++        DSH_VERSION: ${{ inputs.dsh-version }}
++        CONFIG: ${{ inputs.config }}
++        OUTPUT: ${{ inputs.output }}
++        EXTRA_ARGS: ${{ inputs.args }}
++      run: |
++        plugin="$PLUGIN"
++        if [[ "$plugin" != /* && -e "$GITHUB_WORKSPACE/$plugin" ]]; then
++          plugin="$GITHUB_WORKSPACE/$plugin"
++        fi
++        command=(node "$GITHUB_ACTION_PATH/../../../dist/src/cli.js" "$plugin" --dsh "$DSH_VERSION" --output "$GITHUB_WORKSPACE/$OUTPUT")
++        [[ -z "$CONFIG" ]] || command+=(--config "$GITHUB_WORKSPACE/$CONFIG")
++        if [[ -n "$EXTRA_ARGS" ]]; then
++          read -r -a extra <<< "$EXTRA_ARGS"
++          command+=("${extra[@]}")
++        fi
++        set +e
++        "${command[@]}"
++        code=$?
++        set -e
++        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
++        exit 0
++    - name: Publish JUnit
++      if: always()
++      uses: mikepenz/action-junit-report@3585e9575db828022551b4231f165eb59a0e74e3 # v5.6.2
++      with:
++        report_paths: ${{ github.workspace }}/${{ inputs.output }}/junit.xml
++        check_name: DSH lifecycle
++        fail_on_failure: false
++    - name: Upload lifecycle evidence
++      if: always()
++      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++      with:
++        name: dsh-testkit-${{ github.run_id }}
++        path: ${{ github.workspace }}/${{ inputs.output }}
++        if-no-files-found: error
++    - name: Enforce lifecycle verdict
++      if: always()
++      shell: bash
++      env:
++        EXIT_CODE: ${{ steps.lifecycle.outputs.exit-code }}
++      run: exit "${EXIT_CODE:-3}"
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+new file mode 100644
+index 0000000..04f4c02
+--- /dev/null
++++ b/.github/dependabot.yml
+@@ -0,0 +1,12 @@
++version: 2
++updates:
++  - package-ecosystem: npm
++    directory: /
++    schedule:
++      interval: weekly
++    open-pull-requests-limit: 5
++  - package-ecosystem: github-actions
++    directory: /
++    schedule:
++      interval: weekly
++    open-pull-requests-limit: 5
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..beaac79
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,40 @@
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++
++permissions:
++  contents: read
++  checks: write
++
++jobs:
++  validate:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
++      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
++        with:
++          node-version: '22'
++          cache: pnpm
++      - run: pnpm install --frozen-lockfile
++      - run: pnpm validate
++      - run: pnpm test:e2e
++      - run: pnpm test:pack
++
++  action-smoke:
++    runs-on: ubuntu-latest
++    permissions:
++      contents: read
++      checks: write
++    steps:
++      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
++      - uses: ./.github/actions/dsh-test
++        with:
++          plugin: fixtures/healthy-plugin
++          dsh-version: 0.1.0-rc.6
++          config: fixtures/healthy-plugin/dsh-testkit.yaml
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..8542e40
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,19 @@
++# Changelog
++
++All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [Unreleased]
++
++## [0.1.0] - 2026-08-15
++
++### Added
++
++- Real DSH install-to-recovery lifecycle execution in Docker or explicit unsafe-local mode.
++- Canonical JSON, JUnit, Markdown, and terminal reports with stable verdict exit codes.
++- Directory, tarball, exact npm, and full-commit Git subject inputs.
++- Content-aware filesystem, process, port, and canary observers.
++- Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
++- Composite GitHub Action, real-host fixtures, and packed-consumer verification.
++
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.0...HEAD
++[0.1.0]: https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.0
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..4a999f3
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,97 @@
++# DSH Testkit
++
++Real-host lifecycle testing for DeepSeek Harness plugins.
++
++DSH Testkit installs the exact DSH version and a plugin's packed artifact into a disposable environment, boots the real host, probes deterministic runtime capabilities, removes the plugin, reboots the same profile, and retains machine-readable evidence. It does not call a model or require a model API key.
++
++```bash
++pnpm add -D dsh-testkit
++pnpm dsh-test . --dsh 0.1.0-rc.6 \
++  --expect-row tool-my-plugin \
++  --expect-tool my_tool
++```
++
++Docker is the default runner. The plugin and its install scripts execute inside a fresh container, while the source mount is read-only and the run root uses disposable filesystems. Local execution is deliberately loud:
++
++```bash
++pnpm dsh-test . --dsh 0.1.0-rc.6 --runner local --unsafe-local
++```
++
++## What It Proves
++
++One scenario records these ordered stages:
++
++`resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup`
++
++- Local directories are copied and tested through `npm pack`, catching publication mistakes that links hide.
++- DSH is installed at an exact npm version and invoked through its public profile and plugin commands.
++- Expected config rows come from `--dump-config`; expected services and tool schemas come from an in-process Cordis probe.
++- A baseline runtime-probe exercise always runs; declared tool exercises also use the real tool runtime without asking a model to choose or generate anything.
++- Uninstall checks the profile manifest, bundle list, rebooted capabilities, and unexplained owned-root files.
++- Every unavailable observer is disclosed. Requiring unavailable coverage yields `unsupported`, not a false pass.
++- `--suite full` runs five isolated attempts and returns `flaky` when their semantic outcomes disagree.
++
++## Scenario
++
++Place `dsh-testkit.yaml` in the plugin project:
++
++```yaml
++schemaVersion: 1
++name: my-plugin-quick
++subject:
++  source: .
++dsh:
++  version: 0.1.0-rc.6
++expect:
++  boot: success
++  rows: [tool-my-plugin]
++  services: [myService]
++  tools: [my_tool]
++exercise:
++  - tool: my_tool
++    arguments:
++      value: smoke
++observers:
++  filesystem: required
++  process: preferred
++  ports: preferred
++  network: off
++  canary: preferred
++```
++
++See [Scenario Reference](docs/scenarios.md) for updates, expected failures, recovery, timeouts, and observer policy.
++
++## Evidence And CI
++
++Each run writes:
++
++- `report.json`: versioned canonical result and environment fingerprint.
++- `junit.xml`: one test case per lifecycle stage.
++- `report.md`: support-ready lifecycle and observer summary.
++- `logs/`: sanitized stdout and stderr for each external command.
++- `evidence/`: resolved scenario, effective config, runtime probes, filesystem, process, and port snapshots.
++
++Full or explicitly repeated runs retain each complete report under `attempts/{nn}/` and write an aggregate root report with semantic digests. Use `--repeat 2` through `--repeat 20` for targeted repeatability checks; full requires at least five attempts.
++
++The package publishes `schemas/scenario-v1.json` and `schemas/report-v1.json` for CI consumers that validate artifacts outside Node.js.
++
++Stable exit codes are `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported required capability, and `5` flaky.
++
++The composite Action publishes JUnit and uploads the complete run directory:
++
++```yaml
++- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++  with:
++    plugin: .
++    dsh-version: 0.1.0-rc.6
++```
++
++Private plugins stay on the CI runner. The Testkit has no SaaS dependency and does not upload source or credentials.
++
++## Scope And Safety
++
++DSH Testkit tests DSH lifecycle behavior. It is not a plugin marketplace, cross-Harness standard, model-quality benchmark, static security scanner, or proof that executable code is safe. Docker reduces the default blast radius but is not a hardened malware sandbox. Do not run untrusted plugins with `--unsafe-local`.
++
++Architecture and trust boundaries are documented in [Architecture](docs/architecture.md). Development workflow is in [Contributing](docs/contributing.md).
++
++MIT License.
+diff --git a/SECURITY.md b/SECURITY.md
+new file mode 100644
+index 0000000..be02fd2
+--- /dev/null
++++ b/SECURITY.md
+@@ -0,0 +1,22 @@
++# Security Policy
++
++## Supported Versions
++
++Security fixes are provided for the latest published minor release.
++
++| Version | Supported |
++|---|---|
++| 0.1.x | Yes |
++
++## Reporting A Vulnerability
++
++Do not open a public issue for a suspected vulnerability. Use the repository's private
++[security advisory form](https://github.com/iiwish/dsh-testkit/security/advisories/new).
++
++Include the affected Testkit and DSH versions, runner, subject source kind, impact, and a minimal reproduction when safe. Do not include credentials, proprietary plugin source, or unsanitized lifecycle logs.
++
++Maintainers will acknowledge a report within seven days, keep the reporter informed while it is assessed, and coordinate disclosure after a fix is available. If the report is outside this project's boundary, the response will identify the responsible component when possible.
++
++## Security Boundary
++
++Docker is the default isolation boundary, not a guarantee against malicious kernel-level behavior. `--runner local --unsafe-local` executes plugin install and runtime code directly on the host and is intended only for trusted sources.
+diff --git a/assets/runner.Dockerfile b/assets/runner.Dockerfile
+new file mode 100644
+index 0000000..b7cc605
+--- /dev/null
++++ b/assets/runner.Dockerfile
+@@ -0,0 +1,27 @@
++FROM node:22-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
++
++ARG TESTKIT_VERSION=development
++ARG TESTKIT_CONTEXT_SHA256=unavailable
++LABEL dev.dsh-testkit.version="${TESTKIT_VERSION}" \
++      dev.dsh-testkit.context-sha256="${TESTKIT_CONTEXT_SHA256}"
++ENV COREPACK_HOME=/opt/corepack
++
++RUN apt-get update \
++  && apt-get install -y --no-install-recommends ca-certificates g++ git iproute2 make procps python3 \
++  && rm -rf /var/lib/apt/lists/* \
++  && corepack enable \
++  && mkdir -p /opt/corepack \
++  && corepack prepare pnpm@11.1.3 --activate
++
++WORKDIR /opt/dsh-testkit
++COPY package.json pnpm-workspace.yaml ./
++COPY assets/runner-pnpm-lock.yaml ./pnpm-lock.yaml
++RUN pnpm install --prod --frozen-lockfile
++COPY dist/src ./dist/src
++
++ENV DSH_TESTKIT_RUNNER=docker
++ENV DSH_TESTKIT_IMAGE=dsh-testkit-runner:${TESTKIT_VERSION}
++ENV DSH_TESTKIT_WORK_ROOT=/work/run
++ENV DSH_TESTKIT_COREPACK_HOME=/opt/corepack
++ENV HOME=/work/user-home
++ENTRYPOINT ["node", "/opt/dsh-testkit/dist/src/worker/main.js"]
+diff --git a/fixtures/known-path-residue-plugin/cordis.patch.yml b/fixtures/known-path-residue-plugin/cordis.patch.yml
+new file mode 100644
+index 0000000..ce2ee4a
+--- /dev/null
++++ b/fixtures/known-path-residue-plugin/cordis.patch.yml
+@@ -0,0 +1,3 @@
++- insert:
++    - id: fixture-known-path-residue
++      name: '@dsh-testkit/fixture-known-path-residue'
+diff --git a/fixtures/known-path-residue-plugin/index.js b/fixtures/known-path-residue-plugin/index.js
+new file mode 100644
+index 0000000..dad631c
+--- /dev/null
++++ b/fixtures/known-path-residue-plugin/index.js
+@@ -0,0 +1,8 @@
++import { writeFileSync } from 'node:fs'
++import { join } from 'node:path'
++
++export const name = 'fixture-known-path-residue'
++
++export function apply() {
++  writeFileSync(join(process.env.DSH_HOME, '.anonymous-user-id'), 'plugin-owned-state\n')
++}
+diff --git a/fixtures/known-path-residue-plugin/package.json b/fixtures/known-path-residue-plugin/package.json
+new file mode 100644
+index 0000000..108fd72
+--- /dev/null
++++ b/fixtures/known-path-residue-plugin/package.json
+@@ -0,0 +1,8 @@
++{
++  "name": "@dsh-testkit/fixture-known-path-residue",
++  "version": "1.0.0",
++  "type": "module",
++  "main": "index.js",
++  "files": ["index.js", "cordis.patch.yml"],
++  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..8d1a1b0
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,83 @@
++{
++  "name": "dsh-testkit",
++  "version": "0.1.0",
++  "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
++  "keywords": [
++    "deepseek",
++    "dsh",
++    "harness",
++    "plugin-testing",
++    "lifecycle-testing"
++  ],
++  "type": "module",
++  "license": "MIT",
++  "author": "DSH Testkit contributors",
++  "repository": {
++    "type": "git",
++    "url": "git+https://github.com/iiwish/dsh-testkit.git"
++  },
++  "homepage": "https://github.com/iiwish/dsh-testkit#readme",
++  "bugs": {
++    "url": "https://github.com/iiwish/dsh-testkit/issues"
++  },
++  "publishConfig": {
++    "access": "public",
++    "provenance": true,
++    "registry": "https://registry.npmjs.org/"
++  },
++  "types": "./dist/src/index.d.ts",
++  "engines": {
++    "node": ">=22"
++  },
++  "packageManager": "pnpm@11.1.3",
++  "bin": {
++    "dsh-test": "dist/src/cli.js"
++  },
++  "exports": {
++    ".": {
++      "types": "./dist/src/index.d.ts",
++      "import": "./dist/src/index.js"
++    },
++    "./schemas/report-v1.json": "./schemas/report-v1.json",
++    "./schemas/scenario-v1.json": "./schemas/scenario-v1.json"
++  },
++  "files": [
++    ".dockerignore",
++    "dist/src",
++    "assets",
++    "pnpm-workspace.yaml",
++    "schemas",
++    "README.md",
++    "SECURITY.md",
++    "CHANGELOG.md",
++    "LICENSE"
++  ],
++  "scripts": {
++    "build": "tsc -p tsconfig.json",
++    "check:actions": "node scripts/check-action-pins.mjs",
++    "check:contracts": "node scripts/check-published-contracts.mjs",
++    "check:runner-lock": "node scripts/check-runner-lock.mjs",
++    "check:release": "node scripts/check-release-readiness.mjs",
++    "typecheck": "tsc -p tsconfig.json --noEmit",
++    "test": "vitest run",
++    "test:unit": "vitest run tests/unit",
++    "test:integration": "vitest run tests/integration",
++    "test:coverage": "vitest run --coverage",
++    "test:e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh.test.ts",
++    "test:pack": "node tests/e2e/pack-consumer.mjs",
++    "validate": "pnpm check:runner-lock && pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
++    "prepack": "pnpm check:runner-lock && pnpm check:contracts && pnpm build"
++  },
++  "dependencies": {
++    "commander": "15.0.0",
++    "xmlbuilder2": "4.0.3",
++    "yaml": "2.9.0",
++    "zod": "4.4.3"
++  },
++  "devDependencies": {
++    "@types/node": "24.13.3",
++    "@vitest/coverage-v8": "3.2.7",
++    "typescript": "5.9.2",
++    "vitest": "3.2.7"
++  }
++}
+diff --git a/schemas/report-v1.json b/schemas/report-v1.json
+new file mode 100644
+index 0000000..0de67ef
+--- /dev/null
++++ b/schemas/report-v1.json
+@@ -0,0 +1,140 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://dsh-testkit.dev/schemas/report-v1.json",
++  "title": "DSH Testkit Run Report",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "runId", "startedAt", "endedAt", "verdict", "subject", "dsh", "scenario", "testkitVersion", "environment", "observerCoverage", "stages", "artifacts", "reproductionCommand"],
++  "properties": {
++    "schemaVersion": { "const": 1 },
++    "runId": { "type": "string", "minLength": 1 },
++    "startedAt": { "type": "string", "format": "date-time" },
++    "endedAt": { "type": "string", "format": "date-time" },
++    "verdict": { "enum": ["passed", "failed", "flaky", "unsupported", "invalid", "infrastructure_error"] },
++    "subject": { "$ref": "#/$defs/subject" },
++    "dsh": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["version", "integrity"],
++      "properties": {
++        "version": { "type": "string" },
++        "integrity": { "type": ["string", "null"] }
++      }
++    },
++    "scenario": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["name", "suite", "schemaVersion", "profile", "digest"],
++      "properties": {
++        "name": { "type": "string", "minLength": 1 },
++        "suite": { "enum": ["quick", "full"] },
++        "schemaVersion": { "const": 1 },
++        "profile": { "type": "string", "minLength": 1 },
++        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
++      }
++    },
++    "testkitVersion": { "type": "string" },
++    "environment": { "type": "object", "additionalProperties": true },
++    "observerCoverage": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["filesystem", "process", "ports", "network", "canary"],
++      "properties": {
++        "filesystem": { "$ref": "#/$defs/coverage" },
++        "process": { "$ref": "#/$defs/coverage" },
++        "ports": { "$ref": "#/$defs/coverage" },
++        "network": { "$ref": "#/$defs/coverage" },
++        "canary": { "$ref": "#/$defs/coverage" }
++      }
++    },
++    "stages": { "type": "array", "items": { "$ref": "#/$defs/stage" } },
++    "artifacts": { "type": "array", "items": { "type": "string" } },
++    "repeatability": { "$ref": "#/$defs/repeatability" },
++    "reproductionCommand": { "type": "string" }
++  },
++  "$defs": {
++    "subject": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["input", "kind", "packageName", "packageVersion", "sourceDigest", "gitCommit", "mutable"],
++      "properties": {
++        "input": { "type": "string" },
++        "kind": { "enum": ["local-directory", "tarball", "npm", "git"] },
++        "packageName": { "type": "string" },
++        "packageVersion": { "type": "string" },
++        "sourceDigest": { "type": "string" },
++        "gitCommit": { "type": ["string", "null"] },
++        "mutable": { "type": "boolean" }
++      }
++    },
++    "coverage": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["available", "mode", "limitations"],
++      "properties": {
++        "available": { "type": "boolean" },
++        "mode": { "type": "string" },
++        "limitations": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "repeatability": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["requestedRuns", "completedRuns", "consistent", "attempts"],
++      "properties": {
++        "requestedRuns": { "type": "integer", "minimum": 2, "maximum": 20 },
++        "completedRuns": { "type": "integer", "minimum": 2, "maximum": 20 },
++        "consistent": { "type": "boolean" },
++        "attempts": {
++          "type": "array",
++          "minItems": 2,
++          "maxItems": 20,
++          "items": {
++            "type": "object",
++            "additionalProperties": false,
++            "required": ["runId", "verdict", "durationMs", "semanticDigest", "report"],
++            "properties": {
++              "runId": { "type": "string", "minLength": 1 },
++              "verdict": { "enum": ["passed", "failed", "flaky", "unsupported", "invalid", "infrastructure_error"] },
++              "durationMs": { "type": "integer", "minimum": 0 },
++              "semanticDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++              "report": { "type": "string", "minLength": 1 }
++            }
++          }
++        }
++      }
++    },
++    "assertion": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "status", "message"],
++      "properties": {
++        "id": { "type": "string" },
++        "status": { "enum": ["passed", "failed", "unsupported"] },
++        "message": { "type": "string" },
++        "expected": {},
++        "actual": {},
++        "evidence": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "stage": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "status", "startedAt", "endedAt", "durationMs", "summary", "assertions", "artifacts"],
++      "properties": {
++        "id": { "enum": ["resolve", "install-dsh", "package", "install-plugin", "assemble", "boot", "register", "exercise", "update", "uninstall", "reboot", "recover", "cleanup"] },
++        "status": { "enum": ["passed", "failed", "skipped", "unsupported"] },
++        "startedAt": { "type": "string", "format": "date-time" },
++        "endedAt": { "type": "string", "format": "date-time" },
++        "durationMs": { "type": "integer", "minimum": 0 },
++        "summary": { "type": "string" },
++        "failureKind": { "enum": ["assertion", "subject", "dsh", "infrastructure", "timeout", "cleanup"] },
++        "command": { "type": "array", "items": { "type": "string" } },
++        "exitCode": { "type": ["integer", "null"] },
++        "signal": { "type": ["string", "null"] },
++        "assertions": { "type": "array", "items": { "$ref": "#/$defs/assertion" } },
++        "artifacts": { "type": "array", "items": { "type": "string" } }
++      }
++    }
++  }
++}
+diff --git a/scripts/check-action-pins.mjs b/scripts/check-action-pins.mjs
+new file mode 100644
+index 0000000..d7f3c5c
+--- /dev/null
++++ b/scripts/check-action-pins.mjs
+@@ -0,0 +1,41 @@
++import { readFile, readdir } from 'node:fs/promises'
++import { join } from 'node:path'
++
++import { parse } from 'yaml'
++
++async function yamlFiles(root) {
++  const files = []
++  const visit = async (directory) => {
++    for (const entry of await readdir(directory, { withFileTypes: true })) {
++      const path = join(directory, entry.name)
++      if (entry.isDirectory()) await visit(path)
++      else if (/\.ya?ml$/.test(entry.name)) files.push(path)
++    }
++  }
++  await visit(root)
++  return files.sort()
++}
++
++function externalUses(value, found = []) {
++  if (Array.isArray(value)) {
++    for (const child of value) externalUses(child, found)
++  } else if (value !== null && typeof value === 'object') {
++    for (const [key, child] of Object.entries(value)) {
++      if (key === 'uses' && typeof child === 'string' && !child.startsWith('./')) found.push(child)
++      else externalUses(child, found)
++    }
++  }
++  return found
++}
++
++const violations = []
++for (const path of await yamlFiles('.github')) {
++  for (const uses of externalUses(parse(await readFile(path, 'utf8')))) {
++    if (!/^[^/@]+\/[^/@]+@[0-9a-f]{40}$/i.test(uses)) violations.push(`${path}: ${uses}`)
++  }
++}
++
++if (violations.length > 0) {
++  throw new Error(`GitHub Actions must use full immutable commit SHAs:\n${violations.join('\n')}`)
++}
++console.log('GitHub Action references are pinned to full commit SHAs.')
+diff --git a/scripts/check-published-contracts.mjs b/scripts/check-published-contracts.mjs
+new file mode 100644
+index 0000000..7c9a795
+--- /dev/null
++++ b/scripts/check-published-contracts.mjs
+@@ -0,0 +1,24 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '..')
++const contracts = [
++  ['.ai-platform/specs/lifecycle-runner/contracts/report.schema.json', 'schemas/report-v1.json'],
++  ['.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json', 'schemas/scenario-v1.json'],
++]
++
++for (const [source, published] of contracts) {
++  const [sourceContent, publishedContent] = await Promise.all([
++    readFile(resolve(root, source)),
++    readFile(resolve(root, published)),
++  ])
++  if (!sourceContent.equals(publishedContent)) {
++    throw new Error(`${published} is stale; copy the confirmed contract from ${source}`)
++  }
++}
++
++const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
++const versionSource = await readFile(resolve(root, 'src/version.ts'), 'utf8')
++if (!versionSource.includes(`TESTKIT_VERSION = '${manifest.version}'`)) {
++  throw new Error('src/version.ts must match the package version')
++}
+diff --git a/scripts/check-release-readiness.mjs b/scripts/check-release-readiness.mjs
+new file mode 100644
+index 0000000..f80ad2b
+--- /dev/null
++++ b/scripts/check-release-readiness.mjs
+@@ -0,0 +1,33 @@
++import { access, readFile } from 'node:fs/promises'
++
++const manifest = JSON.parse(await readFile('package.json', 'utf8'))
++const requiredFields = ['repository', 'homepage', 'bugs', 'author', 'publishConfig', 'types']
++const missingFields = requiredFields.filter(field => manifest[field] === undefined)
++if (missingFields.length > 0) throw new Error(`package.json is missing: ${missingFields.join(', ')}`)
++
++if (manifest.publishConfig?.access !== 'public'
++  || manifest.publishConfig?.provenance !== true
++  || manifest.publishConfig?.registry !== 'https://registry.npmjs.org/') {
++  throw new Error('publishConfig must require public npm provenance publishing')
++}
++
++for (const path of [
++  'SECURITY.md',
++  'CHANGELOG.md',
++  '.github/ISSUE_TEMPLATE/bug_report.yml',
++  '.github/ISSUE_TEMPLATE/lifecycle_failure.yml',
++  '.github/PULL_REQUEST_TEMPLATE.md',
++]) {
++  await access(path)
++}
++
++const readme = await readFile('README.md', 'utf8')
++if (readme.includes('YOUR_ORG')) throw new Error('README.md contains an unresolved repository placeholder')
++const dockerfile = await readFile('assets/runner.Dockerfile', 'utf8')
++if (!/^FROM \S+@sha256:[0-9a-f]{64}$/m.test(dockerfile)) {
++  throw new Error('runner.Dockerfile must pin its base image by digest')
++}
++if (!dockerfile.includes('dev.dsh-testkit.context-sha256')) {
++  throw new Error('runner.Dockerfile must label the immutable build-context identity')
++}
++console.log('Package metadata and community release files are complete.')
+diff --git a/scripts/check-runner-lock.mjs b/scripts/check-runner-lock.mjs
+new file mode 100644
+index 0000000..2330ec9
+--- /dev/null
++++ b/scripts/check-runner-lock.mjs
+@@ -0,0 +1,12 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '..')
++const [projectLock, runnerLock] = await Promise.all([
++  readFile(resolve(root, 'pnpm-lock.yaml')),
++  readFile(resolve(root, 'assets/runner-pnpm-lock.yaml')),
++])
++
++if (!projectLock.equals(runnerLock)) {
++  throw new Error('assets/runner-pnpm-lock.yaml is stale; copy pnpm-lock.yaml after dependency changes')
++}
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+new file mode 100644
+index 0000000..a33577d
+--- /dev/null
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -0,0 +1,1320 @@
++import { createHash, randomUUID } from 'node:crypto'
++import {
++  access,
++  cp,
++  mkdir,
++  readFile,
++  readdir,
++  rm,
++  writeFile,
++} from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import {
++  basename,
++  isAbsolute,
++  join,
++  relative,
++  resolve,
++} from 'node:path'
++import { pathToFileURL } from 'node:url'
++
++import { parse as parseYaml } from 'yaml'
++import { z } from 'zod'
++
++import { StageFailure } from '../../domain/lifecycle.js'
++import { AssertionSchema } from '../../domain/report.js'
++import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
++import { renderScenarioSnapshot } from '../../domain/scenario.js'
++import {
++  captureSystemSnapshot,
++  diffSnapshots,
++  normalizeProcessCommands,
++  snapshotFiles,
++  writeSnapshot,
++} from '../../observers/snapshot.js'
++import type { FileChange } from '../../observers/snapshot.js'
++import { runCommand } from '../../process/command.js'
++import type { CommandResult } from '../../process/command.js'
++import type {
++  AdapterBootObservation,
++  AdapterCompletion,
++  LifecycleAdapter,
++  ObserverCoverage,
++  ProbeArtifact,
++} from '../../worker/adapter.js'
++import type { WorkerRequest } from '../../worker/protocol.js'
++
++interface PackedSubject {
++  source: string
++  tarball: string
++  packageName: string
++  packageVersion: string
++  digest: string
++  kind: SubjectIdentity['kind']
++  gitCommit: string | null
++  mutable: boolean
++}
++
++export interface ResolvedSource {
++  input: string
++  kind: SubjectIdentity['kind']
++  mutable: boolean
++  gitCommit: string | null
++}
++
++interface FilesystemCheckpoints {
++  dshHome: Awaited<ReturnType<typeof snapshotFiles>>
++  workspace: Awaited<ReturnType<typeof snapshotFiles>>
++}
++
++const PackOutputSchema = z.array(z.object({
++  filename: z.string().min(1),
++  name: z.string().min(1),
++  version: z.string().min(1),
++}).passthrough()).min(1)
++
++const ProbeDocumentSchema = z.object({
++  schemaVersion: z.literal(1),
++  assertions: z.array(AssertionSchema),
++  exercises: z.array(AssertionSchema),
++}).passthrough()
++
++const EXACT_VERSION = /@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
++const GIT_SOURCE = /^(?:git\+|git@|github:|https?:\/\/.*\.git(?:#|$))/
++const GIT_COMMIT = /#([0-9a-f]{40})$/i
++
++function hasEmbeddedUrlCredentials(input: string): boolean {
++  const normalized = input.startsWith('git+') ? input.slice(4) : input
++  if (!/^https?:\/\//i.test(normalized)) return false
++  try {
++    const url = new URL(normalized)
++    return url.username !== '' || url.password !== ''
++  } catch {
++    return false
++  }
++}
++
++export function classifyRemoteSource(input: string): ResolvedSource {
++  if (hasEmbeddedUrlCredentials(input)) {
++    throw new StageFailure('Source URLs must not contain embedded credentials; use a scoped credential helper', {
++      failureKind: 'subject',
++    })
++  }
++  if (GIT_SOURCE.test(input)) {
++    const commit = input.match(GIT_COMMIT)?.[1] ?? null
++    return { input, kind: 'git', mutable: commit === null, gitCommit: commit }
++  }
++  if (/^https?:\/\//.test(input)) {
++    return { input, kind: 'tarball', mutable: true, gitCommit: null }
++  }
++  return { input, kind: 'npm', mutable: !EXACT_VERSION.test(input), gitCommit: null }
++}
++
++function safeProcessEnvironment(): NodeJS.ProcessEnv {
++  const allowed = [
++    'PATH', 'SHELL', 'LANG', 'LC_ALL', 'TERM', 'CI',
++    'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
++    'http_proxy', 'https_proxy', 'no_proxy',
++    'NPM_CONFIG_REGISTRY', 'NPM_CONFIG_USERCONFIG',
++    'NODE_EXTRA_CA_CERTS', 'SSH_AUTH_SOCK', 'GIT_ASKPASS',
++  ]
++  return Object.fromEntries(allowed.flatMap(name => (
++    process.env[name] === undefined ? [] : [[name, process.env[name]]]
++  )))
++}
++
++function environmentRedactions(): string[] {
++  const values = new Set<string>()
++  for (const name of [
++    'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NPM_CONFIG_REGISTRY',
++  ]) {
++    const value = process.env[name]
++    if (value === undefined) continue
++    try {
++      const url = new URL(value)
++      if (url.username !== '' || url.password !== '') {
++        values.add(value)
++        if (url.password !== '') values.add(decodeURIComponent(url.password))
++      }
++    } catch {
++      // Non-URL proxy and registry values do not expose structured credentials.
++    }
++  }
++  return [...values].filter(Boolean)
++}
++
++function sha256(value: Buffer | string): string {
++  return `sha256:${createHash('sha256').update(value).digest('hex')}`
++}
++
++function containedPath(root: string, input: string): string {
++  const candidate = resolve(root, input)
++  const pathFromRoot = relative(root, candidate)
++  if (pathFromRoot === '..' || pathFromRoot.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) || isAbsolute(pathFromRoot)) {
++    throw new StageFailure(`Packed artifact escaped the owned package directory: ${input}`, {
++      failureKind: 'subject',
++    })
++  }
++  return candidate
++}
++
++async function exists(path: string): Promise<boolean> {
++  try {
++    await access(path)
++    return true
++  } catch {
++    return false
++  }
++}
++
++function commandArtifacts(result: CommandResult): string[] {
++  return result.artifacts.map(path => `logs/${path}`)
++}
++
++function collectIds(value: unknown, ids = new Set<string>()): Set<string> {
++  if (Array.isArray(value)) {
++    for (const child of value) collectIds(child, ids)
++  } else if (value !== null && typeof value === 'object') {
++    const record = value as Record<string, unknown>
++    if (typeof record.id === 'string') ids.add(record.id)
++    for (const child of Object.values(record)) collectIds(child, ids)
++  }
++  return ids
++}
++
++function failedAssertions(assertions: readonly Assertion[]): Assertion[] {
++  return assertions.filter(assertion => assertion.status !== 'passed')
++}
++
++function normalizedLines(value: string | null): string[] {
++  return value === null
++    ? []
++    : value.split('\n').map(line => line.trim()).filter(Boolean).sort()
++}
++
++function listeningPorts(value: string | null): string[] {
++  return normalizedLines(value).filter(line => !line.startsWith('Netid '))
++}
++
++interface PackageIdentity {
++  packageName: string | null
++  packageVersion: string | null
++}
++
++export function buildUpdateIdentityAssertions(
++  previous: PackageIdentity,
++  installed: PackageIdentity,
++  target: PackageIdentity,
++): Assertion[] {
++  return [
++    {
++      id: 'update.package-name',
++      status: installed.packageName === target.packageName ? 'passed' : 'failed',
++      message: installed.packageName === target.packageName
++        ? 'Installed package name equals the packed update target'
++        : 'Installed package name does not equal the packed update target',
++      expected: target.packageName,
++      actual: installed.packageName,
++    },
++    {
++      id: 'update.version',
++      status: installed.packageVersion === target.packageVersion ? 'passed' : 'failed',
++      message: installed.packageVersion === target.packageVersion
++        ? 'Installed version equals the packed update target'
++        : 'Installed version does not equal the packed update target',
++      expected: target.packageVersion,
++      actual: installed.packageVersion,
++    },
++    {
++      id: 'update.previous-version',
++      status: previous.packageVersion !== installed.packageVersion ? 'passed' : 'failed',
++      message: previous.packageVersion !== installed.packageVersion
++        ? 'Installed plugin version changed'
++        : 'Installed plugin version did not change',
++      expected: `not ${previous.packageVersion ?? 'unknown'}`,
++      actual: installed.packageVersion,
++    },
++    {
++      id: 'update.previous-package-name',
++      status: previous.packageName === target.packageName ? 'passed' : 'failed',
++      message: previous.packageName === target.packageName
++        ? 'Update source and target use the same package name'
++        : 'Update source and target use different package names',
++      expected: target.packageName,
++      actual: previous.packageName,
++    },
++  ]
++}
++
++function formatFilesystemChange(change: FileChange, root: string): string {
++  return `${change.kind}:${root}/${change.path}`
++}
++
++function addedValues(before: readonly string[], after: readonly string[]): string[] {
++  const baseline = new Set(before)
++  return [...new Set(after.filter(value => !baseline.has(value)))].sort()
++}
++
++function probeRuntimePath(): string {
++  return process.env.DSH_TESTKIT_PROBE_MODULE
++    ?? resolve(import.meta.dirname, '../../probe/runtime.js')
++}
++
++export class DshNpmAdapter implements LifecycleAdapter {
++  private request!: WorkerRequest
++  private runRoot = ''
++  private harnessDir = ''
++  private dshHome = ''
++  private workspaceDir = ''
++  private packagesDir = ''
++  private corepackHome = ''
++  private logsDir = ''
++  private evidenceDir = ''
++  private profileDir = ''
++  private dshExecutable = ''
++  private probePatch = ''
++  private canary = ''
++  private primaryResolved!: ResolvedSource
++  private initialResolved!: ResolvedSource
++  private primaryPacked!: PackedSubject
++  private initialPacked!: PackedSubject
++  private installedPackageName: string | null = null
++  private installedPackageVersion: string | null = null
++  private beforeInstallSnapshots: FilesystemCheckpoints | null = null
++  private beforeBootSnapshots: FilesystemCheckpoints | null = null
++  private processObserver = false
++  private portObserver = false
++  private initialProcessCommands: string[] = []
++  private initialListeningPorts: string[] = []
++  private readonly artifactSet = new Set<string>()
++  private dshIntegrity: string | null = null
++  private pnpmVersion = 'unavailable'
++  private readonly canaryHits = new Set<string>()
++
++  async initialize(request: WorkerRequest): Promise<void> {
++    this.request = request
++    this.runRoot = resolve(
++      process.env.DSH_TESTKIT_WORK_ROOT ?? join(tmpdir(), `dsh-testkit-${request.runId}-${randomUUID().slice(0, 8)}`),
++    )
++    this.harnessDir = join(this.runRoot, 'harness')
++    this.dshHome = join(this.runRoot, 'home')
++    this.workspaceDir = join(this.runRoot, 'workspace')
++    this.packagesDir = join(this.runRoot, 'packages')
++    this.corepackHome = process.env.DSH_TESTKIT_COREPACK_HOME ?? join(this.runRoot, 'corepack')
++    this.logsDir = join(request.outputDir, 'logs')
++    this.evidenceDir = join(request.outputDir, 'evidence')
++    this.profileDir = join(this.dshHome, 'profiles', request.scenario.profile)
++    this.canary = `dsh-testkit-canary-${request.runId}-${randomUUID()}`
++    await Promise.all([
++      mkdir(this.harnessDir, { recursive: true }),
++      mkdir(this.dshHome, { recursive: true }),
++      mkdir(this.workspaceDir, { recursive: true }),
++      mkdir(this.packagesDir, { recursive: true }),
++      mkdir(join(this.runRoot, 'tmp'), { recursive: true }),
++      mkdir(join(this.runRoot, 'corepack'), { recursive: true }),
++      mkdir(join(this.runRoot, 'user-home'), { recursive: true }),
++      mkdir(this.logsDir, { recursive: true }),
++      mkdir(this.evidenceDir, { recursive: true }),
++    ])
++    await writeFile(join(this.runRoot, 'package.json'), `${JSON.stringify({
++      name: 'dsh-testkit-owned-run-root',
++      private: true,
++      packageManager: 'pnpm@11.1.3',
++    }, null, 2)}\n`)
++    const scenarioPath = join(this.evidenceDir, 'scenario.json')
++    await writeFile(scenarioPath, renderScenarioSnapshot(this.request.scenario))
++    this.addArtifact(scenarioPath)
++    try {
++      const toolchain = await runCommand({
++        executable: 'pnpm',
++        args: ['--version'],
++        cwd: this.runRoot,
++        timeoutMs: 10_000,
++        logDir: this.logsDir,
++        logName: 'toolchain-pnpm',
++        env: {
++          ...safeProcessEnvironment(),
++          HOME: join(this.runRoot, 'user-home'),
++          TMPDIR: join(this.runRoot, 'tmp'),
++          COREPACK_HOME: this.corepackHome,
++        },
++        inheritEnv: false,
++        redactions: [this.canary, ...environmentRedactions()],
++      })
++      if (toolchain.exitCode === 0) this.pnpmVersion = toolchain.stdout.trim()
++      if (toolchain.redactionMatches.includes(0)) this.canaryHits.add('toolchain-pnpm')
++      for (const artifact of commandArtifacts(toolchain)) this.artifactSet.add(artifact)
++    } catch {
++      this.pnpmVersion = 'unavailable'
++    }
++    const initialSystem = await this.captureSystem('initialize')
++    this.processObserver = initialSystem.processes !== null
++    this.portObserver = initialSystem.ports !== null
++    this.initialProcessCommands = normalizeProcessCommands(initialSystem.processes)
++    this.initialListeningPorts = listeningPorts(initialSystem.ports)
++  }
++
++  async resolve(): Promise<AdapterCompletion<void>> {
++    this.primaryResolved = await this.resolveSource(this.request.scenario.subject.source)
++    this.initialResolved = this.request.scenario.subject.updateFrom === undefined
++      ? this.primaryResolved
++      : await this.resolveSource(this.request.scenario.subject.updateFrom)
++    const mutable = this.primaryResolved.mutable || this.initialResolved.mutable
++    if (mutable && !this.request.allowMutableSource) {
++      throw new StageFailure('Mutable npm or Git source requires --allow-mutable-source', {
++        failureKind: 'subject',
++      })
++    }
++    const assertions: Assertion[] = mutable
++      ? [{
++          id: 'source.reproducible',
++          status: 'unsupported',
++          message: 'Mutable source was explicitly allowed; this run cannot establish reproducibility',
++          expected: 'immutable source',
++          actual: 'mutable source',
++        }]
++      : [{
++          id: 'source.reproducible',
++          status: 'passed',
++          message: 'Source resolves to an immutable run input',
++          expected: 'immutable source',
++          actual: 'immutable source',
++        }]
++    return { value: undefined, summary: `Resolved ${this.primaryResolved.kind} source`, assertions }
++  }
++
++  async installDsh(): Promise<AdapterCompletion<void>> {
++    await writeFile(join(this.harnessDir, 'package.json'), `${JSON.stringify({
++      name: 'dsh-testkit-run-harness',
++      private: true,
++      version: '0.0.0',
++    }, null, 2)}\n`)
++    await writeFile(join(this.harnessDir, 'pnpm-workspace.yaml'), [
++      'packages:',
++      '  - .',
++      'dangerouslyAllowAllBuilds: true',
++      '',
++    ].join('\n'))
++    const result = await this.command('install-dsh', 'pnpm', [
++      'add',
++      '--save-exact',
++      `@deepseek-ai/dsh@${this.request.scenario.dsh.version}`,
++    ], this.harnessDir, this.request.scenario.timeouts.installMs, {}, 'infrastructure')
++    this.dshExecutable = join(this.harnessDir, 'node_modules', '.bin', 'dsh')
++    if (!await exists(this.dshExecutable)) {
++      throw new StageFailure('Installed DSH package did not expose the dsh binary', {
++        failureKind: 'infrastructure',
++        artifacts: commandArtifacts(result),
++      })
++    }
++    const dshPackagePath = join(this.harnessDir, 'node_modules', '@deepseek-ai', 'dsh')
++    const manifestPath = join(dshPackagePath, 'package.json')
++    const manifestBytes = await readFile(manifestPath)
++    const manifest = JSON.parse(manifestBytes.toString('utf8')) as { version?: string }
++    if (manifest.version !== this.request.scenario.dsh.version) {
++      throw new StageFailure(`Expected DSH ${this.request.scenario.dsh.version} but installed ${manifest.version ?? 'unknown'}`, {
++        failureKind: 'infrastructure',
++        artifacts: commandArtifacts(result),
++      })
++    }
++    const installedFiles = await snapshotFiles(dshPackagePath)
++    this.dshIntegrity = sha256(JSON.stringify(installedFiles.entries))
++    return {
++      value: undefined,
++      summary: `Installed exact DSH ${manifest.version}`,
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++      artifacts: commandArtifacts(result),
++      assertions: [{
++        id: 'dsh.version.exact',
++        status: 'passed',
++        message: `Installed DSH ${manifest.version}`,
++        expected: this.request.scenario.dsh.version,
++        actual: manifest.version,
++      }],
++    }
++  }
++
++  async packageSubject(): Promise<AdapterCompletion<void>> {
++    this.primaryPacked = await this.packSource(this.primaryResolved, 'primary')
++    this.initialPacked = this.initialResolved.input === this.primaryResolved.input
++      ? this.primaryPacked
++      : await this.packSource(this.initialResolved, 'update-from')
++    const evidencePath = join(this.evidenceDir, 'subject.json')
++    await writeFile(evidencePath, `${JSON.stringify({
++      primary: this.primaryPacked,
++      initial: this.initialPacked,
++    }, null, 2)}\n`)
++    this.addArtifact(evidencePath)
++    return {
++      value: undefined,
++      summary: `Packed ${this.primaryPacked.packageName}@${this.primaryPacked.packageVersion}`,
++      artifacts: ['evidence/subject.json'],
++      assertions: [{
++        id: 'subject.pack.digest',
++        status: 'passed',
++        message: 'Published tarball candidate has a content digest',
++        actual: this.primaryPacked.digest,
++      }],
++    }
++  }
++
++  async installPlugin(): Promise<AdapterCompletion<void>> {
++    const baselineArtifacts = await this.prepareProfileBaseline()
++    this.beforeInstallSnapshots = await this.captureFilesystemCheckpoint('filesystem-before-install.json')
++    const result = await this.dshPlugin('install-plugin', [
++      'add',
++      this.initialPacked.tarball,
++      '--save-exact',
++    ])
++    this.installedPackageName = this.initialPacked.packageName
++    this.installedPackageVersion = await this.readInstalledVersion(this.installedPackageName)
++    const manifest = await this.readProfileManifest()
++    const dependency = manifest.dependencies?.[this.installedPackageName]
++    const bundles = manifest.dsh?.profile?.bundles ?? []
++    const assertions: Assertion[] = [
++      {
++        id: 'install.manifest.dependency',
++        status: dependency === undefined ? 'failed' : 'passed',
++        message: dependency === undefined ? 'Plugin dependency is absent from the profile manifest' : 'Plugin dependency is pinned in the profile manifest',
++        expected: this.installedPackageName,
++        actual: dependency ?? null,
++      },
++      {
++        id: 'install.manifest.bundle',
++        status: bundles.includes(this.installedPackageName) ? 'passed' : 'failed',
++        message: bundles.includes(this.installedPackageName) ? 'Plugin bundle is active in the profile' : 'Package declares no active dsh.bundle layer',
++        expected: this.installedPackageName,
++        actual: bundles,
++      },
++    ]
++    if (failedAssertions(assertions).length > 0) {
++      throw new StageFailure('Plugin installation did not produce an active DSH bundle', {
++        failureKind: 'subject',
++        assertions,
++        artifacts: commandArtifacts(result),
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    this.beforeBootSnapshots = await this.captureFilesystemCheckpoint('filesystem-before-boot.json')
++    return {
++      value: undefined,
++      summary: `Installed ${this.installedPackageName}@${this.installedPackageVersion ?? 'unknown'} into profile ${this.request.scenario.profile}`,
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++      artifacts: [
++        ...baselineArtifacts,
++        ...commandArtifacts(result),
++        'evidence/filesystem-before-install.json',
++        'evidence/filesystem-before-boot.json',
++      ],
++      assertions,
++    }
++  }
++
++  async assemble(): Promise<AdapterCompletion<void>> {
++    return await this.inspectEffectiveConfiguration('assemble', 'effective-config.yml', 'config.row')
++  }
++
++  async boot(): Promise<AdapterCompletion<AdapterBootObservation>> {
++    return await this.observeBoot('boot', 'present')
++  }
++
++  async register(observation: AdapterBootObservation): Promise<AdapterCompletion<void>> {
++    if (observation.probe === null) {
++      throw new StageFailure('Runtime probe was not produced', { failureKind: 'assertion' })
++    }
++    const failures = failedAssertions(observation.probe.assertions)
++    if (failures.length > 0) {
++      throw new StageFailure(`${failures.length} runtime registration assertion(s) failed`, {
++        failureKind: 'assertion',
++        assertions: observation.probe.assertions,
++      })
++    }
++    return {
++      value: undefined,
++      summary: `${observation.probe.assertions.length} runtime registration assertion(s) passed`,
++      assertions: observation.probe.assertions,
++    }
++  }
++
++  async exercise(observation: AdapterBootObservation): Promise<AdapterCompletion<void>> {
++    if (observation.probe === null) {
++      throw new StageFailure('Runtime probe was not produced', { failureKind: 'assertion' })
++    }
++    const failures = failedAssertions(observation.probe.exercises)
++    if (failures.length > 0) {
++      throw new StageFailure(`${failures.length} deterministic tool exercise(s) failed`, {
++        failureKind: 'assertion',
++        assertions: observation.probe.exercises,
++      })
++    }
++    return {
++      value: undefined,
++      summary: `${observation.probe.exercises.length} deterministic tool exercise(s) passed`,
++      assertions: observation.probe.exercises,
++    }
++  }
++
++  async update(): Promise<AdapterCompletion<void>> {
++    const previous = {
++      packageName: this.installedPackageName,
++      packageVersion: this.installedPackageVersion,
++    }
++    const result = await this.dshPlugin('update', ['add', this.primaryPacked.tarball, '--save-exact'])
++    this.installedPackageName = this.primaryPacked.packageName
++    this.installedPackageVersion = await this.readInstalledVersion(this.installedPackageName)
++    const configured = await this.inspectEffectiveConfiguration(
++      'update-assemble',
++      'effective-config-update.yml',
++      'update.config.row',
++    )
++    const boot = await this.observeBoot('update-boot', 'present')
++    if (boot.value.outcome !== 'success' || boot.value.probe === null) {
++      throw new StageFailure('Updated plugin did not boot successfully', {
++        failureKind: 'subject',
++        artifacts: [...commandArtifacts(result), ...(configured.artifacts ?? []), ...(boot.artifacts ?? [])],
++      })
++    }
++    const assertions: Assertion[] = [
++      ...buildUpdateIdentityAssertions(previous, {
++        packageName: this.installedPackageName,
++        packageVersion: this.installedPackageVersion,
++      }, {
++        packageName: this.primaryPacked.packageName,
++        packageVersion: this.primaryPacked.packageVersion,
++      }),
++      ...(configured.assertions ?? []),
++      ...boot.value.probe.assertions,
++      ...boot.value.probe.exercises,
++    ]
++    if (failedAssertions(assertions).length > 0) {
++      throw new StageFailure('Updated plugin failed lifecycle assertions', {
++        failureKind: 'assertion',
++        assertions,
++        artifacts: [...commandArtifacts(result), ...(configured.artifacts ?? []), ...(boot.artifacts ?? [])],
++      })
++    }
++    return {
++      value: undefined,
++      summary: `Updated ${this.installedPackageName} from ${previous.packageVersion ?? 'unknown'} to ${this.installedPackageVersion ?? 'unknown'} and reassembled the profile`,
++      assertions,
++      artifacts: [...commandArtifacts(result), ...(configured.artifacts ?? []), ...(boot.artifacts ?? [])],
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++    }
++  }
++
++  async uninstall(): Promise<AdapterCompletion<void>> {
++    if (this.installedPackageName === null) throw new StageFailure('Installed package identity is unavailable')
++    const packageName = this.installedPackageName
++    const result = await this.dshPlugin('uninstall', ['remove', packageName])
++    const manifest = await this.readProfileManifest()
++    const bundles = manifest.dsh?.profile?.bundles ?? []
++    const installedPackagePath = join(this.profileDir, 'node_modules', ...packageName.split('/'))
++    const packageFilesRemain = await exists(installedPackagePath)
++    const assertions: Assertion[] = [
++      {
++        id: 'uninstall.manifest.dependency',
++        status: manifest.dependencies?.[packageName] === undefined ? 'passed' : 'failed',
++        message: manifest.dependencies?.[packageName] === undefined ? 'Plugin dependency was removed' : 'Plugin dependency remains in the profile',
++        expected: false,
++        actual: manifest.dependencies?.[packageName] !== undefined,
++      },
++      {
++        id: 'uninstall.manifest.bundle',
++        status: bundles.includes(packageName) ? 'failed' : 'passed',
++        message: bundles.includes(packageName) ? 'Plugin bundle remains active' : 'Plugin bundle was removed from the profile',
++        expected: false,
++        actual: bundles.includes(packageName),
++      },
++      {
++        id: 'uninstall.package.files',
++        status: packageFilesRemain ? 'failed' : 'passed',
++        message: packageFilesRemain ? 'Plugin package files remain in the profile' : 'Plugin package files were removed',
++        expected: false,
++        actual: packageFilesRemain,
++      },
++    ]
++    if (this.beforeBootSnapshots !== null) {
++      const [dshHome, workspace] = await Promise.all([
++        snapshotFiles(this.dshHome),
++        snapshotFiles(this.workspaceDir),
++      ])
++      const after = { dshHome, workspace }
++      const snapshotPath = join(this.evidenceDir, 'filesystem-after-uninstall.json')
++      await writeSnapshot(snapshotPath, after)
++      this.addArtifact(snapshotPath)
++      const bootResidue = [
++        ...diffSnapshots(this.beforeBootSnapshots.dshHome, after.dshHome)
++          .filter(change => !this.isKnownPackageManagerChange(change.path))
++          .map(change => formatFilesystemChange(change, 'dsh-home')),
++        ...diffSnapshots(this.beforeBootSnapshots.workspace, after.workspace)
++          .map(change => formatFilesystemChange(change, 'workspace')),
++      ]
++      const installResidue = this.beforeInstallSnapshots === null ? [] : [
++        ...diffSnapshots(this.beforeInstallSnapshots.dshHome, after.dshHome)
++          .filter(change => !this.isKnownPackageManagerChange(change.path))
++          .map(change => formatFilesystemChange(change, 'dsh-home')),
++        ...diffSnapshots(this.beforeInstallSnapshots.workspace, after.workspace)
++          .map(change => formatFilesystemChange(change, 'workspace')),
++      ]
++      const residue = [...new Set([...bootResidue, ...installResidue])].sort()
++      assertions.push({
++        id: 'uninstall.filesystem.residue',
++        status: residue.length === 0 ? 'passed' : 'failed',
++        message: residue.length === 0 ? 'No unexplained files remain after uninstall' : `${residue.length} unexplained file(s) remain after uninstall`,
++        expected: [],
++        actual: residue,
++        evidence: ['evidence/filesystem-after-uninstall.json'],
++      })
++    }
++    if (failedAssertions(assertions).length > 0) {
++      throw new StageFailure('Plugin uninstall left active state or unexplained files', {
++        failureKind: 'assertion',
++        assertions,
++        artifacts: [...commandArtifacts(result), 'evidence/filesystem-after-uninstall.json'],
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    this.installedPackageVersion = null
++    return {
++      value: undefined,
++      summary: `Removed ${packageName} from the profile`,
++      assertions,
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++      artifacts: [...commandArtifacts(result), 'evidence/filesystem-after-uninstall.json'],
++    }
++  }
++
++  async reboot(): Promise<AdapterCompletion<void>> {
++    const completion = await this.observeBoot('reboot', 'absent')
++    return this.requireCleanBoot(completion, 'Profile rebooted without the plugin')
++  }
++
++  async recover(): Promise<AdapterCompletion<void>> {
++    const artifacts: string[] = []
++    if (this.installedPackageName !== null) {
++      const manifest = await this.readProfileManifest().catch(() => null)
++      if (manifest?.dependencies?.[this.installedPackageName] !== undefined) {
++        const removal = await this.dshPlugin('recover-remove', ['remove', this.installedPackageName])
++        artifacts.push(...commandArtifacts(removal))
++      }
++    }
++    const completion = await this.observeBoot('recover-boot', 'absent')
++    const clean = this.requireCleanBoot(completion, 'Profile recovered after plugin removal')
++    return { ...clean, artifacts: [...artifacts, ...(clean.artifacts ?? [])] }
++  }
++
++  async cleanup(): Promise<AdapterCompletion<void>> {
++    const cleanupSystem = await this.captureSystem('cleanup')
++    const snapshotPath = join(this.evidenceDir, 'owned-root-final.json')
++    const topLevelEntries = (await readdir(this.runRoot, { withFileTypes: true })).map(entry => ({
++      name: entry.name,
++      kind: entry.isDirectory() ? 'directory' : entry.isSymbolicLink() ? 'symlink' : 'file',
++    })).sort((left, right) => left.name.localeCompare(right.name))
++    const canaryHits = [...this.canaryHits].sort()
++    let removalError: string | null = null
++    try {
++      await rm(this.runRoot, { recursive: true, force: true })
++    } catch (error) {
++      removalError = error instanceof Error ? error.message : String(error)
++    }
++    const removed = !await exists(this.runRoot)
++    await writeSnapshot(snapshotPath, {
++      schemaVersion: 1,
++      topLevelEntries,
++      removed,
++      removalError,
++    })
++    this.addArtifact(snapshotPath)
++    const assertions: Assertion[] = [
++      {
++        id: 'cleanup.owned-root.removed',
++        status: removed ? 'passed' : 'failed',
++        message: removed ? 'Owned run root was removed' : 'Owned run root remains after cleanup',
++        expected: true,
++        actual: removed,
++        evidence: ['evidence/owned-root-final.json'],
++      },
++      {
++        id: 'canary.log-leak',
++        status: canaryHits.length === 0 ? 'passed' : 'failed',
++        message: canaryHits.length === 0 ? 'Canary value did not appear in command logs' : 'Canary value appeared in command logs',
++        expected: [],
++        actual: canaryHits,
++      },
++    ]
++    if (this.request.runner === 'docker' && this.processObserver && cleanupSystem.processes !== null) {
++      const residue = addedValues(this.initialProcessCommands, normalizeProcessCommands(cleanupSystem.processes))
++      assertions.push({
++        id: 'cleanup.process.residue',
++        status: residue.length === 0 ? 'passed' : 'failed',
++        message: residue.length === 0 ? 'No process remains beyond the Docker baseline' : `${residue.length} process command(s) remain beyond the Docker baseline`,
++        expected: [],
++        actual: residue,
++        evidence: ['evidence/process-initialize.txt', 'evidence/process-cleanup.txt'],
++      })
++    }
++    if (this.request.runner === 'docker' && this.portObserver && cleanupSystem.ports !== null) {
++      const residue = addedValues(this.initialListeningPorts, listeningPorts(cleanupSystem.ports))
++      assertions.push({
++        id: 'cleanup.port.residue',
++        status: residue.length === 0 ? 'passed' : 'failed',
++        message: residue.length === 0 ? 'No listener remains beyond the Docker baseline' : `${residue.length} listener(s) remain beyond the Docker baseline`,
++        expected: [],
++        actual: residue,
++        evidence: ['evidence/ports-initialize.txt', 'evidence/ports-cleanup.txt'],
++      })
++    }
++    const cleanupFailures = failedAssertions(assertions)
++    if (cleanupFailures.length > 0) {
++      const summary = !removed
++        ? 'Owned run root could not be removed'
++        : canaryHits.length > 0
++          ? 'Canary value leaked into command output'
++          : 'A process or listener remains beyond the Docker baseline'
++      throw new StageFailure(summary, {
++        failureKind: removed ? 'assertion' : 'cleanup',
++        assertions,
++        artifacts: [
++          'evidence/owned-root-final.json',
++          ...(!this.processObserver || cleanupSystem.processes === null
++            ? []
++            : ['evidence/process-initialize.txt', 'evidence/process-cleanup.txt']),
++          ...(!this.portObserver || cleanupSystem.ports === null
++            ? []
++            : ['evidence/ports-initialize.txt', 'evidence/ports-cleanup.txt']),
++        ],
++      })
++    }
++    return {
++      value: undefined,
++      summary: 'Removed the owned run root and retained evidence',
++      assertions,
++      artifacts: ['evidence/owned-root-final.json'],
++    }
++  }
++
++  subjectIdentity(): SubjectIdentity {
++    const packed = this.primaryPacked
++    if (packed === undefined) {
++      return {
++        input: this.request.scenario.subject.source,
++        kind: this.primaryResolved?.kind ?? 'local-directory',
++        packageName: 'unresolved',
++        packageVersion: 'unresolved',
++        sourceDigest: 'unresolved',
++        gitCommit: this.primaryResolved?.gitCommit ?? null,
++        mutable: this.primaryResolved?.mutable ?? false,
++      }
++    }
++    return {
++      input: packed.source,
++      kind: packed.kind,
++      packageName: packed.packageName,
++      packageVersion: packed.packageVersion,
++      sourceDigest: packed.digest,
++      gitCommit: packed.gitCommit,
++      mutable: packed.mutable,
++    }
++  }
++
++  dshIdentity(): { version: string; integrity: string | null } {
++    return { version: this.request.scenario.dsh.version, integrity: this.dshIntegrity }
++  }
++
++  environment(): Record<string, unknown> {
++    const runner = this.request.runner
++    return {
++      runner,
++      isolation: runner === 'docker' ? 'docker-container' : 'unsafe-local',
++      unsafeLocal: this.request.unsafeLocal,
++      platform: process.platform,
++      arch: process.arch,
++      node: process.version,
++      pnpm: this.pnpmVersion,
++      image: process.env.DSH_TESTKIT_IMAGE ?? null,
++      imageId: process.env.DSH_TESTKIT_IMAGE_ID ?? null,
++    }
++  }
++
++  observerCoverage(): ObserverCoverage {
++    const localLimitation = this.request.runner === 'local'
++      ? ['Local checkpoints share the host process and network namespaces']
++      : []
++    return {
++      filesystem: { available: true, mode: 'owned-root snapshots', limitations: ['Changes outside the disposable run root are not observed'] },
++      process: { available: this.processObserver, mode: this.processObserver ? 'ps checkpoint' : 'unavailable', limitations: ['Short-lived processes between checkpoints may be missed', ...localLimitation] },
++      ports: { available: this.portObserver, mode: this.portObserver ? 'listening-port checkpoint' : 'unavailable', limitations: ['Short-lived listeners between checkpoints may be missed', ...localLimitation] },
++      network: { available: false, mode: 'unavailable', limitations: ['v0.1 does not include a network namespace trace or proxy observer'] },
++      canary: { available: true, mode: 'raw-stream sentinel detection with sanitized persistence', limitations: ['Absence from process output does not prove absence of egress'] },
++    }
++  }
++
++  artifacts(): string[] {
++    return [...this.artifactSet].sort()
++  }
++
++  private async resolveSource(input: string): Promise<ResolvedSource> {
++    const absolute = isAbsolute(input) ? input : resolve(input)
++    if (await exists(absolute)) {
++      const metadata = await import('node:fs/promises').then(module => module.stat(absolute))
++      const kind: SubjectIdentity['kind'] = metadata.isDirectory() ? 'local-directory' : 'tarball'
++      let gitCommit: string | null = null
++      if (metadata.isDirectory() && await exists(join(absolute, '.git'))) {
++        const result = await runCommand({
++          executable: 'git',
++          args: ['-C', absolute, 'rev-parse', 'HEAD'],
++          cwd: absolute,
++          timeoutMs: 10_000,
++          logDir: this.logsDir,
++          logName: `resolve-git-${basename(absolute)}`,
++          env: safeProcessEnvironment(),
++          inheritEnv: false,
++          redactions: [this.canary, ...environmentRedactions()],
++        })
++        if (result.exitCode === 0) gitCommit = result.stdout.trim() || null
++      }
++      return { input: absolute, kind, mutable: false, gitCommit }
++    }
++    if (isAbsolute(input)) {
++      throw new StageFailure(`Local source does not exist: ${input}`, { failureKind: 'subject' })
++    }
++    return classifyRemoteSource(input)
++  }
++
++  private async packSource(source: ResolvedSource, label: string): Promise<PackedSubject> {
++    let cwd = this.packagesDir
++    let spec = source.input
++    if (source.kind === 'local-directory') {
++      cwd = join(this.runRoot, `source-${label}`)
++      await cp(source.input, cwd, {
++        recursive: true,
++        dereference: false,
++        filter: path => !['node_modules', '.git', '.dsh-testkit'].includes(basename(path)),
++      })
++      spec = '.'
++    }
++    const result = await this.command(
++      `package-${label}`,
++      'npm',
++      ['pack', '--json', '--pack-destination', this.packagesDir, spec],
++      cwd,
++      this.request.scenario.timeouts.installMs,
++    )
++    let parsed: z.infer<typeof PackOutputSchema>
++    try {
++      parsed = PackOutputSchema.parse(JSON.parse(result.stdout))
++    } catch (error) {
++      throw new StageFailure(`npm pack returned invalid metadata: ${error instanceof Error ? error.message : String(error)}`, {
++        failureKind: 'subject',
++        artifacts: commandArtifacts(result),
++      })
++    }
++    const metadata = parsed[0]
++    if (metadata === undefined) throw new StageFailure('npm pack produced no tarball metadata')
++    const tarball = containedPath(this.packagesDir, metadata.filename)
++    const digest = sha256(await readFile(tarball))
++    return {
++      source: source.input,
++      tarball,
++      packageName: metadata.name,
++      packageVersion: metadata.version,
++      digest,
++      kind: source.kind,
++      gitCommit: source.gitCommit,
++      mutable: source.mutable,
++    }
++  }
++
++  private async prepareProfileBaseline(): Promise<string[]> {
++    const baselineDir = join(this.runRoot, 'baseline-plugin')
++    await mkdir(baselineDir, { recursive: true })
++    await Promise.all([
++      writeFile(join(baselineDir, 'package.json'), `${JSON.stringify({
++        name: '@dsh-testkit/internal-baseline',
++        version: '0.0.0',
++        type: 'module',
++        main: 'index.js',
++        files: ['index.js', 'cordis.patch.yml'],
++        dsh: { bundle: { patch: './cordis.patch.yml' } },
++      }, null, 2)}\n`),
++      writeFile(join(baselineDir, 'index.js'), [
++        "export const name = 'dsh-testkit-internal-baseline'",
++        'export function apply() {}',
++        '',
++      ].join('\n')),
++      writeFile(join(baselineDir, 'cordis.patch.yml'), [
++        '- insert:',
++        '    - id: dsh-testkit-internal-baseline',
++        "      name: '@dsh-testkit/internal-baseline'",
++        '',
++      ].join('\n')),
++    ])
++    const packed = await this.command(
++      'baseline-package',
++      'npm',
++      ['pack', '--json', '--pack-destination', this.packagesDir, '.'],
++      baselineDir,
++      this.request.scenario.timeouts.installMs,
++    )
++    const metadata = PackOutputSchema.parse(JSON.parse(packed.stdout))[0]
++    if (metadata === undefined) throw new StageFailure('Baseline package produced no tarball metadata')
++    const tarball = containedPath(this.packagesDir, metadata.filename)
++    const installed = await this.dshPlugin('baseline-install', ['add', tarball, '--save-exact'])
++    const removed = await this.dshPlugin('baseline-remove', ['remove', metadata.name])
++    return [
++      ...commandArtifacts(packed),
++      ...commandArtifacts(installed),
++      ...commandArtifacts(removed),
++    ]
++  }
++
++  private async command(
++    logName: string,
++    executable: string,
++    args: string[],
++    cwd: string,
++    timeoutMs: number,
++    env: NodeJS.ProcessEnv = {},
++    failureKind: FailureKind = 'subject',
++  ): Promise<CommandResult> {
++    const result = await runCommand({
++      executable,
++      args,
++      cwd,
++      timeoutMs,
++      logDir: this.logsDir,
++      logName,
++      env: {
++        ...safeProcessEnvironment(),
++        HOME: join(this.runRoot, 'user-home'),
++        TMPDIR: join(this.runRoot, 'tmp'),
++        COREPACK_HOME: this.corepackHome,
++        ...env,
++      },
++      inheritEnv: false,
++      redactions: [this.canary, ...environmentRedactions()],
++    })
++    for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
++    if (result.redactionMatches.includes(0)) this.canaryHits.add(logName)
++    if (result.stdoutTruncated || result.stderrTruncated) {
++      throw new StageFailure(`${basename(executable)} output exceeded the 8 MiB per-stream evidence limit`, {
++        failureKind,
++        artifacts: commandArtifacts(result),
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    if (result.exitCode !== 0 || result.timedOut) {
++      throw new StageFailure(
++        result.timedOut
++          ? `${basename(executable)} timed out after ${timeoutMs}ms`
++          : `${basename(executable)} exited with code ${result.exitCode ?? 'null'}`,
++        {
++          failureKind: result.timedOut ? 'timeout' : result.interruptedBy === null ? failureKind : 'infrastructure',
++          artifacts: commandArtifacts(result),
++          command: result.command,
++          exitCode: result.exitCode,
++          signal: result.signal,
++        },
++      )
++    }
++    return result
++  }
++
++  private async dshPlugin(logName: string, args: string[]): Promise<CommandResult> {
++    return await this.command(
++      logName,
++      this.dshExecutable,
++      ['plugin', '--profile', this.request.scenario.profile, ...args],
++      this.workspaceDir,
++      this.request.scenario.timeouts.installMs,
++      this.dshEnvironment(),
++    )
++  }
++
++  private dshEnvironment(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
++    return {
++      ...safeProcessEnvironment(),
++      DSH_HOME: this.dshHome,
++      HOME: join(this.runRoot, 'user-home'),
++      COREPACK_HOME: this.corepackHome,
++      DSH_TELEMETRY_DISABLED: '1',
++      DSH_TESTKIT_CANARY: this.canary,
++      PATH: `${join(this.harnessDir, 'node_modules', '.bin')}:${process.env.PATH ?? ''}`,
++      NPM_CONFIG_AUDIT: 'false',
++      NPM_CONFIG_FUND: 'false',
++      PNPM_CONFIG_DANGEROUSLY_ALLOW_ALL_BUILDS: 'true',
++      ...extra,
++    }
++  }
++
++  private async ensureProbePatch(): Promise<void> {
++    if (this.probePatch !== '') return
++    const modulePath = probeRuntimePath()
++    if (!await exists(modulePath)) {
++      throw new StageFailure(`Runtime probe module is missing at ${modulePath}`, { failureKind: 'infrastructure' })
++    }
++    this.probePatch = join(this.runRoot, 'probe.patch.yml')
++    await writeFile(this.probePatch, [
++      '- insert:',
++      '    - id: dsh-testkit-runtime-probe',
++      `      name: ${JSON.stringify(pathToFileURL(modulePath).href)}`,
++      '',
++    ].join('\n'))
++  }
++
++  private async observeBoot(
++    label: string,
++    mode: 'present' | 'absent',
++  ): Promise<AdapterCompletion<AdapterBootObservation>> {
++    await this.ensureProbePatch()
++    const probePath = join(this.evidenceDir, `probe-${label}.json`)
++    await rm(probePath, { force: true })
++    const config = {
++      schemaVersion: 1,
++      output: probePath,
++      mode,
++      services: this.request.scenario.expect.services,
++      tools: this.request.scenario.expect.tools,
++      exercise: mode === 'present' ? this.request.scenario.exercise : [],
++      settleMs: 500,
++    }
++    const result = await runCommand({
++      executable: this.dshExecutable,
++      args: ['--profile', this.request.scenario.profile, '--patch', this.probePatch],
++      cwd: this.workspaceDir,
++      timeoutMs: this.request.scenario.timeouts.bootMs,
++      logDir: this.logsDir,
++      logName: label,
++      env: this.dshEnvironment({ DSH_TESTKIT_PROBE_CONFIG: JSON.stringify(config) }),
++      inheritEnv: false,
++      redactions: [this.canary, ...environmentRedactions()],
++      completionFile: probePath,
++      beforeCompletionStop: async () => { await this.captureSystem(label) },
++    })
++    for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
++    if (result.redactionMatches.includes(0)) this.canaryHits.add(label)
++    if (result.stdoutTruncated || result.stderrTruncated) {
++      throw new StageFailure('DSH boot output exceeded the 8 MiB per-stream evidence limit', {
++        failureKind: 'subject',
++        artifacts: commandArtifacts(result),
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    if (result.timedOut) {
++      throw new StageFailure(`DSH boot timed out before the runtime probe completed`, {
++        failureKind: 'timeout',
++        artifacts: commandArtifacts(result),
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    if (result.interruptedBy !== null) {
++      throw new StageFailure(`DSH boot was interrupted by ${result.interruptedBy}`, {
++        failureKind: 'infrastructure',
++        artifacts: commandArtifacts(result),
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    if (!await exists(probePath) || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
++      const crashed = result.signal !== null && !result.stoppedAfterCompletion
++      return {
++        value: { outcome: crashed ? 'crash' : 'failure', probe: null },
++        summary: crashed
++          ? `DSH crashed with ${result.signal} before the ${label} runtime probe completed`
++          : `DSH exited before the ${label} runtime probe completed`,
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++        artifacts: commandArtifacts(result),
++      }
++    }
++    const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
++    this.addArtifact(probePath)
++    const probe: ProbeArtifact = {
++      assertions: document.assertions,
++      exercises: document.exercises,
++    }
++    return {
++      value: { outcome: 'success', probe },
++      summary: `DSH reached the ${label} runtime probe`,
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++      artifacts: [...commandArtifacts(result), `evidence/${basename(probePath)}`],
++    }
++  }
++
++  private requireCleanBoot(
++    completion: AdapterCompletion<AdapterBootObservation>,
++    summary: string,
++  ): AdapterCompletion<void> {
++    const probe = completion.value.probe
++    if (completion.value.outcome !== 'success' || probe === null) {
++      throw new StageFailure('Profile did not boot after plugin removal', {
++        failureKind: 'subject',
++        ...(completion.artifacts === undefined ? {} : { artifacts: completion.artifacts }),
++      })
++    }
++    const failures = failedAssertions(probe.assertions)
++    if (failures.length > 0) {
++      throw new StageFailure('Plugin capabilities remain registered after removal', {
++        failureKind: 'assertion',
++        assertions: probe.assertions,
++        ...(completion.artifacts === undefined ? {} : { artifacts: completion.artifacts }),
++      })
++    }
++    return {
++      value: undefined,
++      summary,
++      assertions: probe.assertions,
++      ...(completion.artifacts === undefined ? {} : { artifacts: completion.artifacts }),
++      ...(completion.command === undefined ? {} : { command: completion.command }),
++      ...(completion.exitCode === undefined ? {} : { exitCode: completion.exitCode }),
++      ...(completion.signal === undefined ? {} : { signal: completion.signal }),
++    }
++  }
++
++  private async inspectEffectiveConfiguration(
++    logName: string,
++    artifactName: string,
++    assertionPrefix: string,
++  ): Promise<AdapterCompletion<void>> {
++    const result = await this.command(
++      logName,
++      this.dshExecutable,
++      ['--profile', this.request.scenario.profile, '--dump-config'],
++      this.workspaceDir,
++      this.request.scenario.timeouts.bootMs,
++      this.dshEnvironment(),
++    )
++    const configPath = join(this.evidenceDir, artifactName)
++    await writeFile(configPath, result.stdout)
++    this.addArtifact(configPath)
++    const composed = parseYaml(result.stdout, {
++      customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
++    })
++    const ids = collectIds(composed)
++    const evidence = [`evidence/${artifactName}`]
++    const assertions: Assertion[] = this.request.scenario.expect.rows.map(row => ({
++      id: `${assertionPrefix}.${row}`,
++      status: ids.has(row) ? 'passed' : 'failed',
++      message: ids.has(row) ? `Configuration row ${row} is present` : `Configuration row ${row} is absent`,
++      expected: true,
++      actual: ids.has(row),
++      evidence,
++    }))
++    if (failedAssertions(assertions).length > 0) {
++      throw new StageFailure('Effective DSH configuration is missing expected rows', {
++        failureKind: 'assertion',
++        assertions,
++        artifacts: [...commandArtifacts(result), ...evidence],
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
++    return {
++      value: undefined,
++      summary: `Composed profile with ${ids.size} addressable rows`,
++      command: result.command,
++      exitCode: result.exitCode,
++      signal: result.signal,
++      artifacts: [...commandArtifacts(result), ...evidence],
++      assertions,
++    }
++  }
++
++  private async readProfileManifest(): Promise<{
++    dependencies?: Record<string, string>
++    dsh?: { profile?: { bundles?: string[] } }
++  }> {
++    return JSON.parse(await readFile(join(this.profileDir, 'package.json'), 'utf8')) as {
++      dependencies?: Record<string, string>
++      dsh?: { profile?: { bundles?: string[] } }
++    }
++  }
++
++  private async readInstalledVersion(packageName: string): Promise<string | null> {
++    try {
++      const path = join(this.profileDir, 'node_modules', ...packageName.split('/'), 'package.json')
++      const manifest = JSON.parse(await readFile(path, 'utf8')) as { version?: string }
++      return manifest.version ?? null
++    } catch {
++      return null
++    }
++  }
++
++  private addArtifact(path: string): void {
++    this.artifactSet.add(relative(this.request.outputDir, path))
++  }
++
++  private async captureSystem(label: string): Promise<{ processes: string | null; ports: string | null }> {
++    const { processes, ports } = await captureSystemSnapshot()
++    if (processes !== null) {
++      const path = join(this.evidenceDir, `process-${label}.txt`)
++      await writeFile(path, processes)
++      this.addArtifact(path)
++    }
++    if (ports !== null) {
++      const path = join(this.evidenceDir, `ports-${label}.txt`)
++      await writeFile(path, ports)
++      this.addArtifact(path)
++    }
++    return { processes, ports }
++  }
++
++  private async captureFilesystemCheckpoint(filename: string): Promise<FilesystemCheckpoints> {
++    const [dshHome, workspace] = await Promise.all([
++      snapshotFiles(this.dshHome),
++      snapshotFiles(this.workspaceDir),
++    ])
++    const checkpoint = { dshHome, workspace }
++    const path = join(this.evidenceDir, filename)
++    await writeSnapshot(path, checkpoint)
++    this.addArtifact(path)
++    return checkpoint
++  }
++
++  private isKnownPackageManagerChange(path: string): boolean {
++    const normalized = path.replaceAll('\\', '/')
++    const profile = `profiles/${this.request.scenario.profile}`
++    const managedPrefixes = [
++      'profiles/node_modules/',
++      `${profile}/node_modules/`,
++    ]
++    const exactPaths = new Set([
++      'profiles/',
++      `${profile}/`,
++      `${profile}/cordis.patch.yml`,
++      `${profile}/cordis.yml`,
++      `${profile}/node_modules/`,
++      `${profile}/node_modules/.modules.yaml`,
++      `${profile}/node_modules/.pnpm-workspace-state-v1.json`,
++      `${profile}/package.json`,
++      `${profile}/pnpm-lock.yaml`,
++      `${profile}/pnpm-workspace.yaml`,
++    ])
++    return exactPaths.has(normalized)
++      || managedPrefixes.some(prefix => normalized === prefix || normalized.startsWith(prefix))
++  }
++
++}
+diff --git a/src/cli.ts b/src/cli.ts
+new file mode 100644
+index 0000000..6f1cbc1
+--- /dev/null
++++ b/src/cli.ts
+@@ -0,0 +1,321 @@
++#!/usr/bin/env node
++import { randomUUID } from 'node:crypto'
++import { realpathSync } from 'node:fs'
++import { access, lstat, mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises'
++import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++import { Command, CommanderError, InvalidArgumentError } from 'commander'
++import { parse as parseYaml } from 'yaml'
++
++import { buildScenario, parseScenario, validateRunnerSelection } from './config/scenario.js'
++import { exitCodeForVerdict } from './domain/lifecycle.js'
++import { aggregateRunReports } from './domain/repeatability.js'
++import { RunReportSchema } from './domain/report.js'
++import type { RunReport } from './domain/report.js'
++import type { Scenario } from './domain/scenario.js'
++import { renderJson } from './reporters/json.js'
++import { renderJunit } from './reporters/junit.js'
++import { renderMarkdown } from './reporters/markdown.js'
++import { renderTerminal } from './reporters/terminal.js'
++import { createRunner } from './runners/index.js'
++import type { Runner, RunnerKind } from './runners/types.js'
++import { RunnerError } from './runners/types.js'
++import { TESTKIT_VERSION } from './version.js'
++import { WorkerRequestSchema } from './worker/protocol.js'
++
++interface CliOptions {
++  dsh?: string
++  config?: string
++  suite?: 'quick' | 'full'
++  repeat?: number
++  runner: RunnerKind
++  unsafeLocal: boolean
++  output?: string
++  expectRow: string[]
++  expectService: string[]
++  expectTool: string[]
++  updateFrom?: string
++  allowMutableSource: boolean
++  json: boolean
++  color: boolean
++}
++
++export interface CliDependencies {
++  stdout: (value: string) => void
++  stderr: (value: string) => void
++  runnerFactory: (kind: RunnerKind) => Runner
++  cwd: string
++  env: NodeJS.ProcessEnv
++}
++
++const collect = (value: string, previous: string[]): string[] => [...previous, value]
++
++function parseRepeat(value: string): number {
++  if (!/^\d+$/.test(value)) throw new InvalidArgumentError('must be an integer from 2 to 20')
++  const count = Number(value)
++  if (count < 2 || count > 20) throw new InvalidArgumentError('must be an integer from 2 to 20')
++  return count
++}
++
++function defaultDependencies(): CliDependencies {
++  return {
++    stdout: value => process.stdout.write(value),
++    stderr: value => process.stderr.write(value),
++    runnerFactory: createRunner,
++    cwd: process.cwd(),
++    env: process.env,
++  }
++}
++
++function makeRunId(): string {
++  const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
++  return `${timestamp}-${randomUUID().slice(0, 8)}`
++}
++
++function shellQuote(value: string): string {
++  return /^[A-Za-z0-9_./:@+-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`
++}
++
++async function exists(path: string): Promise<boolean> {
++  try {
++    await access(path)
++    return true
++  } catch {
++    return false
++  }
++}
++
++async function isDirectory(path: string): Promise<boolean> {
++  try {
++    return (await stat(path)).isDirectory()
++  } catch {
++    return false
++  }
++}
++
++async function validateDeclaredArtifacts(report: RunReport, outputDir: string): Promise<void> {
++  const outputRoot = await realpath(outputDir)
++  const declared = new Set([
++    ...report.artifacts,
++    ...report.stages.flatMap(stage => [
++      ...stage.artifacts,
++      ...stage.assertions.flatMap(assertion => assertion.evidence ?? []),
++    ]),
++  ])
++  for (const artifact of declared) {
++    const candidate = resolve(outputDir, artifact)
++    const relativeCandidate = relative(outputDir, candidate)
++    if (artifact === '' || relativeCandidate === '' || /^\.\.(?:[\\/]|$)/.test(relativeCandidate) || isAbsolute(relativeCandidate)) {
++      throw new RunnerError(`declared artifact escapes the output directory: ${artifact}`, 3)
++    }
++    let artifactPath: string
++    try {
++      artifactPath = await realpath(candidate)
++    } catch {
++      throw new RunnerError(`declared artifact is missing: ${artifact}`, 3)
++    }
++    const relativeArtifact = relative(outputRoot, artifactPath)
++    if (relativeArtifact === '' || /^\.\.(?:[\\/]|$)/.test(relativeArtifact) || isAbsolute(relativeArtifact)) {
++      throw new RunnerError(`declared artifact resolves outside the output directory: ${artifact}`, 3)
++    }
++  }
++}
++
++async function replaceOwnedFile(path: string, content: string): Promise<void> {
++  await rm(path, { force: true })
++  await writeFile(path, content, { flag: 'wx', mode: 0o600 })
++}
++
++async function persistReport(reportInput: RunReport, outputDir: string): Promise<RunReport> {
++  const report = RunReportSchema.parse({
++    ...reportInput,
++    artifacts: [...new Set([...reportInput.artifacts, 'report.json', 'junit.xml', 'report.md'])].sort(),
++  })
++  await Promise.all([
++    replaceOwnedFile(join(outputDir, 'report.json'), renderJson(report)),
++    replaceOwnedFile(join(outputDir, 'junit.xml'), renderJunit(report)),
++    replaceOwnedFile(join(outputDir, 'report.md'), renderMarkdown(report)),
++  ])
++  await validateDeclaredArtifacts(report, outputDir)
++  return report
++}
++
++async function normalizeSource(source: string, cwd: string): Promise<string> {
++  if (isAbsolute(source)) return source
++  const candidate = resolve(cwd, source)
++  if (source.startsWith('@') || /^(?:git\+|git@|github:|https?:\/\/)/.test(source)) return source
++  if (source.startsWith('.') || source.includes('/') || source.includes('\\') || await exists(candidate)) {
++    return candidate
++  }
++  return source
++}
++
++async function loadScenarioConfig(path: string): Promise<Scenario> {
++  const raw = await readFile(path, 'utf8')
++  return parseScenario(path.endsWith('.json') ? JSON.parse(raw) : parseYaml(raw))
++}
++
++function buildProgram(deps: CliDependencies): Command {
++  return new Command()
++    .name('dsh-test')
++    .version(TESTKIT_VERSION)
++    .description('Real-host lifecycle testing for DSH plugins.')
++    .exitOverride()
++    .configureOutput({ writeOut: deps.stdout, writeErr: deps.stderr })
++    .argument('[plugin-source]')
++    .option('--dsh <version>')
++    .option('--config <path>')
++    .option('--suite <suite>', 'quick or full')
++    .option('--repeat <count>', 'repeat lifecycle attempts (2 to 20)', parseRepeat)
++    .option('--runner <runner>', 'docker or local', 'docker')
++    .option('--unsafe-local', 'allow plugin execution outside Docker', false)
++    .option('--output <dir>')
++    .option('--expect-row <id>', 'expected config row', collect, [])
++    .option('--expect-service <name>', 'expected Cordis service', collect, [])
++    .option('--expect-tool <name>', 'expected tool schema', collect, [])
++    .option('--update-from <source>')
++    .option('--allow-mutable-source', 'allow mutable package and Git sources', false)
++    .option('--json', 'print the canonical report as JSON', false)
++    .option('--no-color')
++}
++
++export async function runCli(argv: string[], overrides: Partial<CliDependencies> = {}): Promise<number> {
++  const deps = { ...defaultDependencies(), ...overrides }
++  try {
++    const program = buildProgram(deps)
++    program.parse(argv, { from: 'user' })
++    const options = program.opts<CliOptions>()
++    if (options.runner !== 'docker' && options.runner !== 'local') {
++      throw new Error('--runner must be docker or local')
++    }
++    validateRunnerSelection({ runner: options.runner, unsafeLocal: options.unsafeLocal })
++
++    const explicitConfig = options.config === undefined ? undefined : resolve(deps.cwd, options.config)
++    const defaultConfig = join(deps.cwd, 'dsh-testkit.yaml')
++    const configPath = explicitConfig ?? (await exists(defaultConfig) ? defaultConfig : undefined)
++    const configured = configPath === undefined ? undefined : await loadScenarioConfig(configPath)
++    const sourceArgument = program.args[0]
++    const source = sourceArgument ?? configured?.subject.source
++    const dshVersion = options.dsh ?? configured?.dsh.version
++    if (source === undefined) throw new Error('plugin source is required')
++    if (dshVersion === undefined) throw new Error('--dsh exact version is required')
++
++    const configBase = configPath === undefined ? deps.cwd : dirname(configPath)
++    const normalizedSource = await normalizeSource(source, sourceArgument === undefined ? configBase : deps.cwd)
++    const configuredUpdate = options.updateFrom ?? configured?.subject.updateFrom
++    const normalizedUpdate = configuredUpdate === undefined
++      ? undefined
++      : await normalizeSource(configuredUpdate, options.updateFrom === undefined ? configBase : deps.cwd)
++    const scenario = buildScenario({
++      source: normalizedSource,
++      dshVersion,
++      suite: options.suite ?? configured?.suite,
++      ...(configured?.name === undefined ? {} : { name: configured.name }),
++      ...(normalizedUpdate === undefined
++        ? {}
++        : { updateFrom: normalizedUpdate }),
++      ...((options.expectRow.length > 0 ? options.expectRow : configured?.expect.rows) === undefined
++        ? {}
++        : { rows: options.expectRow.length > 0 ? options.expectRow : configured?.expect.rows }),
++      ...((options.expectService.length > 0 ? options.expectService : configured?.expect.services) === undefined
++        ? {}
++        : { services: options.expectService.length > 0 ? options.expectService : configured?.expect.services }),
++      ...((options.expectTool.length > 0 ? options.expectTool : configured?.expect.tools) === undefined
++        ? {}
++        : { tools: options.expectTool.length > 0 ? options.expectTool : configured?.expect.tools }),
++    })
++    const mergedScenario = configured === undefined ? scenario : parseScenario({
++      ...configured,
++      ...scenario,
++      expect: { ...configured.expect, ...scenario.expect, boot: configured.expect.boot },
++      exercise: configured.exercise,
++      observers: configured.observers,
++      recovery: configured.recovery,
++      timeouts: configured.timeouts,
++    })
++
++    const runId = makeRunId()
++    const outputDir = resolve(deps.cwd, options.output ?? join('.dsh-testkit', 'runs', runId))
++    await mkdir(outputDir, { recursive: true })
++    const outputMetadata = await lstat(outputDir)
++    if (!outputMetadata.isDirectory() || outputMetadata.isSymbolicLink()) {
++      throw new Error(`output path must be a real directory, not a symlink: ${outputDir}`)
++    }
++    if (await isDirectory(normalizedSource)) {
++      const outputRelative = relative(await realpath(normalizedSource), await realpath(outputDir))
++      const firstSegment = outputRelative.split(/[\\/]/)[0]
++      const nested = outputRelative !== '' && !/^\.\.(?:[\\/]|$)/.test(outputRelative) && !isAbsolute(outputRelative)
++      if (nested && firstSegment !== '.dsh-testkit') {
++        throw new Error('an output directory inside the plugin source must be under .dsh-testkit')
++      }
++    }
++    if ((await readdir(outputDir)).length > 0) {
++      throw new Error(`output directory must be empty: ${outputDir}`)
++    }
++    const repeatCount = options.repeat ?? (mergedScenario.suite === 'full' ? 5 : 1)
++    if (mergedScenario.suite === 'full' && repeatCount < 5) {
++      throw new Error('--suite full requires at least five attempts')
++    }
++    const reproductionArgs = [
++      ...(sourceArgument === undefined ? [] : [source]),
++      '--dsh', dshVersion,
++      '--runner', options.runner,
++      '--suite', mergedScenario.suite,
++    ]
++    if (options.runner === 'local') reproductionArgs.push('--unsafe-local')
++    if (options.config !== undefined) reproductionArgs.push('--config', options.config)
++    for (const row of options.expectRow) reproductionArgs.push('--expect-row', row)
++    for (const service of options.expectService) reproductionArgs.push('--expect-service', service)
++    for (const tool of options.expectTool) reproductionArgs.push('--expect-tool', tool)
++    if (options.updateFrom !== undefined) reproductionArgs.push('--update-from', options.updateFrom)
++    if (options.allowMutableSource) reproductionArgs.push('--allow-mutable-source')
++    if (options.repeat !== undefined) reproductionArgs.push('--repeat', String(options.repeat))
++    const reproductionCommand = ['dsh-test', ...reproductionArgs].map(shellQuote).join(' ')
++    const runner = deps.runnerFactory(options.runner)
++    const reports: RunReport[] = []
++    for (let attempt = 1; attempt <= repeatCount; attempt += 1) {
++      const repeated = repeatCount > 1
++      const attemptId = repeated ? `${runId}-${String(attempt).padStart(2, '0')}` : runId
++      const attemptDir = repeated
++        ? join(outputDir, 'attempts', String(attempt).padStart(2, '0'))
++        : outputDir
++      await mkdir(attemptDir, { recursive: true })
++      const request = WorkerRequestSchema.parse({
++        schemaVersion: 1,
++        runId: attemptId,
++        scenario: mergedScenario,
++        outputDir: attemptDir,
++        reproductionCommand,
++        allowMutableSource: options.allowMutableSource,
++        runner: options.runner,
++        unsafeLocal: options.unsafeLocal,
++      })
++      reports.push(await persistReport(await runner.run(request), attemptDir))
++    }
++    const report = reports.length === 1
++      ? reports[0]!
++      : await persistReport(aggregateRunReports({
++          runId,
++          reports,
++          requestedRuns: repeatCount,
++          reproductionCommand,
++        }), outputDir)
++    const color = options.color && deps.env.NO_COLOR === undefined && process.stdout.isTTY === true
++    deps.stdout(options.json ? renderJson(report) : renderTerminal(report, { color }))
++    return exitCodeForVerdict(report.verdict)
++  } catch (error) {
++    if (error instanceof CommanderError && (error.code === 'commander.helpDisplayed' || error.code === 'commander.version')) {
++      return 0
++    }
++    deps.stderr(`dsh-test: ${error instanceof Error ? error.message : String(error)}\n`)
++    if (error instanceof RunnerError) return error.exitCode
++    return 2
++  }
++}
++
++const isMain = process.argv[1] !== undefined
++  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
++if (isMain) {
++  process.exitCode = await runCli(process.argv.slice(2))
++}
+diff --git a/src/domain/repeatability.ts b/src/domain/repeatability.ts
+new file mode 100644
+index 0000000..53b9ffd
+--- /dev/null
++++ b/src/domain/repeatability.ts
+@@ -0,0 +1,112 @@
++import { createHash } from 'node:crypto'
++
++import { RunReportSchema } from './report.js'
++import type { RunReport, StageResult, Verdict } from './report.js'
++
++function sha256(value: string): string {
++  return `sha256:${createHash('sha256').update(value).digest('hex')}`
++}
++
++function stableEnvironment(environment: Record<string, unknown>): Record<string, unknown> {
++  return Object.fromEntries(Object.entries(environment)
++    .filter(([key]) => !['outputDir', 'startedAt', 'endedAt'].includes(key))
++    .sort(([left], [right]) => left.localeCompare(right)))
++}
++
++function canonicalize(value: unknown): unknown {
++  if (Array.isArray(value)) return value.map(canonicalize)
++  if (value !== null && typeof value === 'object') {
++    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
++      .filter(([, child]) => child !== undefined)
++      .sort(([left], [right]) => left.localeCompare(right))
++      .map(([key, child]) => [key, canonicalize(child)]))
++  }
++  return value
++}
++
++export function semanticReportDigest(report: RunReport): string {
++  return sha256(JSON.stringify(canonicalize({
++    verdict: report.verdict,
++    subject: report.subject,
++    dsh: report.dsh,
++    scenario: report.scenario,
++    testkitVersion: report.testkitVersion,
++    environment: stableEnvironment(report.environment),
++    observerCoverage: report.observerCoverage,
++    stages: report.stages.map(stage => ({
++      id: stage.id,
++      status: stage.status,
++      summary: stage.summary,
++      failureKind: stage.failureKind,
++      exitCode: stage.exitCode,
++      signal: stage.signal,
++      assertions: stage.assertions,
++    })),
++  })))
++}
++
++function prefixStageArtifacts(stage: StageResult, prefix: string): StageResult {
++  return {
++    ...stage,
++    artifacts: stage.artifacts.map(path => `${prefix}/${path}`),
++    assertions: stage.assertions.map(assertion => ({
++      ...assertion,
++      ...(assertion.evidence === undefined
++        ? {}
++        : { evidence: assertion.evidence.map(path => `${prefix}/${path}`) }),
++    })),
++  }
++}
++
++function aggregateVerdict(reports: readonly RunReport[], consistent: boolean): Verdict {
++  if (consistent) return reports[0]?.verdict ?? 'infrastructure_error'
++  if (reports.some(report => report.verdict === 'infrastructure_error')) return 'infrastructure_error'
++  if (reports.some(report => report.verdict === 'invalid')) return 'invalid'
++  return 'flaky'
++}
++
++export interface AggregateReportsOptions {
++  runId: string
++  reports: RunReport[]
++  requestedRuns: number
++  reproductionCommand: string
++}
++
++export function aggregateRunReports(options: AggregateReportsOptions): RunReport {
++  if (options.reports.length < 2 || options.reports.length !== options.requestedRuns) {
++    throw new Error('repeatability aggregation requires every requested attempt report')
++  }
++  const first = options.reports[0]
++  if (first === undefined) throw new Error('repeatability aggregation requires at least one report')
++  const digests = options.reports.map(semanticReportDigest)
++  const consistent = new Set(digests).size === 1
++  const attempts = options.reports.map((report, index) => ({
++    runId: report.runId,
++    verdict: report.verdict,
++    durationMs: Math.max(0, Date.parse(report.endedAt) - Date.parse(report.startedAt)),
++    semanticDigest: digests[index]!,
++    report: `attempts/${String(index + 1).padStart(2, '0')}/report.json`,
++  }))
++  const attemptArtifacts = options.reports.flatMap((report, index) => {
++    const prefix = `attempts/${String(index + 1).padStart(2, '0')}`
++    return [...new Set([...report.artifacts, 'report.json', 'junit.xml', 'report.md'])]
++      .map(path => `${prefix}/${path}`)
++  })
++  return RunReportSchema.parse({
++    ...first,
++    runId: options.runId,
++    startedAt: options.reports.map(report => report.startedAt).sort()[0],
++    endedAt: options.reports.map(report => report.endedAt).sort().at(-1),
++    verdict: aggregateVerdict(options.reports, consistent),
++    environment: { ...stableEnvironment(first.environment), attempts: options.requestedRuns },
++    stages: first.stages.map(stage => prefixStageArtifacts(stage, 'attempts/01')),
++    artifacts: [...new Set([...attemptArtifacts, 'report.json', 'junit.xml', 'report.md'])].sort(),
++    repeatability: {
++      requestedRuns: options.requestedRuns,
++      completedRuns: options.reports.length,
++      consistent,
++      attempts,
++    },
++    reproductionCommand: options.reproductionCommand,
++  })
++}
+diff --git a/src/domain/report.ts b/src/domain/report.ts
+new file mode 100644
+index 0000000..6b67939
+--- /dev/null
++++ b/src/domain/report.ts
+@@ -0,0 +1,137 @@
++import { z } from 'zod'
++
++import { REPORT_SCHEMA_VERSION } from '../version.js'
++
++export const StageIdSchema = z.enum([
++  'resolve',
++  'install-dsh',
++  'package',
++  'install-plugin',
++  'assemble',
++  'boot',
++  'register',
++  'exercise',
++  'update',
++  'uninstall',
++  'reboot',
++  'recover',
++  'cleanup',
++])
++
++export const StageStatusSchema = z.enum(['passed', 'failed', 'skipped', 'unsupported'])
++export const VerdictSchema = z.enum([
++  'passed',
++  'failed',
++  'flaky',
++  'unsupported',
++  'invalid',
++  'infrastructure_error',
++])
++export const FailureKindSchema = z.enum([
++  'assertion',
++  'subject',
++  'dsh',
++  'infrastructure',
++  'timeout',
++  'cleanup',
++])
++
++export const AssertionSchema = z.object({
++  id: z.string().min(1),
++  status: z.enum(['passed', 'failed', 'unsupported']),
++  message: z.string(),
++  expected: z.unknown().optional(),
++  actual: z.unknown().optional(),
++  evidence: z.array(z.string()).optional(),
++}).strict()
++
++export const StageResultSchema = z.object({
++  id: StageIdSchema,
++  status: StageStatusSchema,
++  startedAt: z.iso.datetime(),
++  endedAt: z.iso.datetime(),
++  durationMs: z.number().int().nonnegative(),
++  summary: z.string(),
++  failureKind: FailureKindSchema.optional(),
++  command: z.array(z.string()).optional(),
++  exitCode: z.number().int().nullable().optional(),
++  signal: z.string().nullable().optional(),
++  assertions: z.array(AssertionSchema),
++  artifacts: z.array(z.string()),
++}).strict()
++
++export const ObserverCoverageItemSchema = z.object({
++  available: z.boolean(),
++  mode: z.string(),
++  limitations: z.array(z.string()),
++}).strict()
++
++export const SubjectIdentitySchema = z.object({
++  input: z.string(),
++  kind: z.enum(['local-directory', 'tarball', 'npm', 'git']),
++  packageName: z.string(),
++  packageVersion: z.string(),
++  sourceDigest: z.string(),
++  gitCommit: z.string().nullable(),
++  mutable: z.boolean(),
++}).strict()
++
++export const RepeatabilityAttemptSchema = z.object({
++  runId: z.string().min(1),
++  verdict: VerdictSchema,
++  durationMs: z.number().int().nonnegative(),
++  semanticDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
++  report: z.string().min(1),
++}).strict()
++
++export const RepeatabilitySchema = z.object({
++  requestedRuns: z.number().int().min(2).max(20),
++  completedRuns: z.number().int().min(2).max(20),
++  consistent: z.boolean(),
++  attempts: z.array(RepeatabilityAttemptSchema).min(2).max(20),
++}).strict()
++
++export const RunReportSchema = z.object({
++  schemaVersion: z.literal(REPORT_SCHEMA_VERSION),
++  runId: z.string().min(1),
++  startedAt: z.iso.datetime(),
++  endedAt: z.iso.datetime(),
++  verdict: VerdictSchema,
++  subject: SubjectIdentitySchema,
++  dsh: z.object({
++    version: z.string(),
++    integrity: z.string().nullable(),
++  }).strict(),
++  scenario: z.object({
++    name: z.string().min(1),
++    suite: z.enum(['quick', 'full']),
++    schemaVersion: z.literal(1),
++    profile: z.string().min(1),
++    digest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
++  }).strict(),
++  testkitVersion: z.string(),
++  environment: z.record(z.string(), z.unknown()),
++  observerCoverage: z.object({
++    filesystem: ObserverCoverageItemSchema,
++    process: ObserverCoverageItemSchema,
++    ports: ObserverCoverageItemSchema,
++    network: ObserverCoverageItemSchema,
++    canary: ObserverCoverageItemSchema,
++  }).strict(),
++  stages: z.array(StageResultSchema),
++  artifacts: z.array(z.string()),
++  repeatability: RepeatabilitySchema.optional(),
++  reproductionCommand: z.string(),
++}).strict()
++
++export type StageId = z.infer<typeof StageIdSchema>
++export type StageStatus = z.infer<typeof StageStatusSchema>
++export type Verdict = z.infer<typeof VerdictSchema>
++export type FailureKind = z.infer<typeof FailureKindSchema>
++export type Assertion = z.infer<typeof AssertionSchema>
++export type StageResult = z.infer<typeof StageResultSchema>
++export type ObserverCoverageItem = z.infer<typeof ObserverCoverageItemSchema>
++export type SubjectIdentity = z.infer<typeof SubjectIdentitySchema>
++export type RepeatabilityAttempt = z.infer<typeof RepeatabilityAttemptSchema>
++export type Repeatability = z.infer<typeof RepeatabilitySchema>
++export type RunReport = z.infer<typeof RunReportSchema>
+diff --git a/src/observers/snapshot.ts b/src/observers/snapshot.ts
+new file mode 100644
+index 0000000..8e2a3f4
+--- /dev/null
++++ b/src/observers/snapshot.ts
+@@ -0,0 +1,136 @@
++import { execFile } from 'node:child_process'
++import { createHash } from 'node:crypto'
++import { readFile, readdir, readlink, stat, writeFile } from 'node:fs/promises'
++import { basename, join, relative } from 'node:path'
++import { promisify } from 'node:util'
++
++const executeFile = promisify(execFile)
++const EMPTY_SHA256 = 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
++
++export interface FileEntry {
++  path: string
++  kind: 'directory' | 'file' | 'symlink'
++  size: number
++  digest: string
++}
++
++export interface FileSnapshot {
++  root: string
++  entries: FileEntry[]
++}
++
++export interface FileChange {
++  path: string
++  kind: 'added' | 'modified' | 'removed'
++  before?: FileEntry
++  after?: FileEntry
++}
++
++async function visit(root: string, current: string, entries: FileEntry[]): Promise<void> {
++  for (const entry of await readdir(current, { withFileTypes: true })) {
++    const path = join(current, entry.name)
++    if (entry.isDirectory()) {
++      entries.push({
++        path: `${relative(root, path)}/`,
++        kind: 'directory',
++        size: 0,
++        digest: EMPTY_SHA256,
++      })
++      await visit(root, path, entries)
++    } else if (entry.isFile()) {
++      const metadata = await stat(path)
++      const digest = createHash('sha256').update(await readFile(path)).digest('hex')
++      entries.push({ path: relative(root, path), kind: 'file', size: metadata.size, digest: `sha256:${digest}` })
++    } else if (entry.isSymbolicLink()) {
++      const target = await readlink(path)
++      const digest = createHash('sha256').update(target).digest('hex')
++      entries.push({
++        path: relative(root, path),
++        kind: 'symlink',
++        size: Buffer.byteLength(target),
++        digest: `sha256:${digest}`,
++      })
++    }
++  }
++}
++
++export async function snapshotFiles(root: string): Promise<FileSnapshot> {
++  const entries: FileEntry[] = []
++  try {
++    await visit(root, root, entries)
++  } catch (error) {
++    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
++  }
++  entries.sort((left, right) => left.path.localeCompare(right.path))
++  return { root, entries }
++}
++
++export async function writeSnapshot(path: string, snapshot: unknown): Promise<string> {
++  await writeFile(path, `${JSON.stringify(snapshot, null, 2)}\n`)
++  return basename(path)
++}
++
++async function capture(executable: string, args: string[]): Promise<string | null> {
++  try {
++    const result = await executeFile(executable, args, { maxBuffer: 8 * 1024 * 1024 })
++    return result.stdout
++  } catch {
++    return null
++  }
++}
++
++export async function captureProcesses(): Promise<string | null> {
++  return await capture('ps', ['-eo', 'pid=,ppid=,stat=,command='])
++}
++
++export async function captureListeningPorts(): Promise<string | null> {
++  if (process.platform === 'linux') return await capture('ss', ['-lntup'])
++  if (process.platform === 'darwin') return await capture('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'])
++  return null
++}
++
++export async function captureSystemSnapshot(
++  processCapture: () => Promise<string | null> = captureProcesses,
++  portCapture: () => Promise<string | null> = captureListeningPorts,
++): Promise<{ processes: string | null; ports: string | null }> {
++  const processes = await processCapture()
++  const ports = await portCapture()
++  return { processes, ports }
++}
++
++export function normalizeProcessCommands(value: string | null): string[] {
++  if (value === null) return []
++  const observerCommands = [
++    'ps -eo pid=,ppid=,stat=,command=',
++    'ss -lntup',
++    'lsof -nP -iTCP -sTCP:LISTEN',
++  ]
++  return value.split('\n').flatMap(line => {
++    const normalized = line.trim()
++    const match = normalized.match(/^\d+\s+\d+\s+\S+\s+(.+)$/)
++    if (match?.[1] === undefined || observerCommands.some(command => match[1] === command)) return []
++    return [match[1]]
++  }).sort()
++}
++
++export function diffSnapshots(before: FileSnapshot, after: FileSnapshot): FileChange[] {
++  const beforeByPath = new Map(before.entries.map(entry => [entry.path, entry]))
++  const afterByPath = new Map(after.entries.map(entry => [entry.path, entry]))
++  const paths = [...new Set([...beforeByPath.keys(), ...afterByPath.keys()])].sort()
++  const changes: FileChange[] = []
++  for (const path of paths) {
++    const beforeEntry = beforeByPath.get(path)
++    const afterEntry = afterByPath.get(path)
++    if (beforeEntry === undefined && afterEntry !== undefined) {
++      changes.push({ path, kind: 'added', after: afterEntry })
++    } else if (beforeEntry !== undefined && afterEntry === undefined) {
++      changes.push({ path, kind: 'removed', before: beforeEntry })
++    } else if (beforeEntry !== undefined && afterEntry !== undefined
++      && (beforeEntry.kind !== afterEntry.kind
++        || beforeEntry.size !== afterEntry.size
++        || beforeEntry.digest !== afterEntry.digest)) {
++      changes.push({ path, kind: 'modified', before: beforeEntry, after: afterEntry })
++    }
++  }
++  return changes
++}
+diff --git a/src/reporters/junit.ts b/src/reporters/junit.ts
+new file mode 100644
+index 0000000..bb35dd1
+--- /dev/null
++++ b/src/reporters/junit.ts
+@@ -0,0 +1,58 @@
++import { create } from 'xmlbuilder2'
++
++import type { RunReport, StageResult } from '../domain/report.js'
++
++function stageDetails(stage: StageResult): string {
++  const assertions = stage.assertions.map(assertion => (
++    `${assertion.status.toUpperCase()} ${assertion.id}: ${assertion.message}`
++  ))
++  return [stage.summary, ...assertions].join('\n')
++}
++export function renderJunit(report: RunReport): string {
++  const repeatabilityFailure = report.repeatability?.consistent === false ? 1 : 0
++  const failures = report.stages.filter(stage => stage.status === 'failed').length + repeatabilityFailure
++  const skipped = report.stages.filter(stage => stage.status === 'skipped' || stage.status === 'unsupported').length
++  const duration = report.stages.reduce((total, stage) => total + stage.durationMs, 0) / 1000
++  const root = create({ version: '1.0', encoding: 'UTF-8' })
++  const suite = root.ele('testsuite', {
++    name: 'dsh-testkit',
++    tests: String(report.stages.length + (report.repeatability === undefined ? 0 : 1)),
++    failures: String(failures),
++    skipped: String(skipped),
++    time: duration.toFixed(3),
++  })
++
++  for (const stage of report.stages) {
++    const testcase = suite.ele('testcase', {
++      classname: 'dsh.lifecycle',
++      name: stage.id,
++      time: (stage.durationMs / 1000).toFixed(3),
++    })
++    if (stage.status === 'failed') {
++      testcase.ele('failure', {
++        type: stage.failureKind ?? 'assertion',
++        message: stage.summary,
++      }).txt(stageDetails(stage))
++    } else if (stage.status === 'skipped' || stage.status === 'unsupported') {
++      testcase.ele('skipped', { message: stage.summary })
++    }
++  }
++
++  if (report.repeatability !== undefined) {
++    const testcase = suite.ele('testcase', {
++      classname: 'dsh.repeatability',
++      name: 'repeatability',
++      time: '0.000',
++    })
++    if (!report.repeatability.consistent) {
++      testcase.ele('failure', {
++        type: 'flaky',
++        message: 'Repeated lifecycle attempts produced different semantic outcomes',
++      }).txt(report.repeatability.attempts
++        .map(attempt => `${attempt.runId}: ${attempt.verdict} ${attempt.semanticDigest}`)
++        .join('\n'))
++    }
++  }
++
++  return `${root.end({ prettyPrint: true })}\n`
++}
+diff --git a/src/reporters/markdown.ts b/src/reporters/markdown.ts
+new file mode 100644
+index 0000000..04dc2c8
+--- /dev/null
++++ b/src/reporters/markdown.ts
+@@ -0,0 +1,70 @@
++import type { RunReport } from '../domain/report.js'
++
++export function renderMarkdown(report: RunReport): string {
++  const lines = [
++    '# DSH Testkit Report',
++    '',
++    `- Run: \`${report.runId}\``,
++    `- Verdict: **${report.verdict}**`,
++    `- Plugin: \`${report.subject.packageName}@${report.subject.packageVersion}\``,
++    `- Plugin digest: \`${report.subject.sourceDigest}\``,
++    `- DSH: \`${report.dsh.version}\``,
++    `- DSH integrity: \`${report.dsh.integrity ?? 'unavailable'}\``,
++    `- Scenario: \`${report.scenario.name}\` (\`${report.scenario.suite}/v${report.scenario.schemaVersion}\`)`,
++    ...(report.repeatability === undefined
++      ? []
++      : [`- Repeatability: **${report.repeatability.consistent ? 'consistent' : 'inconsistent'}** (${report.repeatability.completedRuns}/${report.repeatability.requestedRuns} attempts)`]),
++    '',
++    '## Lifecycle',
++    '',
++    '| Stage | Status | Duration | Summary |',
++    '|---|---|---:|---|',
++    ...report.stages.map(stage => (
++      `| ${stage.id} | ${stage.status} | ${stage.durationMs} ms | ${stage.summary.replaceAll('|', '\\|')} |`
++    )),
++    '',
++    '## Assertions',
++    '',
++    '| Stage | Assertion | Status | Message |',
++    '|---|---|---|---|',
++    ...report.stages.flatMap(stage => stage.assertions.map(assertion => (
++      `| ${stage.id} | ${assertion.id} | ${assertion.status} | ${assertion.message.replaceAll('|', '\\|')} |`
++    ))),
++    '',
++    '## Observer Coverage',
++    '',
++    '| Observer | Availability | Mode | Limitations |',
++    '|---|---|---|---|',
++    ...Object.entries(report.observerCoverage).map(([name, coverage]) => (
++      `| ${name} | ${coverage.available ? 'available' : 'unavailable'} | ${coverage.mode} | ${coverage.limitations.join('; ') || 'None'} |`
++    )),
++    ...(report.repeatability === undefined
++      ? []
++      : [
++          '',
++          '## Repeatability',
++          '',
++          '| Attempt | Verdict | Semantic digest | Report |',
++          '|---|---|---|---|',
++          ...report.repeatability.attempts.map(attempt => (
++            `| ${attempt.runId} | ${attempt.verdict} | \`${attempt.semanticDigest}\` | \`${attempt.report}\` |`
++          )),
++        ]),
++    '',
++    '## Environment',
++    '',
++    '| Key | Value |',
++    '|---|---|',
++    ...Object.entries(report.environment).map(([name, value]) => (
++      `| ${name} | ${(JSON.stringify(value) ?? String(value)).replaceAll('|', '\\|')} |`
++    )),
++    '',
++    '## Reproduce',
++    '',
++    '```bash',
++    report.reproductionCommand,
++    '```',
++    '',
++  ]
++  return `${lines.join('\n')}\n`
++}
+diff --git a/src/reporters/terminal.ts b/src/reporters/terminal.ts
+new file mode 100644
+index 0000000..d264787
+--- /dev/null
++++ b/src/reporters/terminal.ts
+@@ -0,0 +1,43 @@
++import type { RunReport, Verdict } from '../domain/report.js'
++
++export interface TerminalRenderOptions {
++  color?: boolean
++}
++
++const COLORS: Record<Verdict, string> = {
++  passed: '\u001B[32m',
++  failed: '\u001B[31m',
++  flaky: '\u001B[33m',
++  unsupported: '\u001B[33m',
++  invalid: '\u001B[31m',
++  infrastructure_error: '\u001B[31m',
++}
++
++export function renderTerminal(report: RunReport, options: TerminalRenderOptions = {}): string {
++  const label = report.verdict.toUpperCase()
++  const verdict = options.color === true
++    ? `${COLORS[report.verdict]}${label}\u001B[0m`
++    : label
++  const stageLines = report.stages.flatMap(stage => [
++    `  ${stage.status === 'passed' ? 'PASS' : stage.status.toUpperCase().padEnd(4)}  ${stage.id.padEnd(14)} ${stage.summary}`,
++    ...stage.assertions.filter(assertion => assertion.status !== 'passed').map(assertion => (
++      `        ${assertion.status.toUpperCase()} ${assertion.id}: ${assertion.message}`
++    )),
++  ])
++  const artifactGroups = [...new Set(report.artifacts.map(path => {
++    const separator = path.indexOf('/')
++    return separator === -1 ? path : `${path.slice(0, separator)}/`
++  }))].sort()
++  const repeatability = report.repeatability === undefined
++    ? []
++    : [`Repeatability: ${report.repeatability.consistent ? 'CONSISTENT' : 'INCONSISTENT'} (${report.repeatability.completedRuns}/${report.repeatability.requestedRuns} attempts)`]
++  return [
++    `DSH Testkit ${verdict}  ${report.runId}`,
++    `Plugin ${report.subject.packageName}@${report.subject.packageVersion}  DSH ${report.dsh.version}  Suite ${report.scenario.suite}/v${report.scenario.schemaVersion}`,
++    ...stageLines,
++    ...repeatability,
++    `Reproduce: ${report.reproductionCommand}`,
++    `Artifacts: ${report.artifacts.length} retained (${artifactGroups.join(', ')})`,
++    '',
++  ].join('\n')
++}
+diff --git a/src/runners/docker.ts b/src/runners/docker.ts
+new file mode 100644
+index 0000000..4e47bf0
+--- /dev/null
++++ b/src/runners/docker.ts
+@@ -0,0 +1,327 @@
++import { createHash } from 'node:crypto'
++import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { dirname, join, resolve } from 'node:path'
++
++import { RunReportSchema } from '../domain/report.js'
++import type { RunReport } from '../domain/report.js'
++import { snapshotFiles } from '../observers/snapshot.js'
++import { replaceOwnedFile, runCommand } from '../process/command.js'
++import { TESTKIT_VERSION } from '../version.js'
++import type { WorkerRequest } from '../worker/protocol.js'
++import { RunnerError } from './types.js'
++import { runnerTimeoutMs } from './types.js'
++import type { Runner } from './types.js'
++
++export interface DockerInputMount {
++  hostPath: string
++  containerPath: string
++}
++
++export interface DockerRunPlan {
++  image: string
++  runId: string
++  outputDir: string
++  requestFilename: string
++  input?: DockerInputMount
++  inputs?: DockerInputMount[]
++  environment?: Record<string, string>
++  user?: string
++}
++
++export function dockerRunName(runId: string): string {
++  const normalized = runId.toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
++  return `dsh-testkit-${normalized}`.slice(0, 63)
++}
++
++export function dockerInputContainerPath(
++  label: 'primary' | 'update-from',
++  _hostPath: string,
++  directory: boolean,
++): string {
++  return directory ? `/input/${label}` : `/input/${label}.tgz`
++}
++
++export function runnerImageName(contextDigest: string): string {
++  const shortDigest = contextDigest.replace(/^sha256:/, '').slice(0, 12)
++  return `dsh-testkit-runner:${TESTKIT_VERSION}-${shortDigest}`
++}
++
++export async function dockerContextDigest(root: string): Promise<string> {
++  const hash = createHash('sha256')
++  for (const path of [
++    '.dockerignore',
++    'package.json',
++    'pnpm-workspace.yaml',
++    'assets/runner-pnpm-lock.yaml',
++    'assets/runner.Dockerfile',
++  ]) {
++    hash.update(path)
++    hash.update('\0')
++    hash.update(await readFile(join(root, path)))
++    hash.update('\0')
++  }
++  const distribution = await snapshotFiles(join(root, 'dist', 'src'))
++  hash.update(JSON.stringify(distribution.entries))
++  return `sha256:${hash.digest('hex')}`
++}
++
++export function buildDockerRunArgs(plan: DockerRunPlan): string[] {
++  return [
++    'run',
++    '--rm',
++    '--name', dockerRunName(plan.runId),
++    '--label', `dev.dsh-testkit.run=${plan.runId}`,
++    '--read-only',
++    '--init',
++    '--cap-drop', 'ALL',
++    '--security-opt', 'no-new-privileges',
++    '--pids-limit', '512',
++    '--memory', '4g',
++    '--cpus', '2',
++    ...(plan.user === undefined ? [] : ['--user', plan.user]),
++    '--tmpfs', '/work:exec,mode=1777',
++    '--tmpfs', '/tmp:exec,mode=1777',
++    '-v', `${plan.outputDir}:/output`,
++    ...(plan.input === undefined ? [] : ['-v', `${plan.input.hostPath}:${plan.input.containerPath}:ro`]),
++    ...(plan.inputs ?? []).flatMap(input => ['-v', `${input.hostPath}:${input.containerPath}:ro`]),
++    ...Object.entries(plan.environment ?? {}).flatMap(([name, value]) => ['-e', `${name}=${value}`]),
++    plan.image,
++    '--request', `/output/${plan.requestFilename}`,
++  ]
++}
++
++export class DockerRunner implements Runner {
++  async run(request: WorkerRequest): Promise<RunReport> {
++    try {
++      await mkdir(request.outputDir, { recursive: true })
++      const logsDir = join(request.outputDir, 'logs')
++      const controllerLogsDir = await mkdtemp(join(tmpdir(), 'dsh-testkit-controller-'))
++      const root = await findPackageRoot(import.meta.dirname)
++      const contextDigest = await dockerContextDigest(root)
++      const image = runnerImageName(contextDigest)
++      try {
++        await this.ensureImage(image, contextDigest, root, controllerLogsDir)
++        const imageId = await this.imageId(image, root, controllerLogsDir)
++
++        const inputs: DockerInputMount[] = []
++        const scenario = structuredClone(request.scenario)
++        if (await exists(scenario.subject.source)) {
++          const hostPath = resolve(scenario.subject.source)
++          const containerPath = dockerInputContainerPath('primary', hostPath, (await lstat(hostPath)).isDirectory())
++          inputs.push({ hostPath, containerPath })
++          scenario.subject.source = containerPath
++        }
++        if (scenario.subject.updateFrom !== undefined && await exists(scenario.subject.updateFrom)) {
++          const hostPath = resolve(scenario.subject.updateFrom)
++          const containerPath = dockerInputContainerPath('update-from', hostPath, (await lstat(hostPath)).isDirectory())
++          inputs.push({ hostPath, containerPath })
++          scenario.subject.updateFrom = containerPath
++        }
++        const requestFilename = 'worker-request.json'
++        const containerRequest: WorkerRequest = {
++          ...request,
++          scenario,
++          outputDir: '/output',
++          runner: 'docker',
++          unsafeLocal: false,
++        }
++        await replaceOwnedFile(
++          join(request.outputDir, requestFilename),
++          `${JSON.stringify(containerRequest, null, 2)}\n`,
++        )
++        const result = await runCommand({
++          executable: 'docker',
++          args: buildDockerRunArgs({
++            image,
++            runId: request.runId,
++            outputDir: request.outputDir,
++            requestFilename,
++            inputs,
++            environment: { DSH_TESTKIT_IMAGE: image, DSH_TESTKIT_IMAGE_ID: imageId },
++            ...(process.getuid === undefined || process.getgid === undefined
++              ? {}
++              : { user: `${process.getuid()}:${process.getgid()}` }),
++          }),
++          cwd: root,
++          timeoutMs: runnerTimeoutMs(request),
++          logDir: controllerLogsDir,
++          logName: 'docker-runner',
++        }).finally(async () => {
++          await rm(join(request.outputDir, requestFilename), { force: true })
++        })
++        if (result.stdoutTruncated || result.stderrTruncated) {
++          throw new RunnerError('Docker worker output exceeded the 8 MiB per-stream evidence limit', 3)
++        }
++        const reportPath = join(request.outputDir, 'report.json')
++        if (!await exists(reportPath)) {
++          throw new RunnerError(`Docker worker produced no report (exit ${result.exitCode ?? 'null'}): ${result.stderr.trim()}`, 3)
++        }
++        const reportMetadata = await lstat(reportPath)
++        if (!reportMetadata.isFile() || reportMetadata.isSymbolicLink()) {
++          throw new RunnerError('Docker worker produced an unsafe report artifact', 3)
++        }
++        const report = RunReportSchema.parse(JSON.parse(await readFile(reportPath, 'utf8')))
++        await auditWorkerOutput(request.outputDir, report)
++        await copyControllerLogs(controllerLogsDir, logsDir)
++        const runnerArtifacts = (await readdir(logsDir)).map(name => `logs/${name}`)
++        return RunReportSchema.parse({
++          ...report,
++          artifacts: [...new Set([...report.artifacts, ...runnerArtifacts])].sort(),
++        })
++      } catch (error) {
++        await resetOwnedOutput(request.outputDir)
++        await copyControllerLogs(controllerLogsDir, logsDir)
++        throw error
++      } finally {
++        await rm(controllerLogsDir, { recursive: true, force: true })
++      }
++    } catch (error) {
++      if (error instanceof RunnerError) throw error
++      const code = (error as NodeJS.ErrnoException).code
++      if (code === 'ENOENT') throw new RunnerError('Docker is required by the default runner but was not found', 4)
++      throw new RunnerError(error instanceof Error ? error.message : String(error), 3)
++    }
++  }
++
++  private async ensureImage(image: string, contextDigest: string, root: string, logsDir: string): Promise<void> {
++    const inspected = await runCommand({
++      executable: 'docker',
++      args: ['image', 'inspect', '--format', '{{ index .Config.Labels "dev.dsh-testkit.context-sha256" }}', image],
++      cwd: root,
++      timeoutMs: 30_000,
++      logDir: logsDir,
++      logName: 'docker-image-inspect',
++    })
++    if (inspected.exitCode === 0 && inspected.stdout.trim() === contextDigest) return
++    const built = await runCommand({
++      executable: 'docker',
++      args: [
++        'build',
++        '--file', 'assets/runner.Dockerfile',
++        '--build-arg', `TESTKIT_VERSION=${TESTKIT_VERSION}`,
++        '--build-arg', `TESTKIT_CONTEXT_SHA256=${contextDigest}`,
++        '--tag', image,
++        '.',
++      ],
++      cwd: root,
++      timeoutMs: 1_800_000,
++      logDir: logsDir,
++      logName: 'docker-image-build',
++    })
++    if (built.exitCode !== 0 || built.timedOut) {
++      throw new RunnerError(`Unable to build ${image}: ${built.stderr.trim() || built.stdout.trim()}`, 3)
++    }
++  }
++
++  private async imageId(image: string, root: string, logsDir: string): Promise<string> {
++    const result = await runCommand({
++      executable: 'docker',
++      args: ['image', 'inspect', '--format', '{{.Id}}', image],
++      cwd: root,
++      timeoutMs: 30_000,
++      logDir: logsDir,
++      logName: 'docker-image-identity',
++    })
++    if (result.exitCode !== 0) throw new RunnerError(`Unable to inspect ${image} identity`, 3)
++    return result.stdout.trim()
++  }
++}
++
++async function exists(path: string): Promise<boolean> {
++  try {
++    await access(path)
++    return true
++  } catch {
++    return false
++  }
++}
++
++async function copyControllerLogs(source: string, target: string): Promise<void> {
++  try {
++    const metadata = await lstat(target)
++    if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
++      throw new RunnerError('Docker worker replaced the owned logs directory', 3)
++    }
++  } catch (error) {
++    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
++    await mkdir(target, { recursive: false })
++  }
++  for (const name of await readdir(source)) {
++    await replaceOwnedFile(join(target, name), await readFile(join(source, name)))
++  }
++}
++
++async function resetOwnedOutput(outputDir: string): Promise<void> {
++  const metadata = await lstat(outputDir)
++  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
++    throw new RunnerError('Docker output root must be a real directory', 3)
++  }
++  for (const name of await readdir(outputDir)) {
++    await rm(join(outputDir, name), { recursive: true, force: true })
++  }
++}
++
++async function auditWorkerOutput(outputDir: string, report: RunReport): Promise<void> {
++  const declared = new Set([
++    'report.json',
++    ...report.artifacts,
++    ...report.stages.flatMap(stage => [
++      ...stage.artifacts,
++      ...stage.assertions.flatMap(assertion => assertion.evidence ?? []),
++    ]),
++  ])
++  const allowedFiles = new Set<string>()
++  const allowedDirectories = new Set<string>()
++  for (const artifact of declared) {
++    const normalized = artifact.replaceAll('\\', '/')
++    if (normalized === '' || normalized.startsWith('/') || normalized.split('/').includes('..')) {
++      throw new RunnerError(`Docker worker declared an unsafe artifact path: ${artifact}`, 3)
++    }
++    allowedFiles.add(normalized)
++    const segments = normalized.split('/')
++    for (let length = 1; length < segments.length; length += 1) {
++      allowedDirectories.add(segments.slice(0, length).join('/'))
++    }
++  }
++
++  const violations: string[] = []
++  const visit = async (directory: string, relativeDirectory = ''): Promise<void> => {
++    for (const entry of await readdir(directory, { withFileTypes: true })) {
++      const relativePath = relativeDirectory === '' ? entry.name : `${relativeDirectory}/${entry.name}`
++      const absolutePath = join(directory, entry.name)
++      if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile())) {
++        violations.push(relativePath)
++        await rm(absolutePath, { recursive: true, force: true })
++      } else if (entry.isDirectory()) {
++        await visit(absolutePath, relativePath)
++        if (!allowedDirectories.has(relativePath)) {
++          violations.push(relativePath)
++          await rm(absolutePath, { recursive: true, force: true })
++        }
++      } else if (!allowedFiles.has(relativePath)) {
++        violations.push(relativePath)
++        await rm(absolutePath, { force: true })
++      }
++    }
++  }
++  await visit(outputDir)
++  if (violations.length > 0) {
++    throw new RunnerError(`Docker worker produced undeclared or unsafe output: ${JSON.stringify(violations.slice(0, 20))}`, 3)
++  }
++}
++
++async function findPackageRoot(start: string): Promise<string> {
++  let current = resolve(start)
++  for (let depth = 0; depth < 8; depth += 1) {
++    const manifest = join(current, 'package.json')
++    if (await exists(manifest)) {
++      const parsed = JSON.parse(await readFile(manifest, 'utf8')) as { name?: string }
++      if (parsed.name === 'dsh-testkit') return current
++    }
++    const parent = dirname(current)
++    if (parent === current) break
++    current = parent
++  }
++  throw new Error(`Cannot locate dsh-testkit package root from ${start}`)
++}
+diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
+new file mode 100644
+index 0000000..33b65e0
+--- /dev/null
++++ b/tests/e2e/real-dsh.test.ts
+@@ -0,0 +1,115 @@
++import { execFile } from 'node:child_process'
++import { mkdtemp, readFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { promisify } from 'node:util'
++
++import { describe, expect, it } from 'vitest'
++
++import { RunReportSchema } from '../../src/domain/report.js'
++
++const executeFile = promisify(execFile)
++const root = resolve(import.meta.dirname, '../..')
++const cli = join(root, 'dist', 'src', 'cli.js')
++const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? '0.1.0-rc.6'
++
++interface FixtureRun {
++  code: number
++  report: ReturnType<typeof RunReportSchema.parse>
++}
++
++async function runFixture(name: string, args: string[] = []): Promise<FixtureRun> {
++  const cwd = join(root, 'fixtures', name)
++  const output = await mkdtemp(join(tmpdir(), `dsh-testkit-e2e-${name}-`))
++  let code = 0
++  try {
++    await executeFile(process.execPath, [
++      cli,
++      '.',
++      '--dsh', dshVersion,
++      '--runner', 'local',
++      '--unsafe-local',
++      '--output', output,
++      ...args,
++    ], { cwd, timeout: 900_000, maxBuffer: 16 * 1024 * 1024 })
++  } catch (error) {
++    code = (error as { code?: number }).code ?? 1
++  }
++  const report = RunReportSchema.parse(JSON.parse(await readFile(join(output, 'report.json'), 'utf8')))
++  return { code, report }
++}
++
++describe.sequential('real DSH lifecycle fixtures', () => {
++  it('passes a healthy packed plugin through real DSH and deterministic tool execution', async () => {
++    const result = await runFixture('healthy-plugin', [
++      '--expect-row', 'fixture-healthy',
++      '--expect-service', 'fixtureHealthy',
++      '--expect-tool', 'fixture_echo',
++      '--update-from', '../healthy-plugin-v0',
++    ])
++    expect(result.code).toBe(0)
++    expect(result.report.verdict).toBe('passed')
++    expect(result.report.stages.find(stage => stage.id === 'exercise')?.status).toBe('passed')
++    const update = result.report.stages.find(stage => stage.id === 'update')
++    expect(update?.status).toBe('passed')
++    expect(update?.assertions).toEqual(expect.arrayContaining([
++      expect.objectContaining({ id: 'update.version', status: 'passed', actual: '1.0.0' }),
++      expect.objectContaining({ id: 'update.config.row.fixture-healthy', status: 'passed' }),
++    ]))
++    expect(update?.artifacts).toContain('evidence/effective-config-update.yml')
++    expect(result.report.artifacts.some(path => path.includes('probe-boot'))).toBe(true)
++  }, 900_000)
++
++  it('treats the declared boot failure as a passing negative case and recovers the profile', async () => {
++    const result = await runFixture('boot-failure-plugin')
++    expect(result.code).toBe(0)
++    expect(result.report.verdict).toBe('passed')
++    expect(result.report.stages.find(stage => stage.id === 'boot')?.status).toBe('passed')
++    expect(result.report.stages.find(stage => stage.id === 'recover')?.status).toBe('passed')
++  }, 900_000)
++
++  it('fails at registration when an expected tool is missing', async () => {
++    const result = await runFixture('registration-failure-plugin', [
++      '--expect-row', 'fixture-registration-failure',
++      '--expect-tool', 'fixture_missing',
++    ])
++    expect(result.code).toBe(1)
++    expect(result.report.stages.find(stage => stage.id === 'register')?.status).toBe('failed')
++  }, 900_000)
++
++  it('fails uninstall when the plugin leaves an unexplained file', async () => {
++    const result = await runFixture('dirty-uninstall-plugin', [
++      '--expect-row', 'fixture-dirty-uninstall',
++    ])
++    expect(result.code).toBe(1)
++    const uninstall = result.report.stages.find(stage => stage.id === 'uninstall')
++    expect(uninstall?.status).toBe('failed')
++    expect(uninstall?.assertions.find(assertion => assertion.id === 'uninstall.filesystem.residue')?.actual).toEqual(
++      expect.arrayContaining([
++        'added:dsh-home/fixture-dirty-uninstall.marker',
++        'added:workspace/fixture-dirty-workspace.marker',
++      ]),
++    )
++  }, 900_000)
++
++  it('attributes residue even when it uses a DSH runtime filename', async () => {
++    const result = await runFixture('known-path-residue-plugin', [
++      '--expect-row', 'fixture-known-path-residue',
++    ])
++    expect(result.code).toBe(1)
++    const residue = result.report.stages.find(stage => stage.id === 'uninstall')
++      ?.assertions.find(assertion => assertion.id === 'uninstall.filesystem.residue')?.actual
++    expect(residue).toEqual(expect.arrayContaining(['added:dsh-home/.anonymous-user-id']))
++  }, 900_000)
++
++  it('captures process and port evidence while an observer fixture is live', async () => {
++    const result = await runFixture('observer-plugin', [
++      '--expect-row', 'fixture-observer',
++    ])
++    expect(result.code).toBe(0)
++    expect(result.report.observerCoverage.process.available).toBe(true)
++    expect(result.report.observerCoverage.ports.available).toBe(true)
++    expect(result.report.artifacts.some(path => path.includes('process-boot'))).toBe(true)
++    expect(result.report.artifacts.some(path => path.includes('ports-boot'))).toBe(true)
++  }, 900_000)
++})
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+new file mode 100644
+index 0000000..6474f2c
+--- /dev/null
++++ b/tests/integration/cli.test.ts
+@@ -0,0 +1,195 @@
++import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++
++import type { RunReport } from '../../src/domain/report.js'
++import { runCli } from '../../src/cli.js'
++import type { Runner } from '../../src/runners/types.js'
++import type { WorkerRequest } from '../../src/worker/protocol.js'
++
++function passingReport(request: WorkerRequest, verdict: RunReport['verdict'] = 'passed'): RunReport {
++  return {
++    schemaVersion: 1,
++    runId: request.runId,
++    startedAt: '2026-08-15T00:00:00.000Z',
++    endedAt: '2026-08-15T00:00:01.000Z',
++    verdict,
++    subject: { input: '.', kind: 'local-directory', packageName: 'fixture', packageVersion: '1.0.0', sourceDigest: 'sha256:fixture', gitCommit: null, mutable: false },
++    dsh: { version: '0.1.0-rc.6', integrity: null },
++    scenario: {
++      name: 'fixture',
++      suite: request.scenario.suite,
++      schemaVersion: 1,
++      profile: 'dsh-testkit',
++      digest: `sha256:${'a'.repeat(64)}`,
++    },
++    testkitVersion: '0.1.0',
++    environment: { runner: 'fake', outputDir: request.outputDir },
++    observerCoverage: {
++      filesystem: { available: true, mode: 'fake', limitations: [] },
++      process: { available: true, mode: 'fake', limitations: [] },
++      ports: { available: true, mode: 'fake', limitations: [] },
++      network: { available: false, mode: 'unsupported', limitations: [] },
++      canary: { available: true, mode: 'log-scan', limitations: [] },
++    },
++    stages: [],
++    artifacts: ['report.json', 'junit.xml', 'report.md'],
++    reproductionCommand: request.reproductionCommand,
++  }
++}
++
++describe('CLI integration', () => {
++  it('writes all report projections returned by the selected runner', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-'))
++    const stdout: string[] = []
++    let selectedRunner = ''
++    const runner: Runner = { run: async request => passingReport(request) }
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: value => stdout.push(value),
++      stderr: value => stdout.push(value),
++      runnerFactory: (kind) => { selectedRunner = kind; return runner },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(0)
++    expect(selectedRunner).toBe('local')
++    expect(stdout.join('')).toContain('PASSED')
++    expect(JSON.parse(await readFile(join(output, 'report.json'), 'utf8'))).toMatchObject({ verdict: 'passed' })
++    expect(await readFile(join(output, 'junit.xml'), 'utf8')).toContain('<testsuite')
++    expect(await readFile(join(output, 'report.md'), 'utf8')).toContain('# DSH Testkit Report')
++  })
++
++  it('returns invalid-input exit code before creating a local runner without consent', async () => {
++    const stderr: string[] = []
++    let factoryCalled = false
++    const exitCode = await runCli(['.', '--dsh', '0.1.0-rc.6', '--runner', 'local'], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('--unsafe-local')
++  })
++
++  it('rejects a non-empty output directory instead of mixing evidence from different runs', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-stale-'))
++    await writeFile(join(output, 'previous-run.txt'), 'stale evidence\n')
++    const stderr: string[] = []
++    let factoryCalled = false
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('output directory must be empty')
++  })
++
++  it('rejects an arbitrary output directory nested in the plugin source', async () => {
++    const source = await mkdtemp(join(tmpdir(), 'dsh-cli-source-'))
++    const output = join(source, 'evidence')
++    await mkdir(output)
++    const stderr: string[] = []
++    let factoryCalled = false
++
++    const exitCode = await runCli([
++      source, '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('must be under .dsh-testkit')
++  })
++
++  it('returns infrastructure error when a runner declares missing evidence', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-missing-artifact-'))
++    const stderr: string[] = []
++    const runner: Runner = {
++      run: async request => ({
++        ...passingReport(request),
++        artifacts: ['evidence/missing.json'],
++      }),
++    }
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => runner,
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(3)
++    expect(stderr.join('')).toContain('declared artifact is missing')
++  })
++
++  it('prints the package version without constructing a runner', async () => {
++    const stdout: string[] = []
++    let factoryCalled = false
++    const exitCode = await runCli(['--version'], {
++      stdout: value => stdout.push(value),
++      stderr: value => stdout.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(0)
++    expect(factoryCalled).toBe(false)
++    expect(stdout.join('')).toBe('0.1.0\n')
++  })
++
++  it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-full-'))
++    let attempts = 0
++    const runner: Runner = {
++      run: async request => {
++        attempts += 1
++        return passingReport(request, attempts === 3 ? 'failed' : 'passed')
++      },
++    }
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--suite', 'full', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: () => undefined,
++      runnerFactory: () => runner,
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8')) as RunReport
++    expect(attempts).toBe(5)
++    expect(exitCode).toBe(5)
++    expect(report.verdict).toBe('flaky')
++    expect(report.repeatability).toMatchObject({ requestedRuns: 5, completedRuns: 5, consistent: false })
++    expect(report.repeatability?.attempts).toHaveLength(5)
++    expect(await readFile(join(output, 'junit.xml'), 'utf8')).toContain('name="repeatability"')
++  })
++})
+diff --git a/tests/integration/worker.test.ts b/tests/integration/worker.test.ts
+new file mode 100644
+index 0000000..16d0771
+--- /dev/null
++++ b/tests/integration/worker.test.ts
+@@ -0,0 +1,204 @@
++import { mkdtemp } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++
++import type { Scenario } from '../../src/domain/scenario.js'
++import { scenarioDigest } from '../../src/domain/scenario.js'
++import type {
++  ObserverCoverageItem,
++  StageId,
++  SubjectIdentity,
++} from '../../src/domain/report.js'
++import { StageFailure } from '../../src/domain/lifecycle.js'
++import type {
++  AdapterBootObservation,
++  AdapterCompletion,
++  LifecycleAdapter,
++} from '../../src/worker/adapter.js'
++import { LifecycleWorker } from '../../src/worker/lifecycle-worker.js'
++import type { WorkerRequest } from '../../src/worker/protocol.js'
++
++const scenario: Scenario = {
++  schemaVersion: 1,
++  name: 'fake-success',
++  suite: 'quick',
++  subject: { source: '.' },
++  dsh: { version: '0.1.0-rc.6' },
++  profile: 'dsh-testkit',
++  expect: { boot: 'success', rows: ['tool-echo'], services: ['tools'], tools: ['echo'] },
++  exercise: [{ tool: 'echo', arguments: { value: 'smoke' } }],
++  recovery: { onBootFailure: 'remove-plugin' },
++  observers: {
++    filesystem: 'required',
++    process: 'preferred',
++    ports: 'preferred',
++    network: 'off',
++    canary: 'preferred',
++  },
++  timeouts: { installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000 },
++}
++
++function completion<T>(value: T, summary: string): AdapterCompletion<T> {
++  return { value, summary, assertions: [], artifacts: [] }
++}
++
++const coverage: ObserverCoverageItem = { available: true, mode: 'fake', limitations: [] }
++
++class FakeAdapter implements LifecycleAdapter {
++  calls: string[] = []
++  bootOutcome: AdapterBootObservation['outcome'] = 'success'
++  registerFailure = false
++  failAt: StageId | null = null
++
++  private record(stage: StageId, call: string): void {
++    this.calls.push(call)
++    if (this.failAt === stage) {
++      throw new StageFailure(`fault:${stage}`, { failureKind: stage === 'cleanup' ? 'cleanup' : 'subject' })
++    }
++  }
++
++  async resolve() { this.record('resolve', 'resolve'); return completion(undefined, 'resolved') }
++  async installDsh() { this.record('install-dsh', 'installDsh'); return completion(undefined, 'dsh installed') }
++  async packageSubject() { this.record('package', 'package'); return completion(undefined, 'packed') }
++  async installPlugin() { this.record('install-plugin', 'installPlugin'); return completion(undefined, 'installed') }
++  async assemble() { this.record('assemble', 'assemble'); return completion(undefined, 'assembled') }
++  async boot(): Promise<AdapterCompletion<AdapterBootObservation>> {
++    this.record('boot', 'boot')
++    return completion({ outcome: this.bootOutcome, probe: this.bootOutcome === 'success' ? { assertions: [], exercises: [] } : null }, 'boot observed')
++  }
++  async register() {
++    this.record('register', 'register')
++    if (this.registerFailure) throw new StageFailure('missing echo tool', { failureKind: 'assertion' })
++    return completion(undefined, 'registered')
++  }
++  async exercise() { this.record('exercise', 'exercise'); return completion(undefined, 'exercised') }
++  async update() { this.record('update', 'update'); return completion(undefined, 'updated') }
++  async uninstall() { this.record('uninstall', 'uninstall'); return completion(undefined, 'uninstalled') }
++  async reboot() { this.record('reboot', 'reboot'); return completion(undefined, 'rebooted') }
++  async recover() { this.record('recover', 'recover'); return completion(undefined, 'recovered') }
++  async cleanup() { this.record('cleanup', 'cleanup'); return completion(undefined, 'cleaned') }
++  subjectIdentity(): SubjectIdentity {
++    return { input: '.', kind: 'local-directory', packageName: 'fake-plugin', packageVersion: '1.0.0', sourceDigest: 'sha256:fake', gitCommit: null, mutable: false }
++  }
++  dshIdentity() { return { version: '0.1.0-rc.6', integrity: null } }
++  environment() { return { runner: 'fake', node: process.version } }
++  observerCoverage() { return { filesystem: coverage, process: coverage, ports: coverage, network: { available: false, mode: 'unsupported', limitations: [] }, canary: coverage } }
++  artifacts() { return ['evidence/fake.json'] }
++}
++
++async function request(overrides: Partial<WorkerRequest> = {}): Promise<WorkerRequest> {
++  const outputDir = await mkdtemp(join(tmpdir(), 'dsh-worker-'))
++  return {
++    schemaVersion: 1,
++    runId: 'run-worker-001',
++    scenario,
++    outputDir,
++    reproductionCommand: 'dsh-test . --dsh 0.1.0-rc.6',
++    allowMutableSource: false,
++    runner: 'local',
++    unsafeLocal: true,
++    ...overrides,
++  }
++}
++
++describe('LifecycleWorker', () => {
++  it('runs the successful quick lifecycle and always cleans up', async () => {
++    const adapter = new FakeAdapter()
++    const report = await new LifecycleWorker(adapter).run(await request())
++
++    expect(report.verdict).toBe('passed')
++    expect(report.scenario.digest).toBe(scenarioDigest(scenario))
++    expect(report.stages.map(stage => stage.id)).toEqual([
++      'resolve', 'install-dsh', 'package', 'install-plugin', 'assemble',
++      'boot', 'register', 'exercise', 'update', 'uninstall', 'reboot', 'recover', 'cleanup',
++    ])
++    expect(adapter.calls).toEqual([
++      'resolve', 'installDsh', 'package', 'installPlugin', 'assemble',
++      'boot', 'register', 'exercise', 'uninstall', 'reboot', 'cleanup',
++    ])
++  })
++
++  it('continues to uninstall and cleanup after a registration assertion fails', async () => {
++    const adapter = new FakeAdapter()
++    adapter.registerFailure = true
++    const report = await new LifecycleWorker(adapter).run(await request())
++
++    expect(report.verdict).toBe('failed')
++    expect(report.stages.find(stage => stage.id === 'register')).toMatchObject({
++      status: 'failed',
++      summary: 'missing echo tool',
++    })
++    expect(adapter.calls).toContain('uninstall')
++    expect(adapter.calls.at(-1)).toBe('cleanup')
++  })
++
++  it('treats an expected boot failure as a negative-case pass and proves recovery', async () => {
++    const adapter = new FakeAdapter()
++    adapter.bootOutcome = 'failure'
++    const negativeScenario: Scenario = {
++      ...scenario,
++      name: 'expected-boot-failure',
++      expect: { ...scenario.expect, boot: 'failure' },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: negativeScenario }))
++
++    expect(report.verdict).toBe('passed')
++    expect(adapter.calls).toContain('recover')
++    expect(adapter.calls).not.toContain('register')
++    expect(report.stages.find(stage => stage.id === 'recover')?.status).toBe('passed')
++  })
++
++  it('returns unsupported when a required observer is unavailable', async () => {
++    const adapter = new FakeAdapter()
++    const networkScenario: Scenario = {
++      ...scenario,
++      observers: { ...scenario.observers, network: 'required' },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: networkScenario }))
++
++    expect(report.verdict).toBe('unsupported')
++    expect(report.stages.some(stage => stage.status === 'unsupported')).toBe(true)
++    expect(adapter.calls.at(-1)).toBe('cleanup')
++  })
++
++  it('does not accept a host crash as the declared negative boot failure', async () => {
++    const adapter = new FakeAdapter()
++    adapter.bootOutcome = 'crash'
++    const negativeScenario: Scenario = {
++      ...scenario,
++      name: 'expected-boot-failure',
++      expect: { ...scenario.expect, boot: 'failure' },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: negativeScenario }))
++
++    expect(report.verdict).toBe('failed')
++    expect(report.stages.find(stage => stage.id === 'boot')).toMatchObject({
++      status: 'failed',
++      summary: 'Expected boot failure but observed crash',
++    })
++  })
++
++  it.each([
++    'resolve', 'install-dsh', 'package', 'install-plugin', 'assemble', 'boot',
++    'register', 'exercise', 'update', 'uninstall', 'reboot', 'recover', 'cleanup',
++  ] satisfies StageId[])('retains a structured failure and cleanup path for the %s stage', async (stage) => {
++    const adapter = new FakeAdapter()
++    adapter.failAt = stage
++    const stageScenario: Scenario = stage === 'update'
++      ? { ...scenario, subject: { ...scenario.subject, updateFrom: './old' } }
++      : stage === 'recover'
++        ? { ...scenario, expect: { ...scenario.expect, boot: 'failure' } }
++        : scenario
++    if (stage === 'recover') adapter.bootOutcome = 'failure'
++
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: stageScenario }))
++
++    expect(report.stages.find(result => result.id === stage)).toMatchObject({
++      status: 'failed',
++      summary: `fault:${stage}`,
++    })
++    expect(adapter.calls).toContain('cleanup')
++  })
++})
+diff --git a/tests/unit/repeatability.test.ts b/tests/unit/repeatability.test.ts
+new file mode 100644
+index 0000000..8373536
+--- /dev/null
++++ b/tests/unit/repeatability.test.ts
+@@ -0,0 +1,77 @@
++import { describe, expect, it } from 'vitest'
++
++import { aggregateRunReports, semanticReportDigest } from '../../src/domain/repeatability.js'
++import type { RunReport } from '../../src/domain/report.js'
++
++function report(runId: string, verdict: RunReport['verdict'] = 'passed'): RunReport {
++  return {
++    schemaVersion: 1,
++    runId,
++    startedAt: '2026-08-15T00:00:00.000Z',
++    endedAt: '2026-08-15T00:00:01.000Z',
++    verdict,
++    subject: {
++      input: '.',
++      kind: 'local-directory',
++      packageName: 'fixture',
++      packageVersion: '1.0.0',
++      sourceDigest: `sha256:${'b'.repeat(64)}`,
++      gitCommit: null,
++      mutable: false,
++    },
++    dsh: { version: '0.1.0-rc.6', integrity: `sha256:${'c'.repeat(64)}` },
++    scenario: {
++      name: 'repeatable',
++      suite: 'full',
++      schemaVersion: 1,
++      profile: 'dsh-testkit',
++      digest: `sha256:${'a'.repeat(64)}`,
++    },
++    testkitVersion: '0.1.0',
++    environment: { runner: 'docker', outputDir: `/tmp/${runId}`, imageId: 'sha256:image' },
++    observerCoverage: {
++      filesystem: { available: true, mode: 'snapshot', limitations: [] },
++      process: { available: true, mode: 'ps', limitations: [] },
++      ports: { available: true, mode: 'ss', limitations: [] },
++      network: { available: false, mode: 'unavailable', limitations: [] },
++      canary: { available: true, mode: 'log', limitations: [] },
++    },
++    stages: [{
++      id: 'cleanup',
++      status: 'passed',
++      startedAt: '2026-08-15T00:00:00.000Z',
++      endedAt: '2026-08-15T00:00:01.000Z',
++      durationMs: runId.length,
++      summary: 'clean',
++      assertions: [],
++      artifacts: ['evidence/cleanup.json'],
++    }],
++    artifacts: ['evidence/cleanup.json'],
++    reproductionCommand: 'dsh-test fixture --suite full',
++  }
++}
++
++describe('repeatability aggregation', () => {
++  it('ignores run-local identity, paths and timing in the semantic digest', () => {
++    const first = report('attempt-01')
++    const second = report('longer-attempt-02')
++    first.environment.capabilities = { process: true, ports: true }
++    second.environment.capabilities = { ports: true, process: true }
++    expect(semanticReportDigest(first)).toBe(semanticReportDigest(second))
++  })
++
++  it('retains every attempt and reports inconsistent outcomes as flaky', () => {
++    const reports = [report('attempt-01'), report('attempt-02', 'failed')]
++    const aggregate = aggregateRunReports({
++      runId: 'full-run',
++      reports,
++      requestedRuns: 2,
++      reproductionCommand: 'dsh-test fixture --repeat 2',
++    })
++
++    expect(aggregate.verdict).toBe('flaky')
++    expect(aggregate.repeatability).toMatchObject({ consistent: false, completedRuns: 2 })
++    expect(aggregate.stages[0]?.artifacts).toEqual(['attempts/01/evidence/cleanup.json'])
++    expect(aggregate.artifacts).toContain('attempts/02/report.json')
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+new file mode 100644
+index 0000000..ce1848e
+--- /dev/null
++++ b/tests/unit/runner.test.ts
+@@ -0,0 +1,49 @@
++import { describe, expect, it } from 'vitest'
++
++import {
++  buildDockerRunArgs,
++  dockerInputContainerPath,
++  dockerRunName,
++  runnerImageName,
++} from '../../src/runners/docker.js'
++
++describe('Docker runner command planning', () => {
++  it('mounts output read-write, local input read-only and uses tmpfs work roots', () => {
++    const args = buildDockerRunArgs({
++      image: 'dsh-testkit-runner:0.1.0',
++      runId: 'run:unsafe/name',
++      outputDir: '/tmp/output',
++      requestFilename: 'worker-request.json',
++      input: { hostPath: '/tmp/plugin', containerPath: '/input/plugin' },
++      user: '1000:1000',
++    })
++
++    expect(args).toContain('--rm')
++    expect(args).toContain('--read-only')
++    expect(args).toContain('--init')
++    expect(args).toContain('no-new-privileges')
++    expect(args).toContain('4g')
++    expect(args).toContain('2')
++    expect(args).toContain('/tmp/output:/output')
++    expect(args).toContain('/tmp/plugin:/input/plugin:ro')
++    expect(args).toContain('1000:1000')
++    expect(args).toContain('/work:exec,mode=1777')
++    expect(args.at(-1)).toBe('/output/worker-request.json')
++  })
++
++  it('normalizes the run id into a legal bounded container name', () => {
++    const name = dockerRunName('run:unsafe/name with spaces')
++    expect(name).toMatch(/^dsh-testkit-[a-z0-9_.-]+$/)
++    expect(name.length).toBeLessThanOrEqual(63)
++  })
++
++  it('preserves a local tarball extension in the container mount', () => {
++    expect(dockerInputContainerPath('primary', '/tmp/dsh-plugin.tgz', false)).toBe('/input/primary.tgz')
++    expect(dockerInputContainerPath('primary', '/tmp/plugin', true)).toBe('/input/primary')
++  })
++
++  it('keys the runner image name by the immutable build-context digest', () => {
++    const digest = `sha256:${'a'.repeat(64)}`
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.0-aaaaaaaaaaaa')
++  })
++})
+diff --git a/tests/unit/snapshot.test.ts b/tests/unit/snapshot.test.ts
+new file mode 100644
+index 0000000..0616226
+--- /dev/null
++++ b/tests/unit/snapshot.test.ts
+@@ -0,0 +1,57 @@
++import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++
++import {
++  captureSystemSnapshot,
++  diffSnapshots,
++  normalizeProcessCommands,
++  snapshotFiles,
++} from '../../src/observers/snapshot.js'
++
++describe('filesystem snapshots', () => {
++  it('attributes added, modified and removed entries by content', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-snapshot-'))
++    await mkdir(join(root, 'removed'))
++    await writeFile(join(root, 'modified.txt'), 'before\n')
++    const before = await snapshotFiles(root)
++
++    await writeFile(join(root, 'modified.txt'), 'after\n')
++    await writeFile(join(root, 'added.txt'), 'added\n')
++    await rm(join(root, 'removed'), { recursive: true })
++    const after = await snapshotFiles(root)
++
++    expect(diffSnapshots(before, after).map(change => `${change.kind}:${change.path}`)).toEqual([
++      'added:added.txt',
++      'modified:modified.txt',
++      'removed:removed/',
++    ])
++  })
++})
++
++describe('system snapshots', () => {
++  it('captures processes before starting the listening-port observer', async () => {
++    const calls: string[] = []
++    const result = await captureSystemSnapshot(
++      async () => { calls.push('process'); return 'processes' },
++      async () => { calls.push('ports'); return 'ports' },
++    )
++
++    expect(calls).toEqual(['process', 'ports'])
++    expect(result).toEqual({ processes: 'processes', ports: 'ports' })
++  })
++
++  it('removes Testkit observer commands from process evidence', () => {
++    const snapshot = [
++      '1 0 Ss node /app/worker.js',
++      '2 1 S ps -eo pid=,ppid=,stat=,command=',
++      '3 1 S ss -lntup',
++      '4 1 S lsof -nP -iTCP -sTCP:LISTEN',
++      '',
++    ].join('\n')
++
++    expect(normalizeProcessCommands(snapshot)).toEqual(['node /app/worker.js'])
++  })
++})
+diff --git a/tests/unit/source.test.ts b/tests/unit/source.test.ts
+new file mode 100644
+index 0000000..ccb949d
+--- /dev/null
++++ b/tests/unit/source.test.ts
+@@ -0,0 +1,51 @@
++import { describe, expect, it } from 'vitest'
++
++import { buildUpdateIdentityAssertions, classifyRemoteSource } from '../../src/adapters/dsh/npm-adapter.js'
++
++describe('remote subject classification', () => {
++  it.each([
++    ['example@1.2.3', false],
++    ['@scope/example@1.2.3-beta.1', false],
++    ['example@latest', true],
++    ['example@^1.2.3', true],
++  ])('classifies npm input %s with mutable=%s', (input, mutable) => {
++    expect(classifyRemoteSource(input)).toMatchObject({ kind: 'npm', mutable })
++  })
++
++  it('requires a full commit SHA for reproducible Git input', () => {
++    const commit = '0123456789abcdef0123456789abcdef01234567'
++    expect(classifyRemoteSource(`github:owner/plugin#${commit}`)).toMatchObject({
++      kind: 'git',
++      mutable: false,
++      gitCommit: commit,
++    })
++    expect(classifyRemoteSource('github:owner/plugin#0123456')).toMatchObject({
++      kind: 'git',
++      mutable: true,
++      gitCommit: null,
++    })
++  })
++
++  it('treats remote tarballs as mutable and rejects embedded URL credentials', () => {
++    expect(classifyRemoteSource('https://registry.example/download/plugin')).toMatchObject({
++      kind: 'tarball',
++      mutable: true,
++    })
++    expect(() => classifyRemoteSource('git+https://token@example.com/owner/plugin.git')).toThrow(
++      'must not contain embedded credentials',
++    )
++  })
++})
++
++describe('update identity assertions', () => {
++  it('requires the installed package name and version to equal the packed target', () => {
++    const assertions = buildUpdateIdentityAssertions(
++      { packageName: 'fixture', packageVersion: '0.9.0' },
++      { packageName: 'fixture', packageVersion: '1.0.1' },
++      { packageName: 'fixture', packageVersion: '1.0.0' },
++    )
++
++    expect(assertions.find(assertion => assertion.id === 'update.version')?.status).toBe('failed')
++    expect(assertions.find(assertion => assertion.id === 'update.package-name')?.status).toBe('passed')
++  })
++})
+diff --git a/vitest.config.ts b/vitest.config.ts
+new file mode 100644
+index 0000000..6b28b79
+--- /dev/null
++++ b/vitest.config.ts
+@@ -0,0 +1,23 @@
++import { defineConfig } from 'vitest/config'
++
++export default defineConfig({
++  test: {
++    include: process.env.DSH_TESTKIT_E2E === '1'
++      ? ['tests/e2e/**/*.test.ts']
++      : ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
++    environment: 'node',
++    testTimeout: 30_000,
++    hookTimeout: 30_000,
++    coverage: {
++      provider: 'v8',
++      reporter: ['text', 'json-summary'],
++      include: ['src/**/*.ts'],
++      thresholds: {
++        statements: 45,
++        branches: 60,
++        functions: 45,
++        lines: 45,
++      },
++    },
++  },
++})

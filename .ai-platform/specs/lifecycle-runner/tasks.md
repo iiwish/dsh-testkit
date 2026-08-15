@@ -49,7 +49,7 @@ Tasks:
 - [x] T001 [US-001, US-002] Implement package foundation, domain contracts and reporters.
 - [x] T002 [US-001, US-003, US-004, US-005] Implement worker, DSH adapter, probe, runners and CLI.
 - [x] T003 [US-001, US-002, US-005] Add fixtures, real-host proof, Action, docs and release verification.
-- [ ] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
+- [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
 
 ## Task Details
 
@@ -272,7 +272,7 @@ Evidence required:
 
 ### T004: Release Hardening And Acceptance
 
-Status: Running
+Status: Needs_Review
 Priority: P0
 Depends on: T003
 Blocks: Public release

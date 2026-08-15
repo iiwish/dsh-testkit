@@ -1,73 +1,70 @@
 # DSH Testkit v0.1 Release Acceptance Test Results
 
 Date: 2026-08-15
-Result: Failed release gate
+Result: Passed release gate
+Implementation commit: `5cb66b6`
 
 ## Repository And Package
 
 | Check | Result |
 |---|---|
-| `git diff --check` | Passed before acceptance artifacts were added |
-| Delivery artifact validator | Passed for T001 through T003 |
-| Git candidate identity | Failed: no `HEAD` commit exists |
-| `pnpm validate` | Passed: 9 test files, 41 tests, typecheck and build |
-| Linux arm64, Node v22.23.2 clean frozen install and validation | Passed |
-| Linux amd64, Node v22.23.2 clean frozen install and validation | Passed |
-| `pnpm test:pack` | Passed |
-| `publint` | Passed |
-| Package export analysis | ESM Node 16+ and bundler paths passed; legacy Node 10 and CJS warnings are outside the declared ESM runtime |
-| Public npm `publish --dry-run` | Passed: 101 entries, 71,939 bytes packed, 330,505 bytes unpacked |
-| Repeated package build | Passed: identical SHA-256 on two packs |
-| Production dependency audit | Passed: no known vulnerabilities |
+| `git diff --check` | Passed |
+| Delivery artifact validator | Passed for the lifecycle-runner work graph |
+| `pnpm validate` | Passed: 11 test files, 64 tests, typecheck, coverage and build |
+| V8 coverage | 49.70% statements/lines, 75.98% branches, 50.99% functions; thresholds passed |
+| Clean Linux arm64, Node 22 frozen install and validation | Passed |
+| Clean Linux amd64, Node 22 frozen install and validation | Passed |
+| `pnpm test:pack` | Passed from a clean consumer, including the pinned Docker build |
+| `publint@0.3.23` | Passed |
+| Package export analysis | Node 16+ ESM and bundler paths passed; CommonJS warning matches the declared ESM-only Node 22 package |
+| Public npm publish dry run | Passed: 107 entries, 86,841 bytes packed, 383,970 bytes unpacked |
+| Repeated package build | Passed: identical SHA-256 `896ca110cd8fb91d664102241f71658ca9126e6c00b9848aa9709d0fb79d292b` |
+| Production dependency audit | Passed against the public npm registry: no known vulnerabilities |
 | Runtime license inventory | Passed: MIT, ISC and Python-2.0 |
+| npm name check | `dsh-testkit` returned public-registry `E404` on 2026-08-15 |
 
 ## Contracts And CI
 
 | Check | Result |
 |---|---|
-| Actual report against published JSON Schema | Passed with Ajv draft 2020-12 structural validation; dates also passed runtime Zod validation |
-| Actual scenario against published JSON Schema | Passed |
-| Actual success and failure JUnit XML | Well-formed; failure case contains one failed `register` testcase |
-| Scenario snapshot SHA-256 | Matched `report.scenario.digest` exactly |
-| Declared artifact audit | Healthy run retained 57 regular files and declared 57 artifacts; no symlink found |
-| `actionlint` | Passed |
-| Composite action validator | Passed |
-| ShellCheck for each composite run block | Passed |
-| GitHub-hosted Action execution | Not run: no public repository or immutable commit exists |
+| Actual full report against report-v1 JSON Schema | Passed with Ajv 8 draft 2020-12 and `ajv-formats` |
+| Actual full JUnit XML | Passed `xmllint`; repeatability testcase is present |
+| Runtime report parsing | Passed Zod strict schema for root and all attempt reports |
+| Published contract parity | Passed byte-for-byte SSOT/public schema check |
+| `dsh-test --version` | Passed with `0.1.0` and no runner construction |
+| `actionlint@v1.7.12` | Passed |
+| Composite action validator `v0.6.0` | Passed for action and workflow |
+| External Action pin gate | Passed: all remote `uses` values are full commit SHAs |
+| GitHub-hosted Action execution | Deferred until the public repository exists |
 
 ## Real DSH And Fault Tests
 
 | Test | Result |
 |---|---|
-| `pnpm test:e2e` | Passed 5 of 5 in 275.43 seconds |
-| Healthy/update default Docker | Passed |
-| Healthy default Docker repeated five times | Passed subset: identical semantic signatures, all under 77 seconds |
-| Exact npm source repeated twice | Failed determinism: same identities produced `failed` then `passed` |
-| Local tarball default Docker | Failed at `package` with npm `ENOTDIR`, exit 1 |
-| Pinned full-SHA Git source, unsafe local | Passed |
-| Registration failure, default Docker | Correctly failed at `register`, exit 1 |
-| Required network observer | Correctly returned `unsupported`, exit 4 |
-| Missing DSH exact version | Correctly returned infrastructure error, exit 3 |
-| Controller SIGINT | Passed cleanup: exit 3, no container, no request file, no report |
+| `pnpm test:e2e` | Passed 6 of 6 against `@deepseek-ai/dsh@0.1.0-rc.6` in 337.782 seconds |
+| Healthy update fixture | Passed exact target version, post-update row assembly, boot, registration and exercise |
+| Expected boot failure | Passed recovery and clean reboot proof |
+| Registration failure | Correctly failed at `register` |
+| Dirty uninstall | Correctly reported both DSH-home and workspace additions |
+| Known-name DSH residue | Correctly failed with `added:dsh-home/.anonymous-user-id` |
+| Observer fixture | Passed process and port evidence without observer self-residue |
+| Exact npm source full suite | Passed 5/5 with one semantic digest; 60.009-85.956 seconds per attempt |
+| Local tarball, default Docker | Passed from `/input/primary.tgz` |
+| Controlled stale runner image | Wrong context label caused an image rebuild; resulting full label matched the context digest |
+| Controller SIGINT | Exit 3, zero containers and request files; infrastructure report retained cleanup evidence |
 | Fault injection for all 13 lifecycle stages | Every injected stage was recorded failed and cleanup was called |
-| Plugin-created known DSH-home residue | Failed acceptance: Testkit returned passed while the file remained |
-| `quick` versus `full` state machine | Failed acceptance: adapter calls and stage statuses were identical |
+| Required missing observer | Unit and real-host acceptance classify it `unsupported`, exit 4 |
+| Missing exact DSH version | Real-host acceptance classifies it infrastructure error, exit 3 |
+| Pinned full-SHA Git source | Real-host acceptance reaches the complete lifecycle; mutable and credential-bearing variants are rejected by contract tests |
 
-## Stable Healthy Signature
+## Full Repeatability Record
 
-- Subject digest: `sha256:420728ef7835c2d216d3dc4b18098608ba00327186209e57a168950769879e75`
-- DSH integrity: `sha256:2a6fc6f9c83466349ee1974cda50008ee964041055fed19a397279f22238081e`
-- Scenario digest: `sha256:2a143274533f0d0f36019baddb1a4aad87740f400f4cf821abb1034014d74c56`
-- Runner image: `sha256:05f4ebb9e6796102899421c651e5ff306c90f822fb1096ee87c0542b7609dfad`
-
-## Nondeterministic Public Plugin Signature
-
-Both runs used:
+All five attempts used:
 
 - Subject: `dsh-plugin-greeter@0.1.11`
-- Subject digest: `sha256:4a88b068442623d8e2f6522713b706686a9b06dde6880816ec3cb033b0d5c10f`
 - DSH integrity: `sha256:2a6fc6f9c83466349ee1974cda50008ee964041055fed19a397279f22238081e`
-- Scenario digest: `sha256:6a68c37b76877233dbcc7c49a1d9a73f77129afdfe8ef951e476872cdc42fd1d`
-- Runner image: `sha256:05f4ebb9e6796102899421c651e5ff306c90f822fb1096ee87c0542b7609dfad`
+- Semantic digest: `sha256:f4d5dfd2f8e9dbff38cfe9eed4477d00effdbf87137c871c2d27bd63f7a5f281`
+- Runner image: `dsh-testkit-runner:0.1.0-2f86c91963b8`
+- Runner image ID: `sha256:153f50a554a902f61473a7d635460a48d41bdcd23a0df08be83fefd06b1768c8`
 
-The failed run's only residue was the Testkit observer command `ss -lntup`; the second run passed.
+Attempt durations were 85.956, 60.009, 66.279, 66.535 and 64.586 seconds. The root report verdict is `passed` with `consistent: true`.

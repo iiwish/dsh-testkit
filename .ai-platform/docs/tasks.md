@@ -82,6 +82,6 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T003.yaml`
 
 #### Work Item T004: Release Hardening And Acceptance
 
-Status: Running
+Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t004-release-hardening-and-acceptance`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T004.yaml`
