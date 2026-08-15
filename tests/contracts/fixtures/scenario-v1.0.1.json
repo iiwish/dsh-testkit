@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "name": "v0.1.1-compatibility",
+  "suite": "quick",
+  "subject": {
+    "source": "dsh-example-plugin@1.0.0"
+  },
+  "dsh": {
+    "version": "0.1.0-rc.6"
+  },
+  "profile": "compatibility",
+  "expect": {
+    "boot": "success",
+    "rows": ["example"],
+    "services": [],
+    "tools": []
+  },
+  "exercise": [],
+  "recovery": {
+    "onBootFailure": "remove-plugin"
+  },
+  "observers": {
+    "filesystem": "required",
+    "process": "preferred",
+    "ports": "preferred",
+    "network": "off",
+    "canary": "preferred"
+  },
+  "timeouts": {
+    "installMs": 300000,
+    "bootMs": 30000,
+    "cleanupMs": 30000
+  }
+}

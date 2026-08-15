@@ -8,11 +8,15 @@ import { fileURLToPath } from 'node:url'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import { parse as parseYaml } from 'yaml'
 
+import {
+  assertSupportedDshVersion,
+  UnsupportedDshVersionError,
+} from './adapters/dsh/support.js'
 import { buildScenario, parseScenario, validateRunnerSelection } from './config/scenario.js'
-import { exitCodeForVerdict } from './domain/lifecycle.js'
+import { exitCodeForVerdict, validateLifecycleCase } from './domain/lifecycle.js'
 import { aggregateRunReports } from './domain/repeatability.js'
-import { RunReportSchema } from './domain/report.js'
-import type { RunReport } from './domain/report.js'
+import { RunReportSchema, StageIdSchema } from './domain/report.js'
+import type { RunReport, StageId } from './domain/report.js'
 import type { Scenario } from './domain/scenario.js'
 import { renderJson } from './reporters/json.js'
 import { renderJunit } from './reporters/junit.js'
@@ -28,6 +32,7 @@ interface CliOptions {
   dsh?: string
   config?: string
   suite?: 'quick' | 'full'
+  case?: StageId
   repeat?: number
   runner: RunnerKind
   unsafeLocal: boolean
@@ -56,6 +61,14 @@ function parseRepeat(value: string): number {
   const count = Number(value)
   if (count < 2 || count > 20) throw new InvalidArgumentError('must be an integer from 2 to 20')
   return count
+}
+
+function parseLifecycleCase(value: string): StageId {
+  const parsed = StageIdSchema.safeParse(value)
+  if (!parsed.success) {
+    throw new InvalidArgumentError(`must be a lifecycle case: ${StageIdSchema.options.join(', ')}`)
+  }
+  return parsed.data
 }
 
 function defaultDependencies(): CliDependencies {
@@ -167,6 +180,7 @@ function buildProgram(deps: CliDependencies): Command {
     .option('--dsh <version>')
     .option('--config <path>')
     .option('--suite <suite>', 'quick or full')
+    .option('--case <stage>', 'rerun through one lifecycle case', parseLifecycleCase)
     .option('--repeat <count>', 'repeat lifecycle attempts (2 to 20)', parseRepeat)
     .option('--runner <runner>', 'docker or local', 'docker')
     .option('--unsafe-local', 'allow plugin execution outside Docker', false)
@@ -234,6 +248,8 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
       recovery: configured.recovery,
       timeouts: configured.timeouts,
     })
+    assertSupportedDshVersion(mergedScenario.dsh.version)
+    if (options.case !== undefined) validateLifecycleCase(mergedScenario, options.case)
 
     const runId = makeRunId()
     const outputDir = resolve(deps.cwd, options.output ?? join('.dsh-testkit', 'runs', runId))
@@ -264,6 +280,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
       '--suite', mergedScenario.suite,
     ]
     if (options.runner === 'local') reproductionArgs.push('--unsafe-local')
+    if (options.case !== undefined) reproductionArgs.push('--case', options.case)
     if (options.config !== undefined) reproductionArgs.push('--config', options.config)
     for (const row of options.expectRow) reproductionArgs.push('--expect-row', row)
     for (const service of options.expectService) reproductionArgs.push('--expect-service', service)
@@ -287,6 +304,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
         scenario: mergedScenario,
         outputDir: attemptDir,
         reproductionCommand,
+        ...(options.case === undefined ? {} : { case: options.case }),
         allowMutableSource: options.allowMutableSource,
         runner: options.runner,
         unsafeLocal: options.unsafeLocal,
@@ -310,6 +328,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
     }
     deps.stderr(`dsh-test: ${error instanceof Error ? error.message : String(error)}\n`)
     if (error instanceof RunnerError) return error.exitCode
+    if (error instanceof UnsupportedDshVersionError) return error.exitCode
     return 2
   }
 }

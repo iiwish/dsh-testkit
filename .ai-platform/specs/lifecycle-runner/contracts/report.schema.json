@@ -30,7 +30,8 @@
         "suite": { "enum": ["quick", "full"] },
         "schemaVersion": { "const": 1 },
         "profile": { "type": "string", "minLength": 1 },
-        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "case": { "enum": ["resolve", "install-dsh", "package", "install-plugin", "assemble", "boot", "register", "exercise", "update", "uninstall", "reboot", "recover", "cleanup"] }
       }
     },
     "testkitVersion": { "type": "string" },

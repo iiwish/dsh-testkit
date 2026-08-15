@@ -3,6 +3,7 @@ import {
   StageFailure,
   deriveVerdict,
 } from '../domain/lifecycle.js'
+import { LIFECYCLE_STAGE_IDS } from '../domain/report.js'
 import type { FailureKind, RunReport, StageId } from '../domain/report.js'
 import { scenarioDigest } from '../domain/scenario.js'
 import { TESTKIT_VERSION } from '../version.js'
@@ -24,6 +25,12 @@ export class LifecycleWorker {
   async run(request: WorkerRequest): Promise<RunReport> {
     const startedAt = new Date()
     const recorder = new LifecycleRecorder()
+    const selectedCaseIndex = request.case === undefined
+      ? Number.POSITIVE_INFINITY
+      : LIFECYCLE_STAGE_IDS.indexOf(request.case)
+    const includesCase = (id: StageId): boolean => id === 'cleanup'
+      || LIFECYCLE_STAGE_IDS.indexOf(id) <= selectedCaseIndex
+    const selectionReason = (): string => `not selected by --case ${request.case}`
 
     const safe = async <T>(
       id: StageId,
@@ -45,28 +52,32 @@ export class LifecycleWorker {
       await this.adapter.initialize?.(request)
       return await this.adapter.resolve()
     }, 'infrastructure')
-    const dshInstalled = resolved.ok
+    const dshInstalled = resolved.ok && includesCase('install-dsh')
       ? await safe('install-dsh', () => this.adapter.installDsh(), 'infrastructure')
       : { ok: false }
-    if (!resolved.ok) recorder.skip('install-dsh', 'subject resolution failed')
+    if (!includesCase('install-dsh')) recorder.skip('install-dsh', selectionReason())
+    else if (!resolved.ok) recorder.skip('install-dsh', 'subject resolution failed')
 
-    const packaged = dshInstalled.ok
+    const packaged = dshInstalled.ok && includesCase('package')
       ? await safe('package', () => this.adapter.packageSubject(), 'subject')
       : { ok: false }
-    if (!dshInstalled.ok) recorder.skip('package', 'DSH installation did not complete')
+    if (!includesCase('package')) recorder.skip('package', selectionReason())
+    else if (!dshInstalled.ok) recorder.skip('package', 'DSH installation did not complete')
 
-    const pluginInstalled = packaged.ok
+    const pluginInstalled = packaged.ok && includesCase('install-plugin')
       ? await safe('install-plugin', () => this.adapter.installPlugin(), 'subject')
       : { ok: false }
     installed = pluginInstalled.ok
-    if (!packaged.ok) recorder.skip('install-plugin', 'subject packaging did not complete')
+    if (!includesCase('install-plugin')) recorder.skip('install-plugin', selectionReason())
+    else if (!packaged.ok) recorder.skip('install-plugin', 'subject packaging did not complete')
 
-    const assembled = pluginInstalled.ok
+    const assembled = pluginInstalled.ok && includesCase('assemble')
       ? await safe('assemble', () => this.adapter.assemble(), 'subject')
       : { ok: false }
-    if (!pluginInstalled.ok) recorder.skip('assemble', 'plugin installation did not complete')
+    if (!includesCase('assemble')) recorder.skip('assemble', selectionReason())
+    else if (!pluginInstalled.ok) recorder.skip('assemble', 'plugin installation did not complete')
 
-    const booted = assembled.ok
+    const booted = assembled.ok && includesCase('boot')
       ? await safe('boot', async () => {
           const completion = await this.adapter.boot()
           const expected = request.scenario.expect.boot
@@ -99,25 +110,32 @@ export class LifecycleWorker {
           return completion
         }, 'subject')
       : { ok: false }
-    if (!assembled.ok) recorder.skip('boot', 'configuration assembly did not complete')
+    if (!includesCase('boot')) recorder.skip('boot', selectionReason())
+    else if (!assembled.ok) recorder.skip('boot', 'configuration assembly did not complete')
 
     if (booted.ok) bootObservation = booted.completion?.value
     if (bootObservation?.outcome === 'failure') shouldRecover = true
 
     let registered: SafeResult<void> = { ok: false }
-    if (bootObservation?.outcome === 'success') {
+    if (!includesCase('register')) {
+      recorder.skip('register', selectionReason())
+    } else if (bootObservation?.outcome === 'success') {
       registered = await safe('register', () => this.adapter.register(bootObservation!), 'assertion')
     } else {
       recorder.skip('register', bootObservation === undefined ? 'boot did not complete' : 'negative boot scenario')
     }
 
-    if (registered.ok && bootObservation !== undefined) {
+    if (!includesCase('exercise')) {
+      recorder.skip('exercise', selectionReason())
+    } else if (registered.ok && bootObservation !== undefined) {
       await safe('exercise', () => this.adapter.exercise(bootObservation!), 'assertion')
     } else {
       recorder.skip('exercise', 'runtime registration did not pass')
     }
 
-    if (request.scenario.subject.updateFrom !== undefined && bootObservation?.outcome === 'success' && registered.ok) {
+    if (!includesCase('update')) {
+      recorder.skip('update', selectionReason())
+    } else if (request.scenario.subject.updateFrom !== undefined && bootObservation?.outcome === 'success' && registered.ok) {
       await safe('update', () => this.adapter.update(), 'subject')
     } else {
       recorder.skip('update', request.scenario.subject.updateFrom === undefined
@@ -125,10 +143,16 @@ export class LifecycleWorker {
         : 'pre-update lifecycle did not pass')
     }
 
-    if (shouldRecover) {
+    if (!includesCase('uninstall')) {
+      recorder.skip('uninstall', selectionReason())
+      recorder.skip('reboot', selectionReason())
+      recorder.skip('recover', selectionReason())
+    } else if (shouldRecover) {
       recorder.skip('uninstall', 'recovery owns plugin removal')
       recorder.skip('reboot', 'recovery owns reboot verification')
-      if (request.scenario.recovery.onBootFailure === 'remove-plugin') {
+      if (!includesCase('recover')) {
+        recorder.skip('recover', selectionReason())
+      } else if (request.scenario.recovery.onBootFailure === 'remove-plugin') {
         await safe('recover', () => this.adapter.recover(), 'subject')
         installed = false
       } else {
@@ -138,17 +162,21 @@ export class LifecycleWorker {
       const uninstalled = await safe('uninstall', () => this.adapter.uninstall(), 'subject')
       if (uninstalled.ok) {
         installed = false
-        await safe('reboot', () => this.adapter.reboot(), 'subject')
+        if (includesCase('reboot')) await safe('reboot', () => this.adapter.reboot(), 'subject')
+        else recorder.skip('reboot', selectionReason())
       } else {
         recorder.skip('reboot', 'plugin uninstall did not complete')
         shouldRecover = true
       }
-      if (shouldRecover) await safe('recover', () => this.adapter.recover(), 'subject')
+      if (!includesCase('recover')) recorder.skip('recover', selectionReason())
+      else if (shouldRecover) await safe('recover', () => this.adapter.recover(), 'subject')
       else recorder.skip('recover', 'no recovery was required')
     } else {
       recorder.skip('uninstall', 'plugin was not installed')
       recorder.skip('reboot', 'plugin was not uninstalled')
-      if (pluginInstalled.ok || assembled.ok || booted.ok) {
+      if (!includesCase('recover')) {
+        recorder.skip('recover', selectionReason())
+      } else if (pluginInstalled.ok || assembled.ok || booted.ok) {
         await safe('recover', () => this.adapter.recover(), 'subject')
       } else {
         recorder.skip('recover', 'no recoverable profile state was created')
@@ -190,6 +218,7 @@ export class LifecycleWorker {
         schemaVersion: request.scenario.schemaVersion,
         profile: request.scenario.profile,
         digest: scenarioDigest(request.scenario),
+        ...(request.case === undefined ? {} : { case: request.case }),
       },
       testkitVersion: TESTKIT_VERSION,
       environment: this.adapter.environment(),

@@ -30,4 +30,16 @@ if (!/^FROM \S+@sha256:[0-9a-f]{64}$/m.test(dockerfile)) {
 if (!dockerfile.includes('dev.dsh-testkit.context-sha256')) {
   throw new Error('runner.Dockerfile must label the immutable build-context identity')
 }
+if (!dockerfile.includes('COPY assets/runner-pnpm-lock.yaml ./pnpm-lock.yaml')) {
+  throw new Error('runner.Dockerfile must consume the generated runner lockfile')
+}
+if (!manifest.scripts?.build?.includes('scripts/prepare-runner-lock.mjs')) {
+  throw new Error('build must generate the runner lockfile from the canonical root lock')
+}
+const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'npm publish --access public']) {
+  if (!releaseWorkflow.includes(required)) {
+    throw new Error(`release workflow is missing trusted-publishing control: ${required}`)
+  }
+}
 console.log('Package metadata and community release files are complete.')

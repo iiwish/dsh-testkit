@@ -6,19 +6,24 @@ import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
+import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
 import { RunReportSchema } from '../../src/domain/report.js'
 
 const executeFile = promisify(execFile)
 const root = resolve(import.meta.dirname, '../..')
 const cli = join(root, 'dist', 'src', 'cli.js')
-const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? '0.1.0-rc.6'
+const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
 
 interface FixtureRun {
   code: number
   report: ReturnType<typeof RunReportSchema.parse>
 }
 
-async function runFixture(name: string, args: string[] = []): Promise<FixtureRun> {
+async function runFixture(
+  name: string,
+  args: string[] = [],
+  runner: 'local' | 'docker' = 'local',
+): Promise<FixtureRun> {
   const cwd = join(root, 'fixtures', name)
   const output = await mkdtemp(join(tmpdir(), `dsh-testkit-e2e-${name}-`))
   let code = 0
@@ -27,8 +32,8 @@ async function runFixture(name: string, args: string[] = []): Promise<FixtureRun
       cli,
       '.',
       '--dsh', dshVersion,
-      '--runner', 'local',
-      '--unsafe-local',
+      '--runner', runner,
+      ...(runner === 'local' ? ['--unsafe-local'] : []),
       '--output', output,
       ...args,
     ], { cwd, timeout: 900_000, maxBuffer: 16 * 1024 * 1024 })
@@ -66,6 +71,30 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     expect(result.report.verdict).toBe('passed')
     expect(result.report.stages.find(stage => stage.id === 'boot')?.status).toBe('passed')
     expect(result.report.stages.find(stage => stage.id === 'recover')?.status).toBe('passed')
+  }, 900_000)
+
+  it('reruns one real-host boot case and skips later lifecycle cases', async () => {
+    const result = await runFixture('healthy-plugin', [
+      '--expect-row', 'fixture-healthy',
+      '--case', 'boot',
+    ])
+    expect(result.code).toBe(0)
+    expect(result.report.scenario.case).toBe('boot')
+    expect(result.report.stages.find(stage => stage.id === 'boot')?.status).toBe('passed')
+    expect(result.report.stages.find(stage => stage.id === 'register')).toMatchObject({
+      status: 'skipped',
+      summary: 'not selected by --case boot',
+    })
+    expect(result.report.stages.at(-1)?.id).toBe('cleanup')
+  }, 900_000)
+
+  it('retains an expected boot-failure probe as declared Docker evidence', async () => {
+    const result = await runFixture('boot-failure-plugin', [], 'docker')
+    expect(result.code).toBe(0)
+    expect(result.report.verdict).toBe('passed')
+    expect(result.report.artifacts).toContain('evidence/probe-boot.json')
+    expect(result.report.stages.find(stage => stage.id === 'boot')?.artifacts)
+      .toContain('evidence/probe-boot.json')
   }, 900_000)
 
   it('fails at registration when an expected tool is missing', async () => {

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+assets/runner-pnpm-lock.yaml
 .dsh-testkit/
 coverage/
 *.tgz

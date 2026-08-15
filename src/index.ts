@@ -1,3 +1,4 @@
+export * from './adapters/dsh/support.js'
 export * from './config/scenario.js'
 export * from './domain/lifecycle.js'
 export * from './domain/report.js'

@@ -1,0 +1,3516 @@
+diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index 054ac88..6c718fb 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -3,3 +3,3 @@
+-Version: v0.1.1
+-Status: Published Public Preview
+-Decision: GO
++Version: v0.1.2
++Status: Approved Release Candidate
++Decision: GO after hosted CI and npm trusted-publisher verification
+@@ -7 +7 @@ Last updated: 2026-08-15
+-Release commit: `8c52ad1`
++Release identity: `v0.1.2` must point to the reviewed merge commit
+@@ -11 +11 @@ Release commit: `8c52ad1`
+-DSH Testkit v0.1.1 is a published, repository-native lifecycle runner for DeepSeek Harness plugins. It tests packed plugin artifacts against an exact real DSH installation, defaults to content-addressed Docker isolation, emits canonical machine evidence and covers install through cleanup, including update and recovery.
++DSH Testkit v0.1.2 tests packed DeepSeek Harness plugins in a real supported DSH host, preserves versioned JSON/JUnit evidence, and supports focused lifecycle-stage reruns without bypassing their required prefix.
+@@ -13 +13 @@ DSH Testkit v0.1.1 is a published, repository-native lifecycle runner for DeepSe
+-The public distribution consists of the `iiwish/dsh-testkit` GitHub repository, immutable `v0.1.0` and `v0.1.1` release tags, the moving `v0` GitHub Action tag, and the public `dsh-testkit` npm package. npm `latest` resolves to `0.1.1`.
++The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versions return exit code 4 before runner creation. The v1 scenario contract remains unchanged; the v1 report contract adds the optional `scenario.case` field and retains compatibility with v0.1.1 fixtures.
+@@ -19,15 +19,13 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-| `pnpm validate` | Passed: typecheck, build, 11 test files, 64 tests and enforced V8 coverage |
+-| Clean Linux validation | Passed on Node 22 for arm64 and amd64 |
+-| Real DSH E2E | Passed: 6 fixtures against `@deepseek-ai/dsh@0.1.0-rc.6` in 337.782 seconds |
+-| Default-Docker full suite | Passed 5/5 for `dsh-plugin-greeter@0.1.11` with one semantic digest |
+-| Default-Docker tarball | Passed the complete quick lifecycle |
+-| Residue attribution | Added, modified and removed content is compared; known-name residue correctly fails |
+-| Runner image identity | Digest-keyed tag, full context label and pinned multi-architecture base image passed |
+-| Interruption cleanup | Exit 3, no container or request residue, infrastructure report with cleanup evidence |
+-| Packed consumer | Passed, including ESM import, CLI version and Docker image build |
+-| Package quality | `publint` passed; dry run contains 107 files and no tests or private governance files |
+-| Production dependencies | No known vulnerabilities; MIT, ISC and Python-2.0 licenses |
+-| Static Action validation | Actionlint, composite schema validation and immutable-reference gate passed |
+-| Hosted GitHub CI | Passed on release commit `8c52ad1`: validation, 6 real DSH fixtures, packed consumer and composite Action smoke |
+-| Public npm install | Cold-cache execution of `dsh-testkit@0.1.1` returned CLI version `0.1.1` |
+-| Delivery artifacts | T001 through T004 packet and evidence contracts validate |
++| TDD RED | Passed: focused tests failed for missing case selection, support gating, Action identity and compatibility fixtures |
++| `pnpm validate` | Passed: 13 test files, 76 tests, typecheck, contract checks, coverage and build |
++| Coverage | Passed: 51.09% statements, 75.70% branches, 54.76% functions and 51.09% lines |
++| Real DSH E2E | Passed: 7 local-runner fixtures/cases in 285.284 seconds plus the targeted Docker boot-failure regression in 91.016 seconds |
++| Single-case real host | Passed: resolve through boot executed, later stages skipped, cleanup retained |
++| Packed consumer | Passed: dynamic v0.1.2 identity, embedded source maps, schemas, lock generation and Docker build |
++| Contract compatibility | Passed: v0.1.1 scenario and report fixtures validate with runtime and published JSON schemas |
++| Composite Action | Local identity and argument tests passed; hosted two-plugin matrix smoke is the publication gate |
++| Workflow validation | `actionlint v1.7.12` and immutable Action-reference checks passed |
++| Package quality | `publint v0.3.23` passed |
++| Dependency security | No known production or development vulnerabilities from the public npm advisory endpoint |
++| Trusted publishing | Workflow uses GitHub OIDC, Node 24, npm 11.19.0, no package-manager cache and an `npm` environment |
++| Delivery artifacts | T005 packet and local evidence exist; public identities are recorded after publication |
+@@ -37,4 +35,4 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-- Spec compliance: Passed for the v0.1 public-preview scope.
+-- Engineering quality: Passed with no open P0, P1 or P2 release finding.
+-- QA acceptance: GO.
+-- User publication instruction: Completed for GitHub push, release tags and npm publication.
++- Spec compliance: Passed for FR-018 case reruns and the existing v0.1 product boundary.
++- Engineering quality: Passed locally with no open P0 or P1 finding.
++- QA acceptance: GO for hosted CI.
++- Publication: Tagging and npm publication remain blocked until the pull request is green and npm trusts `release.yml` for `iiwish/dsh-testkit` in environment `npm`.
+@@ -42 +40 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-## Field Success Criteria
++## Residual Risks
+@@ -44,3 +42,4 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-- Verified locally: SC-004, SC-005, SC-006, SC-007, SC-008 and the repository-native design required by SC-010.
+-- Public field work: SC-001 ten community plugins, SC-002 three upstream lifecycle findings, SC-003 external CI adoption and SC-009 a private enterprise repository proof.
+-- Network tracing is unavailable in v0.1. A scenario that requires it returns `unsupported`.
++- The DSH adapter has real-host coverage but low instrumented unit coverage because its subprocess behavior runs outside V8 coverage collection.
++- `actions/upload-artifact@v7` is unavailable on GitHub Enterprise Server; GHES users invoke the CLI directly.
++- Network tracing remains unavailable. Requiring it returns `unsupported`.
++- Field success still requires ten community plugins, three upstream lifecycle findings, one external CI adopter and one private enterprise proof.
+@@ -48 +47 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-## Publication
++## Publication Targets
+@@ -51,3 +50,2 @@ The public distribution consists of the `iiwish/dsh-testkit` GitHub repository,
+-- Release tag: <https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.1>
+-- npm package: <https://www.npmjs.com/package/dsh-testkit/v/0.1.1>
+-- The interactive local npm release is published without provenance because GitHub OIDC is unavailable locally. `publishConfig.provenance` remains enabled for a future trusted-publishing workflow.
++- Release tag: <https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.2>
++- npm package: <https://www.npmjs.com/package/dsh-testkit/v/0.1.2>
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index 1df9b69..bf5888e 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -296,0 +297,62 @@ Task impact:
++## TDR-012: Lifecycle Stages Are Independently Addressable Cases
++
++Decision:
++Treat each lifecycle stage as a stable case identifier. `--case <stage>` executes the selected stage with its required lifecycle prefix and always performs cleanup; later stages are recorded as skipped. The selected case is preserved in the report identity and reproduction command.
++
++Requirement mapping:
++- FR-018, NFR-008, SC-006
++
++Rationale:
++- Existing JSON and JUnit output already model lifecycle stages as the smallest independently reported cases.
++- Running a stage without its installation and boot prerequisites would create invalid evidence, so case reruns retain the required prefix instead of invoking an isolated adapter method.
++
++Risks:
++- A late-stage case can still require most of the lifecycle.
++
++Mitigations:
++- The CLI states that case selection stops after the selected stage rather than promising isolated stage execution.
++
++Task impact:
++- T005 adds the CLI selector, worker selection semantics, report identity and regression tests.
++
++## TDR-013: Explicit DSH Adapter Support Registry
++
++Decision:
++Publish the exact DSH npm versions supported by the current adapter and reject unsupported targets with exit code 4 before constructing a runner. `0.1.0-rc.6` is the initial supported version. Each newly supported version requires a real-host CI case.
++
++Requirement mapping:
++- FR-002, FR-016, NFR-007, SC-007
++
++Rationale:
++- Exact semver is necessary for reproducibility but does not prove compatibility with Testkit's DSH CLI and probe assumptions.
++- An explicit support registry prevents host drift from being misclassified as a plugin failure.
++
++Risks:
++- New DSH releases require a Testkit adapter update before use.
++
++Mitigations:
++- Unsupported errors list the supported versions and the registry stays isolated behind the DSH adapter boundary.
++
++Task impact:
++- T005 adds support validation and keeps the real-host matrix aligned with the registry.
++
++## TDR-014: Trusted Release Publishing
++
++Decision:
++Publish npm releases from a protected GitHub release workflow using npm Trusted Publishing, GitHub OIDC and a clean frozen install. The workflow verifies that the tag, package version and checked-out commit agree, runs the full release gate and then invokes `npm publish` without a long-lived token. Public package provenance is generated by npm from the trusted workflow.
++
++Requirement mapping:
++- NFR-002, NFR-012
++
++Rationale:
++- Release identity and package provenance should be produced by the reviewed GitHub commit rather than a maintainer workstation.
++
++Risks:
++- npm trusted-publisher configuration must exactly match the repository and workflow name.
++
++Mitigations:
++- Configure the npm publisher before creating the GitHub release, use a release environment, and verify the public package after publication.
++
++Task impact:
++- T005 adds the workflow, release checks and public verification evidence.
++
+diff --git a/.ai-platform/evidence/T005/summary.md b/.ai-platform/evidence/T005/summary.md
+new file mode 100644
+index 0000000..5aba446
+--- /dev/null
++++ b/.ai-platform/evidence/T005/summary.md
+@@ -0,0 +1,26 @@
++# T005 Evidence Summary
++
++Status: Local_Review_Passed
++Task: v0.1.2 contract, CI and release hardening
++Date: 2026-08-15
++
++## Scope Delivered
++
++- Added lifecycle-stage case selection with prefix execution, cleanup, report identity and reproduction commands.
++- Added an explicit supported-DSH registry and unsupported exit-code boundary.
++- Added v0.1.1 runtime and JSON Schema compatibility fixtures.
++- Made composite Action evidence identities matrix-safe, preserved complex arguments and exposed artifact metadata.
++- Added scoped/cancellable CI, a two-plugin hosted Action matrix and npm OIDC release workflow.
++- Generated the packed runner lock from the canonical root lock, embedded source content and cleaned pack-test resources.
++
++## Review Result
++
++- Spec compliance: Pass.
++- Bug and code-quality review: Pass locally.
++- QA acceptance: Pass locally.
++- Release acceptance: Needs hosted PR CI, npm trust configuration, tag workflow and public artifact verification.
++
++## Residual Risk
++
++- Real subprocess-heavy adapter behavior is covered by seven real-host cases but remains lightly represented in V8 unit coverage.
++- Public field success criteria are not yet met.
+diff --git a/.ai-platform/evidence/T005/test-results.md b/.ai-platform/evidence/T005/test-results.md
+new file mode 100644
+index 0000000..2c69645
+--- /dev/null
++++ b/.ai-platform/evidence/T005/test-results.md
+@@ -0,0 +1,29 @@
++# T005 Test Results
++
++Date: 2026-08-15
++
++## RED
++
++`pnpm test -- tests/integration/worker.test.ts tests/integration/cli.test.ts tests/unit/action-identity.test.ts tests/contracts/v1-compatibility.test.ts`
++
++Result: Expected failure. Five focused assertions failed because case selection, report case identity, DSH support gating and Action identity were absent; the Action identity module did not exist.
++
++Hosted matrix RED: CI run `31878604087` proved unique artifacts and checks, while the Docker boot-failure job exposed an undeclared partial `evidence/probe-boot.json` and failed with exit code 3.
++
++## GREEN
++
++- `pnpm validate`: passed, 13 files and 76 tests.
++- Coverage: 51.09% statements, 75.70% branches, 54.76% functions, 51.09% lines.
++- `pnpm test:e2e`: passed, 7 real DSH cases in 285.284 seconds.
++- Targeted Docker regression: passed in 91.016 seconds and retained `evidence/probe-boot.json` in both stage and report artifact declarations.
++- `pnpm test:pack`: passed for `dsh-testkit-0.1.2.tgz` and its Docker image.
++- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`: passed.
++- `pnpm dlx publint@latest`: passed with publint v0.3.23.
++- `pnpm audit --registry https://registry.npmjs.org/`: no known vulnerabilities.
++- `pnpm audit --prod --registry https://registry.npmjs.org/`: no known vulnerabilities.
++
++## Pending Public Gates
++
++- Hosted pull-request CI and two-plugin composite Action matrix.
++- npm trusted-publisher configuration for `release.yml` and environment `npm`.
++- `v0.1.2` tag workflow, npm provenance and public package verification.
+diff --git a/.ai-platform/specs/lifecycle-runner/contracts/cli.md b/.ai-platform/specs/lifecycle-runner/contracts/cli.md
+index 8a3bef2..6c9d40e 100644
+--- a/.ai-platform/specs/lifecycle-runner/contracts/cli.md
++++ b/.ai-platform/specs/lifecycle-runner/contracts/cli.md
+@@ -18,0 +19 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
++| `--case {lifecycle-stage}` | all stages | Executes the selected stage with its required prefix, skips later stages, and always cleans up |
+@@ -40 +41 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
+-| `4` | required capability unsupported |
++| `4` | required capability or DSH adapter version unsupported |
+@@ -50,0 +52 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
++- A selected lifecycle case is stored as `scenario.case` and included in `reproductionCommand`.
+diff --git a/.ai-platform/specs/lifecycle-runner/contracts/report.schema.json b/.ai-platform/specs/lifecycle-runner/contracts/report.schema.json
+index 0de67ef..28aab67 100644
+--- a/.ai-platform/specs/lifecycle-runner/contracts/report.schema.json
++++ b/.ai-platform/specs/lifecycle-runner/contracts/report.schema.json
+@@ -33 +33,2 @@
+-        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
++        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++        "case": { "enum": ["resolve", "install-dsh", "package", "install-plugin", "assemble", "boot", "register", "exercise", "update", "uninstall", "reboot", "recover", "cleanup"] }
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T005.yaml b/.ai-platform/specs/lifecycle-runner/packets/T005.yaml
+new file mode 100644
+index 0000000..fe15512
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T005.yaml
+@@ -0,0 +1,119 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T005
++task_id: T005
++feature_id: lifecycle-runner
++mode: execute_one_task
++adapter: codex
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  product_contract: .ai-platform/docs/product-design.md
++  feature_spec: .ai-platform/docs/product-design.md
++  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
++  technical_decisions: .ai-platform/docs/technology-decision-record.md
++  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
++  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
++  analysis: .ai-platform/docs/release-report.md
++  approval_gates:
++    constitution: Confirmed
++    product_or_spec: Confirmed
++    technical_plan_and_work_graph: Confirmed
++    release_hardening: User approved the review findings and v0.1.2 release on 2026-08-15
++work_unit:
++  title: v0.1.2 contract, CI and release hardening
++  goal: Close the approved post-release findings and publish v0.1.2 from a verified commit.
++  epic: E001
++  story: US-001
++  requirements: [FR-002, FR-016, FR-018, NFR-002, NFR-007, NFR-008, NFR-012]
++  priority: P0
++  depends_on: [T004]
++  blocks: [v0.1.2 public release]
++  parallel: false
++  conflicts_with: []
++codebase_context:
++  local_instructions: [AGENTS.md]
++  relevant_files:
++    - .github/actions/dsh-test/action.yml
++    - .github/workflows/ci.yml
++    - src/cli.ts
++    - src/worker/**
++    - src/adapters/dsh/**
++    - src/domain/report.ts
++    - schemas/**
++    - tests/**
++  existing_patterns:
++    - Lifecycle stages are the stable JUnit test cases.
++    - The canonical report is validated before projections are rendered.
++    - Docker remains the default runner and real DSH E2E backs adapter claims.
++  interfaces_or_contracts:
++    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
++    - .ai-platform/specs/lifecycle-runner/contracts/report.schema.json
++    - .ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
++  forbidden_changes:
++    - Do not weaken lifecycle, residue, identity or observer assertions.
++    - Do not add, modify or commit the user-owned AGENTS.md file.
++    - Do not publish from an unverified or dirty tree.
++execution_constraints:
++  branch_or_worktree: codex/release-hardening
++  allowed_files:
++    - .ai-platform/**
++    - .github/**
++    - src/**
++    - tests/**
++    - assets/**
++    - schemas/**
++    - scripts/**
++    - docs/**
++    - examples/**
++    - package.json
++    - pnpm-lock.yaml
++    - pnpm-workspace.yaml
++    - vitest.config.ts
++    - README.md
++    - SECURITY.md
++    - CHANGELOG.md
++    - .dockerignore
++    - .gitignore
++  test_targets:
++    - tests/unit/**
++    - tests/integration/**
++    - tests/contracts/**
++    - tests/e2e/**
++  ownership_notes:
++    - Preserve the untracked AGENTS.md exactly as found.
++tdd_plan:
++  required: true
++  exception: Workflow and documentation-only edits use static validation rather than synthetic runtime failures.
++  red:
++    command: pnpm test -- tests/integration/worker.test.ts tests/integration/cli.test.ts tests/contracts
++    expected_failure: Case selection, unsupported-version gating and compatibility fixtures fail before implementation.
++  green:
++    command: pnpm validate
++    expected_signal: Focused regressions, contract checks, typecheck, coverage and build pass.
++  refactor:
++    command: pnpm test:e2e && pnpm test:pack
++    expected_signal: Real DSH and clean packed-consumer acceptance pass.
++validation_loop:
++  commands:
++    - pnpm validate
++    - pnpm test:e2e
++    - pnpm test:pack
++    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T005
++  retry_budget: 3
++  failure_policy:
++    first_failure: Fix the smallest implementation or contract defect within approved scope.
++    second_failure: Add diagnostics and verify the DSH, Docker, Action or npm assumption.
++    third_failure: Classify a genuine external blocker without weakening acceptance.
++    beyond_budget: Stop and record blocked evidence.
++evidence_contract:
++  summary: .ai-platform/evidence/T005/summary.md
++  diff: .ai-platform/evidence/T005/diff.patch
++  test_results: .ai-platform/evidence/T005/test-results.md
++  required: [RED/GREEN results, full release validation, public CI identities, commit and tag, npm identity and provenance, residual risks]
++review_contract:
++  required_passes: [spec_compliance, bug_code_quality, qa_acceptance, release_acceptance]
++  acceptance_rule: Public release requires a verified commit, green CI and successful npm verification.
++handoff:
++  external_issue: null
++  pull_request: null
++  finish_options: [merge reviewed pull request, tag v0.1.2, publish trusted npm release]
++stop_conditions: [Docker unavailable for final E2E, real DSH incompatibility, npm trusted publisher unavailable, unresolved release blocker]
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index 1ac740c..e15c5a4 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -52,0 +53 @@ Tasks:
++- [ ] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
+@@ -357,0 +359,84 @@ Evidence required:
++### T005: v0.1.2 Contract, CI And Release Hardening
++
++Status: Needs_Review
++Priority: P0
++Depends on: T004
++Blocks: v0.1.2 public release
++Story / Requirement: FR-002, FR-016, FR-018, NFR-002, NFR-007, NFR-008, NFR-012
++Parallel: No
++Conflicts with: None
++
++Goal:
++Close the post-release review findings, preserve v1 contract compatibility, make Action matrix use reliable, and publish v0.1.2 from an auditable release identity.
++
++Allowed files:
++- `.ai-platform/**`
++- `.github/**`
++- `src/**`
++- `tests/**`
++- `assets/**`
++- `schemas/**`
++- `scripts/**`
++- `docs/**`
++- `examples/**`
++- `package.json`
++- `pnpm-lock.yaml`
++- `pnpm-workspace.yaml`
++- `vitest.config.ts`
++- `README.md`
++- `SECURITY.md`
++- `CHANGELOG.md`
++- `.dockerignore`
++- `.gitignore`
++
++Test targets:
++- `tests/unit/action-identity.test.ts`
++- `tests/integration/cli.test.ts`
++- `tests/integration/worker.test.ts`
++- `tests/contracts/v1-compatibility.test.ts`
++- `tests/e2e/real-dsh.test.ts`
++- `tests/e2e/pack-consumer.mjs`
++
++Deliverables:
++- Lifecycle-stage case selector and report identity.
++- Exact DSH adapter support registry.
++- Runtime and published-schema compatibility fixtures.
++- Matrix-safe composite Action identities and argument transport.
++- Scoped CI and npm trusted-publishing workflow.
++- Generated runner lock, embedded source maps and deterministic pack cleanup.
++
++Acceptance criteria:
++- Composite Action invocations derive unique output, JUnit check and artifact identities and expose upload metadata.
++- Stored v1 scenario and report fixtures validate with both runtime schemas and published JSON Schema.
++- `--case <stage>` executes the necessary prefix, skips later stages, always cleans up and appears in the reproduction command.
++- Unsupported DSH versions return exit code 4 before runner construction.
++- CI permissions are job-scoped, stale runs are cancelled, and a trusted npm release workflow validates tag/version/commit identity.
++- Packed consumer checks derive the package version dynamically and clean temporary resources.
++- Full validation, real DSH E2E, packed consumption, Action smoke and public package verification pass.
++
++Definition of Done:
++- Focused behavior tests demonstrate RED before implementation and GREEN after it.
++- Local validation, real-host E2E, packed consumer, actionlint, publint and audits pass.
++- Hosted PR matrix passes without artifact/check collisions.
++- `v0.1.2` points to the reviewed merge commit and npm exposes the same version with provenance.
++
++Validation commands:
++- `pnpm validate`
++- `pnpm test:e2e`
++- `pnpm test:pack`
++- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T005`
++
++TDD plan:
++- RED: add regressions for case selection, unsupported DSH, Action identity and stored v1 fixtures.
++- GREEN: implement the smallest controller, worker, schema and Action changes that satisfy the regressions.
++- REFACTOR: consolidate release identity, lock generation and CI permissions, then run real-host and package gates.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
++
++Evidence required:
++- RED/GREEN results for case selection, support gating, Action identity and compatibility fixtures.
++- Full release validation and public CI URLs.
++- Commit, tag, GitHub release, npm version and provenance identities.
++- Residual risks and external repository-setting changes.
++
+diff --git a/.github/actions/dsh-test/action.yml b/.github/actions/dsh-test/action.yml
+index fa5b923..018893b 100644
+--- a/.github/actions/dsh-test/action.yml
++++ b/.github/actions/dsh-test/action.yml
+@@ -15 +15 @@ inputs:
+-    description: Evidence directory relative to the workspace.
++    description: Evidence directory relative to the workspace. A unique path is derived when empty.
+@@ -17 +17,13 @@ inputs:
+-    default: .dsh-testkit/action-run
++    default: ''
++  artifact-name:
++    description: Uploaded artifact name. A matrix-safe name is derived when empty.
++    required: false
++    default: ''
++  check-name:
++    description: JUnit check name. A subject-specific name is derived when empty.
++    required: false
++    default: ''
++  artifact-retention-days:
++    description: Number of days to retain lifecycle evidence.
++    required: false
++    default: '14'
+@@ -19 +31 @@ inputs:
+-    description: Additional dsh-test arguments.
++    description: Legacy whitespace-delimited dsh-test arguments without quoting.
+@@ -21,0 +34,4 @@ inputs:
++  args-json:
++    description: Additional dsh-test arguments as a JSON array of strings.
++    required: false
++    default: '[]'
+@@ -28,0 +45,15 @@ outputs:
++  output:
++    description: Resolved evidence directory relative to the workspace.
++    value: ${{ steps.paths.outputs.output }}
++  artifact-name:
++    description: Uploaded artifact name.
++    value: ${{ steps.paths.outputs.artifact-name }}
++  artifact-id:
++    description: GitHub artifact ID.
++    value: ${{ steps.evidence.outputs.artifact-id }}
++  artifact-url:
++    description: GitHub artifact URL.
++    value: ${{ steps.evidence.outputs.artifact-url }}
++  artifact-digest:
++    description: GitHub artifact SHA-256 digest.
++    value: ${{ steps.evidence.outputs.artifact-digest }}
+@@ -32 +63 @@ runs:
+-    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
++    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+@@ -35 +66 @@ runs:
+-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
++    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+@@ -45,2 +76,6 @@ runs:
+-        OUTPUT: ${{ inputs.output }}
+-      run: echo "report=$GITHUB_WORKSPACE/$OUTPUT/report.json" >> "$GITHUB_OUTPUT"
++        INPUT_PLUGIN: ${{ inputs.plugin }}
++        INPUT_DSH_VERSION: ${{ inputs.dsh-version }}
++        INPUT_OUTPUT: ${{ inputs.output }}
++        INPUT_ARTIFACT_NAME: ${{ inputs.artifact-name }}
++        INPUT_CHECK_NAME: ${{ inputs.check-name }}
++      run: node "$GITHUB_ACTION_PATH/../../../dist/src/action/identity.js"
+@@ -52,22 +87,7 @@ runs:
+-        PLUGIN: ${{ inputs.plugin }}
+-        DSH_VERSION: ${{ inputs.dsh-version }}
+-        CONFIG: ${{ inputs.config }}
+-        OUTPUT: ${{ inputs.output }}
+-        EXTRA_ARGS: ${{ inputs.args }}
+-      run: |
+-        plugin="$PLUGIN"
+-        if [[ "$plugin" != /* && -e "$GITHUB_WORKSPACE/$plugin" ]]; then
+-          plugin="$GITHUB_WORKSPACE/$plugin"
+-        fi
+-        command=(node "$GITHUB_ACTION_PATH/../../../dist/src/cli.js" "$plugin" --dsh "$DSH_VERSION" --output "$GITHUB_WORKSPACE/$OUTPUT")
+-        [[ -z "$CONFIG" ]] || command+=(--config "$GITHUB_WORKSPACE/$CONFIG")
+-        if [[ -n "$EXTRA_ARGS" ]]; then
+-          read -r -a extra <<< "$EXTRA_ARGS"
+-          command+=("${extra[@]}")
+-        fi
+-        set +e
+-        "${command[@]}"
+-        code=$?
+-        set -e
+-        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+-        exit 0
++        INPUT_PLUGIN: ${{ inputs.plugin }}
++        INPUT_DSH_VERSION: ${{ inputs.dsh-version }}
++        INPUT_CONFIG: ${{ inputs.config }}
++        INPUT_ARGS: ${{ inputs.args }}
++        INPUT_ARGS_JSON: ${{ inputs.args-json }}
++        RESOLVED_OUTPUT: ${{ steps.paths.outputs.output }}
++      run: node "$GITHUB_ACTION_PATH/../../../dist/src/action/run.js"
+@@ -76 +96 @@ runs:
+-      uses: mikepenz/action-junit-report@3585e9575db828022551b4231f165eb59a0e74e3 # v5.6.2
++      uses: mikepenz/action-junit-report@d9f48fc87bc235f7e214acf696ca5abc0a986f16 # v6.4.2
+@@ -78,2 +98,2 @@ runs:
+-        report_paths: ${{ github.workspace }}/${{ inputs.output }}/junit.xml
+-        check_name: DSH lifecycle
++        report_paths: ${{ github.workspace }}/${{ steps.paths.outputs.output }}/junit.xml
++        check_name: ${{ steps.paths.outputs.check-name }}
+@@ -81,0 +102 @@ runs:
++      id: evidence
+@@ -83 +104 @@ runs:
+-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+@@ -85,2 +106,2 @@ runs:
+-        name: dsh-testkit-${{ github.run_id }}
+-        path: ${{ github.workspace }}/${{ inputs.output }}
++        name: ${{ steps.paths.outputs.artifact-name }}
++        path: ${{ github.workspace }}/${{ steps.paths.outputs.output }}
+@@ -87,0 +109 @@ runs:
++        retention-days: ${{ inputs.artifact-retention-days }}
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index beaac79..1e15bae 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -7,0 +8,4 @@ on:
++concurrency:
++  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
++  cancel-in-progress: true
++
+@@ -10 +13,0 @@ permissions:
+-  checks: write
+@@ -12,0 +16,27 @@ jobs:
++  changes:
++    runs-on: ubuntu-latest
++    outputs:
++      lifecycle: ${{ steps.filter.outputs.lifecycle }}
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          fetch-depth: 0
++      - id: filter
++        name: Detect lifecycle-impacting changes
++        shell: bash
++        env:
++          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
++        run: |
++          base="$BASE_SHA"
++          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
++            base="$(git rev-list --max-parents=0 HEAD)"
++          fi
++          lifecycle=false
++          while IFS= read -r file; do
++            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
++              lifecycle=true
++              break
++            fi
++          done < <(git diff --name-only "$base" "$GITHUB_SHA")
++          echo "lifecycle=$lifecycle" >> "$GITHUB_OUTPUT"
++
+@@ -16,2 +46,2 @@ jobs:
+-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+@@ -20 +50 @@ jobs:
+-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+@@ -25,0 +56,15 @@ jobs:
++
++  real-host:
++    needs: [changes, validate]
++    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '22'
++          cache: pnpm
++      - run: pnpm install --frozen-lockfile
+@@ -29,0 +75,2 @@ jobs:
++    needs: [changes, validate]
++    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+@@ -33,0 +81,8 @@ jobs:
++    strategy:
++      fail-fast: false
++      matrix:
++        include:
++          - plugin: fixtures/healthy-plugin
++            config: fixtures/healthy-plugin/dsh-testkit.yaml
++          - plugin: fixtures/boot-failure-plugin
++            config: fixtures/boot-failure-plugin/dsh-testkit.yaml
+@@ -35 +90 @@ jobs:
+-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+@@ -38 +93 @@ jobs:
+-          plugin: fixtures/healthy-plugin
++          plugin: ${{ matrix.plugin }}
+@@ -40 +95,2 @@ jobs:
+-          config: fixtures/healthy-plugin/dsh-testkit.yaml
++          config: ${{ matrix.config }}
++          artifact-retention-days: '14'
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+new file mode 100644
+index 0000000..60af983
+--- /dev/null
++++ b/.github/workflows/release.yml
+@@ -0,0 +1,58 @@
++name: Release npm Package
++
++on:
++  push:
++    tags:
++      - 'v*.*.*'
++
++concurrency:
++  group: npm-release-${{ github.ref }}
++  cancel-in-progress: false
++
++permissions:
++  contents: read
++  id-token: write
++
++jobs:
++  publish:
++    runs-on: ubuntu-latest
++    environment: npm
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          ref: ${{ github.ref }}
++          fetch-depth: 0
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '24'
++          registry-url: https://registry.npmjs.org
++          package-manager-cache: false
++      - name: Pin trusted-publishing npm client
++        run: npm install --global npm@11.19.0
++      - name: Verify release identity
++        shell: bash
++        run: |
++          version="$(node -p "require('./package.json').version")"
++          test "$GITHUB_REF_NAME" = "v$version"
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-list -n 1 "$GITHUB_REF_NAME")" = "$GITHUB_SHA"
++      - run: pnpm install --frozen-lockfile
++      - run: pnpm validate
++      - run: pnpm test:e2e
++      - run: pnpm test:pack
++      - name: Publish with npm Trusted Publishing
++        run: npm publish --access public
++      - name: Verify public package
++        shell: bash
++        run: |
++          version="$(node -p "require('./package.json').version")"
++          for attempt in 1 2 3 4 5; do
++            published="$(npm view "dsh-testkit@$version" version 2>/dev/null || true)"
++            [[ "$published" == "$version" ]] && exit 0
++            sleep $((attempt * 5))
++          done
++          echo "dsh-testkit@$version was not visible from the public registry" >&2
++          exit 1
+diff --git a/.gitignore b/.gitignore
+index b875fcf..93357bc 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -2,0 +3 @@ dist/
++assets/runner-pnpm-lock.yaml
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b0f6fe1..6f8d629 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,0 +7,19 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
++## [0.1.2] - 2026-08-15
++
++### Added
++
++- Added `--case` lifecycle-stage reruns with required-prefix execution, cleanup, report identity, and reproduction commands.
++- Added runtime and published JSON Schema compatibility fixtures for the v1 scenario and report contracts.
++- Added an explicit DSH adapter support registry for `@deepseek-ai/dsh@0.1.0-rc.6`.
++- Added an OIDC trusted-publishing workflow for npm releases with automatic provenance.
++
++### Fixed
++
++- Made composite Action output, JUnit check, and artifact identities safe for plugin matrices and repeated invocations.
++- Preserved complex Action arguments through `args-json` and exposed artifact identity outputs.
++- Removed duplicated runner lockfiles, embedded TypeScript sources in published source maps, and made packed-consumer cleanup deterministic.
++
++### Security
++
++- Scoped GitHub Actions write permissions to the JUnit job and cancelled superseded CI runs.
++
+@@ -25 +44,2 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.1...HEAD
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...HEAD
++[0.1.2]: https://github.com/iiwish/dsh-testkit/compare/v0.1.1...v0.1.2
+diff --git a/README.md b/README.md
+index 4a999f3..bda376a 100644
+--- a/README.md
++++ b/README.md
+@@ -33,0 +34,2 @@ One scenario records these ordered stages:
++The current DSH adapter supports `@deepseek-ai/dsh@0.1.0-rc.6`. Other exact versions fail with exit code `4` before a runner is created, preventing host-version drift from being reported as a plugin failure.
++
+@@ -75,0 +78,8 @@ Full or explicitly repeated runs retain each complete report under `attempts/{nn
++Lifecycle stages are stable case identifiers. Rerun a failed stage with its required prefix and the same scenario identity using `--case`:
++
++```bash
++pnpm dsh-test . --dsh 0.1.0-rc.6 --case boot
++```
++
++Later stages are recorded as skipped and cleanup still runs. The selected case is preserved in `report.json` and the reproduction command.
++
+@@ -88,0 +99,4 @@ The composite Action publishes JUnit and uploads the complete run directory:
++Matrix jobs derive unique output directories, check names, and artifact names. `artifact-name`, `check-name`, `output`, and `artifact-retention-days` remain configurable; `artifact-id`, `artifact-url`, and `artifact-digest` are Action outputs. Pass complex extra options without shell quoting loss through `args-json`, for example `args-json: '["--expect-row", "row with spaces"]'`.
++
++The composite Action targets GitHub.com because `actions/upload-artifact@v4+` is unavailable on GitHub Enterprise Server. GHES and other CI systems can invoke the `dsh-test` CLI directly and retain the same JSON/JUnit evidence.
++
+diff --git a/assets/runner-pnpm-lock.yaml b/assets/runner-pnpm-lock.yaml
+deleted file mode 100644
+index 78ae2be..0000000
+--- a/assets/runner-pnpm-lock.yaml
++++ /dev/null
+@@ -1,1627 +0,0 @@
+-lockfileVersion: '9.0'
+-
+-settings:
+-  autoInstallPeers: true
+-  excludeLinksFromLockfile: false
+-
+-importers:
+-
+-  .:
+-    dependencies:
+-      commander:
+-        specifier: 15.0.0
+-        version: 15.0.0
+-      xmlbuilder2:
+-        specifier: 4.0.3
+-        version: 4.0.3
+-      yaml:
+-        specifier: 2.9.0
+-        version: 2.9.0
+-      zod:
+-        specifier: 4.4.3
+-        version: 4.4.3
+-    devDependencies:
+-      '@types/node':
+-        specifier: 24.13.3
+-        version: 24.13.3
+-      '@vitest/coverage-v8':
+-        specifier: 3.2.7
+-        version: 3.2.7(vitest@3.2.7(@types/node@24.13.3)(yaml@2.9.0))
+-      typescript:
+-        specifier: 5.9.2
+-        version: 5.9.2
+-      vitest:
+-        specifier: 3.2.7
+-        version: 3.2.7(@types/node@24.13.3)(yaml@2.9.0)
+-
+-packages:
+-
+-  '@ampproject/remapping@2.3.0':
+-    resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
+-    engines: {node: '>=6.0.0'}
+-
+-  '@babel/helper-string-parser@7.29.7':
+-    resolution: {integrity: sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==}
+-    engines: {node: '>=6.9.0'}
+-
+-  '@babel/helper-validator-identifier@7.29.7':
+-    resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
+-    engines: {node: '>=6.9.0'}
+-
+-  '@babel/parser@7.29.8':
+-    resolution: {integrity: sha512-E8lTAYNB1KW+FH+VGJuZM1ioAx2E6oVlvQFRrf5P8ZZmsiJXYAD9vTFV7yyEURNzgh1dFqMZuO6tUwcARbqFCA==}
+-    engines: {node: '>=6.0.0'}
+-    hasBin: true
+-
+-  '@babel/types@7.29.8':
+-    resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
+-    engines: {node: '>=6.9.0'}
+-
+-  '@bcoe/v8-coverage@1.0.2':
+-    resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
+-    engines: {node: '>=18'}
+-
+-  '@esbuild/aix-ppc64@0.28.2':
+-    resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
+-    engines: {node: '>=18'}
+-    cpu: [ppc64]
+-    os: [aix]
+-
+-  '@esbuild/android-arm64@0.28.2':
+-    resolution: {integrity: sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [android]
+-
+-  '@esbuild/android-arm@0.28.2':
+-    resolution: {integrity: sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==}
+-    engines: {node: '>=18'}
+-    cpu: [arm]
+-    os: [android]
+-
+-  '@esbuild/android-x64@0.28.2':
+-    resolution: {integrity: sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [android]
+-
+-  '@esbuild/darwin-arm64@0.28.2':
+-    resolution: {integrity: sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [darwin]
+-
+-  '@esbuild/darwin-x64@0.28.2':
+-    resolution: {integrity: sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [darwin]
+-
+-  '@esbuild/freebsd-arm64@0.28.2':
+-    resolution: {integrity: sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [freebsd]
+-
+-  '@esbuild/freebsd-x64@0.28.2':
+-    resolution: {integrity: sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [freebsd]
+-
+-  '@esbuild/linux-arm64@0.28.2':
+-    resolution: {integrity: sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [linux]
+-
+-  '@esbuild/linux-arm@0.28.2':
+-    resolution: {integrity: sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==}
+-    engines: {node: '>=18'}
+-    cpu: [arm]
+-    os: [linux]
+-
+-  '@esbuild/linux-ia32@0.28.2':
+-    resolution: {integrity: sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==}
+-    engines: {node: '>=18'}
+-    cpu: [ia32]
+-    os: [linux]
+-
+-  '@esbuild/linux-loong64@0.28.2':
+-    resolution: {integrity: sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==}
+-    engines: {node: '>=18'}
+-    cpu: [loong64]
+-    os: [linux]
+-
+-  '@esbuild/linux-mips64el@0.28.2':
+-    resolution: {integrity: sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==}
+-    engines: {node: '>=18'}
+-    cpu: [mips64el]
+-    os: [linux]
+-
+-  '@esbuild/linux-ppc64@0.28.2':
+-    resolution: {integrity: sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==}
+-    engines: {node: '>=18'}
+-    cpu: [ppc64]
+-    os: [linux]
+-
+-  '@esbuild/linux-riscv64@0.28.2':
+-    resolution: {integrity: sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==}
+-    engines: {node: '>=18'}
+-    cpu: [riscv64]
+-    os: [linux]
+-
+-  '@esbuild/linux-s390x@0.28.2':
+-    resolution: {integrity: sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==}
+-    engines: {node: '>=18'}
+-    cpu: [s390x]
+-    os: [linux]
+-
+-  '@esbuild/linux-x64@0.28.2':
+-    resolution: {integrity: sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [linux]
+-
+-  '@esbuild/netbsd-arm64@0.28.2':
+-    resolution: {integrity: sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [netbsd]
+-
+-  '@esbuild/netbsd-x64@0.28.2':
+-    resolution: {integrity: sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [netbsd]
+-
+-  '@esbuild/openbsd-arm64@0.28.2':
+-    resolution: {integrity: sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [openbsd]
+-
+-  '@esbuild/openbsd-x64@0.28.2':
+-    resolution: {integrity: sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [openbsd]
+-
+-  '@esbuild/openharmony-arm64@0.28.2':
+-    resolution: {integrity: sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [openharmony]
+-
+-  '@esbuild/sunos-x64@0.28.2':
+-    resolution: {integrity: sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [sunos]
+-
+-  '@esbuild/win32-arm64@0.28.2':
+-    resolution: {integrity: sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==}
+-    engines: {node: '>=18'}
+-    cpu: [arm64]
+-    os: [win32]
+-
+-  '@esbuild/win32-ia32@0.28.2':
+-    resolution: {integrity: sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==}
+-    engines: {node: '>=18'}
+-    cpu: [ia32]
+-    os: [win32]
+-
+-  '@esbuild/win32-x64@0.28.2':
+-    resolution: {integrity: sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==}
+-    engines: {node: '>=18'}
+-    cpu: [x64]
+-    os: [win32]
+-
+-  '@isaacs/cliui@8.0.2':
+-    resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
+-    engines: {node: '>=12'}
+-
+-  '@istanbuljs/schema@0.1.6':
+-    resolution: {integrity: sha512-+Sg6GCR/wy1oSmQDFq4LQDAhm3ETKnorxN+y5nbLULOR3P0c14f2Wurzj3/xqPXtasLFfHd5iRFQ7AJt4KH2cw==}
+-    engines: {node: '>=8'}
+-
+-  '@jridgewell/gen-mapping@0.3.5':
+-    resolution: {integrity: sha512-IzL8ZoEDIBRWEzlCcRhOaCupYyN5gdIK+Q6fbFdPDg6HqX6jpkItn7DFIpW9LQzXG6Df9sA7+OKnq0qlz/GaQg==}
+-    engines: {node: '>=6.0.0'}
+-
+-  '@jridgewell/resolve-uri@3.1.2':
+-    resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
+-    engines: {node: '>=6.0.0'}
+-
+-  '@jridgewell/set-array@1.2.1':
+-    resolution: {integrity: sha512-R8gLRTZeyp03ymzP/6Lil/28tGeGEzhx1q2k703KGWRAI1VdvPIXdG70VJc2pAMw3NA6JKL5hhFu1sJX0Mnn/A==}
+-    engines: {node: '>=6.0.0'}
+-
+-  '@jridgewell/sourcemap-codec@1.5.0':
+-    resolution: {integrity: sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==}
+-
+-  '@jridgewell/trace-mapping@0.3.31':
+-    resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+-
+-  '@napi-rs/lzma-linux-x64-gnu@1.5.1':
+-    resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
+-    engines: {node: ^22.20 || ^24.12 || >=25}
+-    cpu: [x64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@oozcitak/dom@2.0.2':
+-    resolution: {integrity: sha512-GjpKhkSYC3Mj4+lfwEyI1dqnsKTgwGy48ytZEhm4A/xnH/8z9M3ZVXKr/YGQi3uCLs1AEBS+x5T2JPiueEDW8w==}
+-    engines: {node: '>=20.0'}
+-
+-  '@oozcitak/infra@2.0.2':
+-    resolution: {integrity: sha512-2g+E7hoE2dgCz/APPOEK5s3rMhJvNxSMBrP+U+j1OWsIbtSpWxxlUjq1lU8RIsFJNYv7NMlnVsCuHcUzJW+8vA==}
+-    engines: {node: '>=20.0'}
+-
+-  '@oozcitak/url@3.0.0':
+-    resolution: {integrity: sha512-ZKfET8Ak1wsLAiLWNfFkZc/BraDccuTJKR6svTYc7sVjbR+Iu0vtXdiDMY4o6jaFl5TW2TlS7jbLl4VovtAJWQ==}
+-    engines: {node: '>=20.0'}
+-
+-  '@oozcitak/util@10.0.0':
+-    resolution: {integrity: sha512-hAX0pT/73190NLqBPPWSdBVGtbY6VOhWYK3qqHqtXQ1gK7kS2yz4+ivsN07hpJ6I3aeMtKP6J6npsEKOAzuTLA==}
+-    engines: {node: '>=20.0'}
+-
+-  '@pkgjs/parseargs@0.11.0':
+-    resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
+-    engines: {node: '>=14'}
+-
+-  '@rollup/rollup-android-arm-eabi@4.62.4':
+-    resolution: {integrity: sha512-RrPokAb7dmbxFoeO3TloqHyOjgye8RkBhSqmp4aJMIex4c9r46ZstPnleDQOq1t46VOVjwIuwNogIqbodV1Vvg==}
+-    cpu: [arm]
+-    os: [android]
+-
+-  '@rollup/rollup-android-arm64@4.62.4':
+-    resolution: {integrity: sha512-JKuJc+pnpks2pjy7L/N3v/cAkZxYlnmuZoD840ldbMI5KDbC4iO9NKwPKYdjYFCMAIIlBzYSFHxIJVYzRo2/8A==}
+-    cpu: [arm64]
+-    os: [android]
+-
+-  '@rollup/rollup-darwin-arm64@4.62.4':
+-    resolution: {integrity: sha512-krw5uS2STmvJ02x0uTXHbqQNuz+9eZ1iw+qXk9dmW2gvV4jV7O2hEoOnuhFrpOPiel1mBFtqbxYZZtC46hXLOw==}
+-    cpu: [arm64]
+-    os: [darwin]
+-
+-  '@rollup/rollup-darwin-x64@4.62.4':
+-    resolution: {integrity: sha512-wsTxtgApb4PrOsNJIm0FZ1h3WvCC+k9uxLJ4ad75hgoS4NiRes2SoJFlDAyMwiUY8IssDqGcHbXuN0sx1tfF1A==}
+-    cpu: [x64]
+-    os: [darwin]
+-
+-  '@rollup/rollup-freebsd-arm64@4.62.4':
+-    resolution: {integrity: sha512-GUOnQlyZe3yAXhWOtOMsn5Qkrv5E5mZXa0thbARWi5Ei2szlVXJFQhddZ4HbAzh8q92w5twp+CQvs/eFanz9YQ==}
+-    cpu: [arm64]
+-    os: [freebsd]
+-
+-  '@rollup/rollup-freebsd-x64@4.62.4':
+-    resolution: {integrity: sha512-/Y7f3QuxjzPKsjA/rfEDa3+0vXqyjmJ50Ln8dPpCmWkKTrUoWHG1cWhTqaAMLob2m2nESWuC7yGrREz019Ztqg==}
+-    cpu: [x64]
+-    os: [freebsd]
+-
+-  '@rollup/rollup-linux-arm-gnueabihf@4.62.4':
+-    resolution: {integrity: sha512-81wiiX3v7aqy+T+bT61TJ78yJjRquqFFTTbAPt08imfQQzkPIW8t6aJbkTagtCCrXMNc9D66+geqlK7ydLPNqA==}
+-    cpu: [arm]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-arm-musleabihf@4.62.4':
+-    resolution: {integrity: sha512-9kmDIvNZqdoHOBZgNtpTBeLWYO/LVipM3H/j62P8848/l/VPEQL6N3uxU9pvP1oZAsXyC2MEnFP3ovRjo7WYNQ==}
+-    cpu: [arm]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-linux-arm64-gnu@4.62.4':
+-    resolution: {integrity: sha512-CcnXHWnXg69g+DX5VWL3FHts3qMRN2uVEHX+BZvGLdd07/gXkn3ePjYtO1LDJvxkGKVHMclKBRa1QUTH+6toYQ==}
+-    cpu: [arm64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-arm64-musl@4.62.4':
+-    resolution: {integrity: sha512-iFOibiHnTRuhrWLlRsOQFdZJJIa7S8OwkneJr4ocALP16u5yk6lWLINFwhHaEqBFMsKDUZofLkGos7+CPzGB3g==}
+-    cpu: [arm64]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-linux-loong64-gnu@4.62.4':
+-    resolution: {integrity: sha512-XnWYMI7euHlb5a871xPja+Gm7DRCFU+FGRrtS2sMq9N8FvqtpagUy6gD4YOemC5MRk9xbh8+jYMEJbigFQwsgA==}
+-    cpu: [loong64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-loong64-musl@4.62.4':
+-    resolution: {integrity: sha512-qGDAlO0U8xedCcsdRm9oaoQY8DAx/QT7uIxJWhCdx0ceIWX783UC9QSYkdpzAe29wNiVfp24+bZdQmn49o45SQ==}
+-    cpu: [loong64]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-linux-ppc64-gnu@4.62.4':
+-    resolution: {integrity: sha512-ru4H6ezD7ysA5EiEK6qkkaEb4modH8CTej6kUy/gQi20u3kB3G7Zn8snXXkeJSCOFKG/rbPPtM/+9Wgas1961w==}
+-    cpu: [ppc64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-ppc64-musl@4.62.4':
+-    resolution: {integrity: sha512-2W4MO5WQVJnbJaZdvDb9rhBDuFU1nKIepPFpJUBsTh2k1YY2g+ODViaWuyOAjQ5cOP7NvrvLzt3wvHOoiAvc7w==}
+-    cpu: [ppc64]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-linux-riscv64-gnu@4.62.4':
+-    resolution: {integrity: sha512-+fxjfuoAmVMCYV5QyjoIpu0cp5DOiOTeqYFk1AVaxGr+/ravWLX89XfQmptsoWcaVy/TGf2hexzbUOrCQIL1CQ==}
+-    cpu: [riscv64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-riscv64-musl@4.62.4':
+-    resolution: {integrity: sha512-jTn8JfHGL4djjFxPuM06LmNUJDsst2jeVlsd9OmIH6zc5sC9K6rIuO4YajXatLUpBmBKl6b35ro1QZocLi+tcA==}
+-    cpu: [riscv64]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-linux-s390x-gnu@4.62.4':
+-    resolution: {integrity: sha512-oCJCJL4pXsoDcP2QZ+JVlPTIRc6266zsIaeJJsWImmF7HO0W8nb6HuSgZlMWxJwaPf8ehbSw8yo0EUw925hKsA==}
+-    cpu: [s390x]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-x64-gnu@4.62.4':
+-    resolution: {integrity: sha512-W69hukhZ3KKNRCaMIEzKvcFye42hh0FE1+YoYaf5+Ikacuftoco6yO/xouz0hc5d5W/s3yBro5jRiuEE/Q5vUw==}
+-    cpu: [x64]
+-    os: [linux]
+-    libc: [glibc]
+-
+-  '@rollup/rollup-linux-x64-musl@4.62.4':
+-    resolution: {integrity: sha512-qiXbGG2jkjXhzXpsFZSR2Xpb8DN/UaxYsbb/STbuR/6fpaDgRmmaq1B/LmtF2wQFOFOSsK2jdE0RZ3a0zHn4QA==}
+-    cpu: [x64]
+-    os: [linux]
+-    libc: [musl]
+-
+-  '@rollup/rollup-openbsd-x64@4.62.4':
+-    resolution: {integrity: sha512-nWeM//hxv8mIo6jD7Hu4o48DVmV9pbV6gsKaWU+4NFyqHoPKwrkRiZGLKUhOBk8qNmDmpwFtPKg80Bo/Tn4xiQ==}
+-    cpu: [x64]
+-    os: [openbsd]
+-
+-  '@rollup/rollup-openharmony-arm64@4.62.4':
+-    resolution: {integrity: sha512-s62SQ/vgsRSvMwDkOEfTqfgASF0f26ZNaQuTA6Aok5lrikf89yI2W0gFHvZb2Jpgc6N8JnOKZgCK2iciO3CsxQ==}
+-    cpu: [arm64]
+-    os: [openharmony]
+-
+-  '@rollup/rollup-win32-arm64-msvc@4.62.4':
+-    resolution: {integrity: sha512-J6wGf8TVGbXJq+HH+ttTvrcfNKPbuZecV6KT1B8I18BC5IURUh5kl4Yl5OEP5eFIUoI5BWxCsyYMhFsDx8kekw==}
+-    cpu: [arm64]
+-    os: [win32]
+-
+-  '@rollup/rollup-win32-ia32-msvc@4.62.4':
+-    resolution: {integrity: sha512-zmfrQd/0wu6oJs8Vq8KwY/YtsKSsLtKe/HwAP4Wqy8LhWjeT55fHRAkOhYQ12wI3ayS4Tt12d5CDRD7N96SAYQ==}
+-    cpu: [ia32]
+-    os: [win32]
+-
+-  '@rollup/rollup-win32-x64-gnu@4.62.4':
+-    resolution: {integrity: sha512-qPzHqdj9rfUD+w79dtE07zi/kFwKyCJqplp5K5ygeLTp7jLpAoc16OAH39HSmRC9UpozaecsleI8uAdEj6v2yw==}
+-    cpu: [x64]
+-    os: [win32]
+-
+-  '@rollup/rollup-win32-x64-msvc@4.62.4':
+-    resolution: {integrity: sha512-zD6NdeWEByGE9QF9vCrlJ5YQB4oq9q91kPZS37Jwj5hOkvR1lTBSpsKhKDw4IJtbQ35LsTS1HD9DZYGKIshU1Q==}
+-    cpu: [x64]
+-    os: [win32]
+-
+-  '@types/chai@5.2.3':
+-    resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
+-
+-  '@types/deep-eql@4.0.2':
+-    resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
+-
+-  '@types/estree@1.0.9':
+-    resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+-
+-  '@types/node@24.13.3':
+-    resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
+-
+-  '@vitest/coverage-v8@3.2.7':
+-    resolution: {integrity: sha512-NEGWJS2XNu2PfRLQwOO3CTKj1tTETxNBdk454vDxVBhxJYhPaA/eS0nAI0c+1El1P7a60z8+i+ZrQoGESweGKg==}
+-    peerDependencies:
+-      '@vitest/browser': 3.2.7
+-      vitest: 3.2.7
+-    peerDependenciesMeta:
+-      '@vitest/browser':
+-        optional: true
+-
+-  '@vitest/expect@3.2.7':
+-    resolution: {integrity: sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==}
+-
+-  '@vitest/mocker@3.2.7':
+-    resolution: {integrity: sha512-Trr0hYO9CM3Wj6ksWHRhK9IZpIY6wTMO5u/MqXurMxT57sWBaOPEtP3Oq60ihZuh5JsiagKfz95OcxdEP6dBrA==}
+-    peerDependencies:
+-      msw: ^2.4.9
+-      vite: ^5.0.0 || ^6.0.0 || ^7.0.0-0
+-    peerDependenciesMeta:
+-      msw:
+-        optional: true
+-      vite:
+-        optional: true
+-
+-  '@vitest/pretty-format@3.2.7':
+-    resolution: {integrity: sha512-KUHlwqVu0sRlhCdyPdQ/wBoTfRahjUky1MubOmYw9fWfIZy1gNoHpuaaQBPAaMaVYdQYHJLurzj8ECCj5OwTqA==}
+-
+-  '@vitest/runner@3.2.7':
+-    resolution: {integrity: sha512-sB9y4ovltoQP+WaUPwmSxO9WIg9Ig694Di5PalVPsYHklAdE027mehpWF2SQSVq+k6sFgaivbTjTJwZLSHbedA==}
+-
+-  '@vitest/snapshot@3.2.7':
+-    resolution: {integrity: sha512-7C+MwShwtBSI5Buwoyg3s/iY1eHL9PKAf+O1wVh/TdnjXUtkoL/9YQtre90i4MtNXM6edP1wJ2zOBpfCyhIS7g==}
+-
+-  '@vitest/spy@3.2.7':
+-    resolution: {integrity: sha512-Q2eQGI6d2L/hBtZ0qNuKcAGid68XK6cv1xsoaIma6PaJhHPoqcEJhYpXZ/5myCMqkNgtP6UKuBhbc0nHKnrkuQ==}
+-
+-  '@vitest/utils@3.2.7':
+-    resolution: {integrity: sha512-x6BDOd7dyo3PFLY3I9/HJ25X/6OurhGXk2/B9gOZNPF7XDVjeBK4k01lQE5uvDpbuheErh91qYuE1E2OEjK3Rw==}
+-
+-  ansi-regex@5.0.1:
+-    resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
+-    engines: {node: '>=8'}
+-
+-  ansi-regex@6.3.0:
+-    resolution: {integrity: sha512-WpDfL7NO6j7tH88IDBNVdUJxDh9nmCteAVW9dsep846XdwF4naCBK+/tGLX3KJgcpgMRXCFlTM2hKGoK9FsdrQ==}
+-    engines: {node: '>=12'}
+-
+-  ansi-styles@4.0.0:
+-    resolution: {integrity: sha512-8zjUtFJ3db/QoPXuuEMloS2AUf79/yeyttJ7Abr3hteopJu9HK8vsgGviGUMq+zyA6cZZO6gAyZoMTF6TgaEjA==}
+-    engines: {node: '>=8'}
+-
+-  ansi-styles@6.1.0:
+-    resolution: {integrity: sha512-VbqNsoz55SYGczauuup0MFUyXNQviSpFTj1RQtFzmQLk18qbVSpTFFGMT293rmDaQuKCT6InmbuEyUne4mTuxQ==}
+-    engines: {node: '>=12'}
+-
+-  argparse@2.0.1:
+-    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+-
+-  assertion-error@2.0.1:
+-    resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
+-    engines: {node: '>=12'}
+-
+-  ast-v8-to-istanbul@0.3.12:
+-    resolution: {integrity: sha512-BRRC8VRZY2R4Z4lFIL35MwNXmwVqBityvOIwETtsCSwvjl0IdgFsy9NhdaA6j74nUdtJJlIypeRhpDam19Wq3g==}
+-
+-  balanced-match@1.0.0:
+-    resolution: {integrity: sha512-9Y0g0Q8rmSt+H33DfKv7FOc3v+iRI+o1lbzt8jGcIosYW37IIW/2XVYq5NPdmaD5NQ59Nk26Kl/vZbwW9Fr8vg==}
+-
+-  balanced-match@4.0.4:
+-    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+-    engines: {node: 18 || 20 || >=22}
+-
+-  brace-expansion@2.1.4:
+-    resolution: {integrity: sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg==}
+-
+-  brace-expansion@5.0.9:
+-    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
+-    engines: {node: 20 || >=22}
+-
+-  cac@6.7.14:
+-    resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
+-    engines: {node: '>=8'}
+-
+-  chai@5.2.0:
+-    resolution: {integrity: sha512-mCuXncKXk5iCLhfhwTc0izo0gtEmpz5CtG2y8GiOINBlMVS6v8TMRc5TaLWKS6692m9+dVVfzgeVxR5UxWHTYw==}
+-    engines: {node: '>=12'}
+-
+-  check-error@2.1.3:
+-    resolution: {integrity: sha512-PAJdDJusoxnwm1VwW07VWwUN1sl7smmC3OKggvndJFadxxDRyFJBX/ggnu/KE4kQAB7a3Dp8f/YXC1FlUprWmA==}
+-    engines: {node: '>= 16'}
+-
+-  color-convert@2.0.1:
+-    resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
+-    engines: {node: '>=7.0.0'}
+-
+-  color-name@1.1.4:
+-    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
+-
+-  commander@15.0.0:
+-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+-    engines: {node: '>=22.12.0'}
+-
+-  cross-spawn@7.0.6:
+-    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
+-    engines: {node: '>= 8'}
+-
+-  debug@4.4.3:
+-    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
+-    engines: {node: '>=6.0'}
+-    peerDependencies:
+-      supports-color: '*'
+-    peerDependenciesMeta:
+-      supports-color:
+-        optional: true
+-
+-  deep-eql@5.0.2:
+-    resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
+-    engines: {node: '>=6'}
+-
+-  eastasianwidth@0.2.0:
+-    resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
+-
+-  emoji-regex@8.0.0:
+-    resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
+-
+-  emoji-regex@9.2.2:
+-    resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
+-
+-  es-module-lexer@1.7.0:
+-    resolution: {integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==}
+-
+-  esbuild@0.28.2:
+-    resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
+-    engines: {node: '>=18'}
+-    hasBin: true
+-
+-  estree-walker@3.0.3:
+-    resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
+-
+-  expect-type@1.4.0:
+-    resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
+-    engines: {node: '>=12.0.0'}
+-
+-  fdir@6.5.0:
+-    resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
+-    engines: {node: '>=12.0.0'}
+-    peerDependencies:
+-      picomatch: ^3 || ^4
+-    peerDependenciesMeta:
+-      picomatch:
+-        optional: true
+-
+-  foreground-child@3.1.0:
+-    resolution: {integrity: sha512-lXeSPRCndWPaipZbtI4CkvTZpF6OPsy19dkvf7+5AHeJD+w+iAKPc9Q78xWBmX4SdR+8xrtY9jTXs/YDv8q+Ug==}
+-    engines: {node: '>=14'}
+-
+-  fsevents@2.3.3:
+-    resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
+-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+-    os: [darwin]
+-
+-  glob@10.5.0:
+-    resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
+-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+-    hasBin: true
+-
+-  has-flag@4.0.0:
+-    resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
+-    engines: {node: '>=8'}
+-
+-  html-escaper@2.0.2:
+-    resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
+-
+-  is-fullwidth-code-point@3.0.0:
+-    resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
+-    engines: {node: '>=8'}
+-
+-  isexe@2.0.0:
+-    resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+-
+-  istanbul-lib-coverage@3.2.2:
+-    resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
+-    engines: {node: '>=8'}
+-
+-  istanbul-lib-report@3.0.1:
+-    resolution: {integrity: sha512-GCfE1mtsHGOELCU8e/Z7YWzpmybrx/+dSTfLrvY8qRmaY6zXTKWn6WQIjaAFw069icm6GVMNkgu0NzI4iPZUNw==}
+-    engines: {node: '>=10'}
+-
+-  istanbul-lib-source-maps@5.0.6:
+-    resolution: {integrity: sha512-yg2d+Em4KizZC5niWhQaIomgf5WlL4vOOjZ5xGCmF8SnPE/mDWWXgvRExdcpCgh9lLRRa1/fSYp2ymmbJ1pI+A==}
+-    engines: {node: '>=10'}
+-
+-  istanbul-reports@3.2.0:
+-    resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
+-    engines: {node: '>=8'}
+-
+-  jackspeak@3.1.2:
+-    resolution: {integrity: sha512-kWmLKn2tRtfYMF/BakihVVRzBKOxz4gJMiL2Rj91WnAB5TPZumSH99R/Yf1qE1u4uRimvCSJfm6hnxohXeEXjQ==}
+-    engines: {node: '>=14'}
+-
+-  js-tokens@10.0.0:
+-    resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
+-
+-  js-tokens@9.0.1:
+-    resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
+-
+-  js-yaml@4.3.1:
+-    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
+-    hasBin: true
+-
+-  loupe@3.2.1:
+-    resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
+-
+-  lru-cache@10.2.0:
+-    resolution: {integrity: sha512-2bIM8x+VAf6JT4bKAljS1qUWgMsqZRPGJS6FSahIMPVvctcNhyVp7AJu7quxOW9jwkryBReKZY5tY5JYv2n/7Q==}
+-    engines: {node: 14 || >=16.14}
+-
+-  magic-string@0.30.17:
+-    resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
+-
+-  magicast@0.3.5:
+-    resolution: {integrity: sha512-L0WhttDl+2BOsybvEOLK7fW3UA0OQ0IQ2d6Zl2x/a6vVRs3bAY0ECOSHHeL5jD+SbOpOCUEi0y1DgHEn9Qn1AQ==}
+-
+-  make-dir@4.0.0:
+-    resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
+-    engines: {node: '>=10'}
+-
+-  minimatch@10.2.6:
+-    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
+-    engines: {node: 18 || 20 || >=22}
+-
+-  minimatch@9.0.9:
+-    resolution: {integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==}
+-    engines: {node: '>=16 || 14 >=14.17'}
+-
+-  minipass@7.1.3:
+-    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
+-    engines: {node: '>=16 || 14 >=14.17'}
+-
+-  ms@2.1.3:
+-    resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+-
+-  nanoid@3.3.18:
+-    resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
+-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+-    hasBin: true
+-
+-  package-json-from-dist@1.0.1:
+-    resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
+-
+-  path-key@3.1.1:
+-    resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
+-    engines: {node: '>=8'}
+-
+-  path-scurry@1.11.1:
+-    resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
+-    engines: {node: '>=16 || 14 >=14.18'}
+-
+-  pathe@2.0.3:
+-    resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
+-
+-  pathval@2.0.1:
+-    resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
+-    engines: {node: '>= 14.16'}
+-
+-  picocolors@1.1.1:
+-    resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+-
+-  picomatch@4.0.5:
+-    resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
+-    engines: {node: '>=12'}
+-
+-  postcss@8.5.26:
+-    resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
+-    engines: {node: ^10 || ^12 || >=14}
+-
+-  rollup@4.62.4:
+-    resolution: {integrity: sha512-RXOqwaPsBGjMNMa4sQjDjHieHEZDFoj/Rdr46l2MU5DfEs16wHJPC2RPTPHWhNl+M3aI472LLqFkFKut4SblOg==}
+-    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
+-    hasBin: true
+-
+-  semver@7.8.5:
+-    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+-    engines: {node: '>=10'}
+-    hasBin: true
+-
+-  shebang-command@2.0.0:
+-    resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
+-    engines: {node: '>=8'}
+-
+-  shebang-regex@3.0.0:
+-    resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
+-    engines: {node: '>=8'}
+-
+-  siginfo@2.0.0:
+-    resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
+-
+-  signal-exit@4.1.0:
+-    resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
+-    engines: {node: '>=14'}
+-
+-  source-map-js@1.2.1:
+-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
+-    engines: {node: '>=0.10.0'}
+-
+-  stackback@0.0.2:
+-    resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
+-
+-  std-env@3.9.0:
+-    resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
+-
+-  string-width@4.2.0:
+-    resolution: {integrity: sha512-zUz5JD+tgqtuDjMhwIg5uFVV3dtqZ9yQJlZVfq4I01/K5Paj5UHj7VyrQOJvzawSVlKpObApbfD0Ed6yJc+1eg==}
+-    engines: {node: '>=8'}
+-
+-  string-width@5.1.2:
+-    resolution: {integrity: sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==}
+-    engines: {node: '>=12'}
+-
+-  strip-ansi@6.0.1:
+-    resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
+-    engines: {node: '>=8'}
+-
+-  strip-ansi@7.2.0:
+-    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
+-    engines: {node: '>=12'}
+-
+-  strip-literal@3.0.0:
+-    resolution: {integrity: sha512-TcccoMhJOM3OebGhSBEmp3UZ2SfDMZUEBdRA/9ynfLi8yYajyWX3JiXArcJt4Umh4vISpspkQIY8ZZoCqjbviA==}
+-
+-  supports-color@7.1.0:
+-    resolution: {integrity: sha512-oRSIpR8pxT1Wr2FquTNnGet79b3BWljqOuoW/h4oBhxJ/HUbX5nX6JSruTkvXDCFMwDPvsaTTbvMLKZWSy0R5g==}
+-    engines: {node: '>=8'}
+-
+-  test-exclude@7.0.2:
+-    resolution: {integrity: sha512-u9E6A+ZDYdp7a4WnarkXPZOx8Ilz46+kby6p1yZ8zsGTz9gYa6FIS7lj2oezzNKmtdyyJNNmmXDppga5GB7kSw==}
+-    engines: {node: '>=18'}
+-
+-  tinybench@2.9.0:
+-    resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
+-
+-  tinyexec@0.3.2:
+-    resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
+-
+-  tinyglobby@0.2.17:
+-    resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
+-    engines: {node: '>=12.0.0'}
+-
+-  tinypool@1.1.1:
+-    resolution: {integrity: sha512-Zba82s87IFq9A9XmjiX5uZA/ARWDrB03OHlq+Vw1fSdt0I+4/Kutwy8BP4Y/y/aORMo61FQ0vIb5j44vSo5Pkg==}
+-    engines: {node: ^18.0.0 || >=20.0.0}
+-
+-  tinyrainbow@2.0.0:
+-    resolution: {integrity: sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw==}
+-    engines: {node: '>=14.0.0'}
+-
+-  tinyspy@4.0.4:
+-    resolution: {integrity: sha512-azl+t0z7pw/z958Gy9svOTuzqIk6xq+NSheJzn5MMWtWTFywIacg2wUlzKFGtt3cthx0r2SxMK0yzJOR0IES7Q==}
+-    engines: {node: '>=14.0.0'}
+-
+-  typescript@5.9.2:
+-    resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
+-    engines: {node: '>=14.17'}
+-    hasBin: true
+-
+-  undici-types@7.18.2:
+-    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
+-
+-  vite-node@3.2.4:
+-    resolution: {integrity: sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==}
+-    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+-    hasBin: true
+-
+-  vite@7.3.6:
+-    resolution: {integrity: sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==}
+-    engines: {node: ^20.19.0 || >=22.12.0}
+-    hasBin: true
+-    peerDependencies:
+-      '@types/node': ^20.19.0 || >=22.12.0
+-      jiti: '>=1.21.0'
+-      less: ^4.0.0
+-      lightningcss: ^1.21.0
+-      sass: ^1.70.0
+-      sass-embedded: ^1.70.0
+-      stylus: '>=0.54.8'
+-      sugarss: ^5.0.0
+-      terser: ^5.16.0
+-      tsx: ^4.8.1
+-      yaml: ^2.4.2
+-    peerDependenciesMeta:
+-      '@types/node':
+-        optional: true
+-      jiti:
+-        optional: true
+-      less:
+-        optional: true
+-      lightningcss:
+-        optional: true
+-      sass:
+-        optional: true
+-      sass-embedded:
+-        optional: true
+-      stylus:
+-        optional: true
+-      sugarss:
+-        optional: true
+-      terser:
+-        optional: true
+-      tsx:
+-        optional: true
+-      yaml:
+-        optional: true
+-
+-  vitest@3.2.7:
+-    resolution: {integrity: sha512-KrxIJ62Fd89gfysR4WotlgZABiz2dqFPgqGzX7s+CwsqLFomRH7777ZcrOD6+WVAh7khPQP41A+BKbpcJFrdEg==}
+-    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+-    hasBin: true
+-    peerDependencies:
+-      '@edge-runtime/vm': '*'
+-      '@types/debug': ^4.1.12
+-      '@types/node': ^18.0.0 || ^20.0.0 || >=22.0.0
+-      '@vitest/browser': 3.2.7
+-      '@vitest/ui': 3.2.7
+-      happy-dom: '*'
+-      jsdom: '*'
+-    peerDependenciesMeta:
+-      '@edge-runtime/vm':
+-        optional: true
+-      '@types/debug':
+-        optional: true
+-      '@types/node':
+-        optional: true
+-      '@vitest/browser':
+-        optional: true
+-      '@vitest/ui':
+-        optional: true
+-      happy-dom:
+-        optional: true
+-      jsdom:
+-        optional: true
+-
+-  which@2.0.1:
+-    resolution: {integrity: sha512-N7GBZOTswtB9lkQBZA4+zAXrjEIWAUOB93AvzUiudRzRxhUdLURQ7D/gAIMY1gatT/LTbmbcv8SiYazy3eYB7w==}
+-    engines: {node: '>= 8'}
+-    hasBin: true
+-
+-  why-is-node-running@2.3.0:
+-    resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
+-    engines: {node: '>=8'}
+-    hasBin: true
+-
+-  wrap-ansi@7.0.0:
+-    resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
+-    engines: {node: '>=10'}
+-
+-  wrap-ansi@8.1.0:
+-    resolution: {integrity: sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ==}
+-    engines: {node: '>=12'}
+-
+-  xmlbuilder2@4.0.3:
+-    resolution: {integrity: sha512-bx8Q1STctnNaaDymWnkfQLKofs0mGNN7rLLapJlGuV3VlvegD7Ls4ggMjE3aUSWItCCzU0PEv45lI87iSigiCA==}
+-    engines: {node: '>=20.0'}
+-
+-  yaml@2.9.0:
+-    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+-    engines: {node: '>= 14.6'}
+-    hasBin: true
+-
+-  zod@4.4.3:
+-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+-
+-snapshots:
+-
+-  '@ampproject/remapping@2.3.0':
+-    dependencies:
+-      '@jridgewell/gen-mapping': 0.3.5
+-      '@jridgewell/trace-mapping': 0.3.31
+-
+-  '@babel/helper-string-parser@7.29.7': {}
+-
+-  '@babel/helper-validator-identifier@7.29.7': {}
+-
+-  '@babel/parser@7.29.8':
+-    dependencies:
+-      '@babel/types': 7.29.8
+-
+-  '@babel/types@7.29.8':
+-    dependencies:
+-      '@babel/helper-string-parser': 7.29.7
+-      '@babel/helper-validator-identifier': 7.29.7
+-
+-  '@bcoe/v8-coverage@1.0.2': {}
+-
+-  '@esbuild/aix-ppc64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/android-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/android-arm@0.28.2':
+-    optional: true
+-
+-  '@esbuild/android-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/darwin-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/darwin-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/freebsd-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/freebsd-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-arm@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-ia32@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-loong64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-mips64el@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-ppc64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-riscv64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-s390x@0.28.2':
+-    optional: true
+-
+-  '@esbuild/linux-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/netbsd-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/netbsd-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/openbsd-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/openbsd-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/openharmony-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/sunos-x64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/win32-arm64@0.28.2':
+-    optional: true
+-
+-  '@esbuild/win32-ia32@0.28.2':
+-    optional: true
+-
+-  '@esbuild/win32-x64@0.28.2':
+-    optional: true
+-
+-  '@isaacs/cliui@8.0.2':
+-    dependencies:
+-      string-width: 5.1.2
+-      string-width-cjs: string-width@4.2.0
+-      strip-ansi: 7.2.0
+-      strip-ansi-cjs: strip-ansi@6.0.1
+-      wrap-ansi: 8.1.0
+-      wrap-ansi-cjs: wrap-ansi@7.0.0
+-
+-  '@istanbuljs/schema@0.1.6': {}
+-
+-  '@jridgewell/gen-mapping@0.3.5':
+-    dependencies:
+-      '@jridgewell/set-array': 1.2.1
+-      '@jridgewell/sourcemap-codec': 1.5.0
+-      '@jridgewell/trace-mapping': 0.3.31
+-
+-  '@jridgewell/resolve-uri@3.1.2': {}
+-
+-  '@jridgewell/set-array@1.2.1': {}
+-
+-  '@jridgewell/sourcemap-codec@1.5.0': {}
+-
+-  '@jridgewell/trace-mapping@0.3.31':
+-    dependencies:
+-      '@jridgewell/resolve-uri': 3.1.2
+-      '@jridgewell/sourcemap-codec': 1.5.0
+-
+-  '@napi-rs/lzma-linux-x64-gnu@1.5.1':
+-    optional: true
+-
+-  '@oozcitak/dom@2.0.2':
+-    dependencies:
+-      '@oozcitak/infra': 2.0.2
+-      '@oozcitak/url': 3.0.0
+-      '@oozcitak/util': 10.0.0
+-
+-  '@oozcitak/infra@2.0.2':
+-    dependencies:
+-      '@oozcitak/util': 10.0.0
+-
+-  '@oozcitak/url@3.0.0':
+-    dependencies:
+-      '@oozcitak/infra': 2.0.2
+-      '@oozcitak/util': 10.0.0
+-
+-  '@oozcitak/util@10.0.0': {}
+-
+-  '@pkgjs/parseargs@0.11.0':
+-    optional: true
+-
+-  '@rollup/rollup-android-arm-eabi@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-android-arm64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-darwin-arm64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-darwin-x64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-freebsd-arm64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-freebsd-x64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-arm-gnueabihf@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-arm-musleabihf@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-arm64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-arm64-musl@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-loong64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-loong64-musl@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-ppc64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-ppc64-musl@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-riscv64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-riscv64-musl@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-s390x-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-x64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-linux-x64-musl@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-openbsd-x64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-openharmony-arm64@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-win32-arm64-msvc@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-win32-ia32-msvc@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-win32-x64-gnu@4.62.4':
+-    optional: true
+-
+-  '@rollup/rollup-win32-x64-msvc@4.62.4':
+-    optional: true
+-
+-  '@types/chai@5.2.3':
+-    dependencies:
+-      '@types/deep-eql': 4.0.2
+-      assertion-error: 2.0.1
+-
+-  '@types/deep-eql@4.0.2': {}
+-
+-  '@types/estree@1.0.9': {}
+-
+-  '@types/node@24.13.3':
+-    dependencies:
+-      undici-types: 7.18.2
+-
+-  '@vitest/coverage-v8@3.2.7(vitest@3.2.7(@types/node@24.13.3)(yaml@2.9.0))':
+-    dependencies:
+-      '@ampproject/remapping': 2.3.0
+-      '@bcoe/v8-coverage': 1.0.2
+-      ast-v8-to-istanbul: 0.3.12
+-      debug: 4.4.3
+-      istanbul-lib-coverage: 3.2.2
+-      istanbul-lib-report: 3.0.1
+-      istanbul-lib-source-maps: 5.0.6
+-      istanbul-reports: 3.2.0
+-      magic-string: 0.30.17
+-      magicast: 0.3.5
+-      std-env: 3.9.0
+-      test-exclude: 7.0.2
+-      tinyrainbow: 2.0.0
+-      vitest: 3.2.7(@types/node@24.13.3)(yaml@2.9.0)
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  '@vitest/expect@3.2.7':
+-    dependencies:
+-      '@types/chai': 5.2.3
+-      '@vitest/spy': 3.2.7
+-      '@vitest/utils': 3.2.7
+-      chai: 5.2.0
+-      tinyrainbow: 2.0.0
+-
+-  '@vitest/mocker@3.2.7(vite@7.3.6(@types/node@24.13.3)(yaml@2.9.0))':
+-    dependencies:
+-      '@vitest/spy': 3.2.7
+-      estree-walker: 3.0.3
+-      magic-string: 0.30.17
+-    optionalDependencies:
+-      vite: 7.3.6(@types/node@24.13.3)(yaml@2.9.0)
+-
+-  '@vitest/pretty-format@3.2.7':
+-    dependencies:
+-      tinyrainbow: 2.0.0
+-
+-  '@vitest/runner@3.2.7':
+-    dependencies:
+-      '@vitest/utils': 3.2.7
+-      pathe: 2.0.3
+-      strip-literal: 3.0.0
+-
+-  '@vitest/snapshot@3.2.7':
+-    dependencies:
+-      '@vitest/pretty-format': 3.2.7
+-      magic-string: 0.30.17
+-      pathe: 2.0.3
+-
+-  '@vitest/spy@3.2.7':
+-    dependencies:
+-      tinyspy: 4.0.4
+-
+-  '@vitest/utils@3.2.7':
+-    dependencies:
+-      '@vitest/pretty-format': 3.2.7
+-      loupe: 3.2.1
+-      tinyrainbow: 2.0.0
+-
+-  ansi-regex@5.0.1: {}
+-
+-  ansi-regex@6.3.0: {}
+-
+-  ansi-styles@4.0.0:
+-    dependencies:
+-      color-convert: 2.0.1
+-
+-  ansi-styles@6.1.0: {}
+-
+-  argparse@2.0.1: {}
+-
+-  assertion-error@2.0.1: {}
+-
+-  ast-v8-to-istanbul@0.3.12:
+-    dependencies:
+-      '@jridgewell/trace-mapping': 0.3.31
+-      estree-walker: 3.0.3
+-      js-tokens: 10.0.0
+-
+-  balanced-match@1.0.0: {}
+-
+-  balanced-match@4.0.4: {}
+-
+-  brace-expansion@2.1.4:
+-    dependencies:
+-      balanced-match: 1.0.0
+-
+-  brace-expansion@5.0.9:
+-    dependencies:
+-      balanced-match: 4.0.4
+-
+-  cac@6.7.14: {}
+-
+-  chai@5.2.0:
+-    dependencies:
+-      assertion-error: 2.0.1
+-      check-error: 2.1.3
+-      deep-eql: 5.0.2
+-      loupe: 3.2.1
+-      pathval: 2.0.1
+-
+-  check-error@2.1.3: {}
+-
+-  color-convert@2.0.1:
+-    dependencies:
+-      color-name: 1.1.4
+-
+-  color-name@1.1.4: {}
+-
+-  commander@15.0.0: {}
+-
+-  cross-spawn@7.0.6:
+-    dependencies:
+-      path-key: 3.1.1
+-      shebang-command: 2.0.0
+-      which: 2.0.1
+-
+-  debug@4.4.3:
+-    dependencies:
+-      ms: 2.1.3
+-
+-  deep-eql@5.0.2: {}
+-
+-  eastasianwidth@0.2.0: {}
+-
+-  emoji-regex@8.0.0: {}
+-
+-  emoji-regex@9.2.2: {}
+-
+-  es-module-lexer@1.7.0: {}
+-
+-  esbuild@0.28.2:
+-    optionalDependencies:
+-      '@esbuild/aix-ppc64': 0.28.2
+-      '@esbuild/android-arm': 0.28.2
+-      '@esbuild/android-arm64': 0.28.2
+-      '@esbuild/android-x64': 0.28.2
+-      '@esbuild/darwin-arm64': 0.28.2
+-      '@esbuild/darwin-x64': 0.28.2
+-      '@esbuild/freebsd-arm64': 0.28.2
+-      '@esbuild/freebsd-x64': 0.28.2
+-      '@esbuild/linux-arm': 0.28.2
+-      '@esbuild/linux-arm64': 0.28.2
+-      '@esbuild/linux-ia32': 0.28.2
+-      '@esbuild/linux-loong64': 0.28.2
+-      '@esbuild/linux-mips64el': 0.28.2
+-      '@esbuild/linux-ppc64': 0.28.2
+-      '@esbuild/linux-riscv64': 0.28.2
+-      '@esbuild/linux-s390x': 0.28.2
+-      '@esbuild/linux-x64': 0.28.2
+-      '@esbuild/netbsd-arm64': 0.28.2
+-      '@esbuild/netbsd-x64': 0.28.2
+-      '@esbuild/openbsd-arm64': 0.28.2
+-      '@esbuild/openbsd-x64': 0.28.2
+-      '@esbuild/openharmony-arm64': 0.28.2
+-      '@esbuild/sunos-x64': 0.28.2
+-      '@esbuild/win32-arm64': 0.28.2
+-      '@esbuild/win32-ia32': 0.28.2
+-      '@esbuild/win32-x64': 0.28.2
+-
+-  estree-walker@3.0.3:
+-    dependencies:
+-      '@types/estree': 1.0.9
+-
+-  expect-type@1.4.0: {}
+-
+-  fdir@6.5.0(picomatch@4.0.5):
+-    optionalDependencies:
+-      picomatch: 4.0.5
+-
+-  foreground-child@3.1.0:
+-    dependencies:
+-      cross-spawn: 7.0.6
+-      signal-exit: 4.1.0
+-
+-  fsevents@2.3.3:
+-    optional: true
+-
+-  glob@10.5.0:
+-    dependencies:
+-      foreground-child: 3.1.0
+-      jackspeak: 3.1.2
+-      minimatch: 9.0.9
+-      minipass: 7.1.3
+-      package-json-from-dist: 1.0.1
+-      path-scurry: 1.11.1
+-
+-  has-flag@4.0.0: {}
+-
+-  html-escaper@2.0.2: {}
+-
+-  is-fullwidth-code-point@3.0.0: {}
+-
+-  isexe@2.0.0: {}
+-
+-  istanbul-lib-coverage@3.2.2: {}
+-
+-  istanbul-lib-report@3.0.1:
+-    dependencies:
+-      istanbul-lib-coverage: 3.2.2
+-      make-dir: 4.0.0
+-      supports-color: 7.1.0
+-
+-  istanbul-lib-source-maps@5.0.6:
+-    dependencies:
+-      '@jridgewell/trace-mapping': 0.3.31
+-      debug: 4.4.3
+-      istanbul-lib-coverage: 3.2.2
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  istanbul-reports@3.2.0:
+-    dependencies:
+-      html-escaper: 2.0.2
+-      istanbul-lib-report: 3.0.1
+-
+-  jackspeak@3.1.2:
+-    dependencies:
+-      '@isaacs/cliui': 8.0.2
+-    optionalDependencies:
+-      '@pkgjs/parseargs': 0.11.0
+-
+-  js-tokens@10.0.0: {}
+-
+-  js-tokens@9.0.1: {}
+-
+-  js-yaml@4.3.1:
+-    dependencies:
+-      argparse: 2.0.1
+-
+-  loupe@3.2.1: {}
+-
+-  lru-cache@10.2.0: {}
+-
+-  magic-string@0.30.17:
+-    dependencies:
+-      '@jridgewell/sourcemap-codec': 1.5.0
+-
+-  magicast@0.3.5:
+-    dependencies:
+-      '@babel/parser': 7.29.8
+-      '@babel/types': 7.29.8
+-      source-map-js: 1.2.1
+-
+-  make-dir@4.0.0:
+-    dependencies:
+-      semver: 7.8.5
+-
+-  minimatch@10.2.6:
+-    dependencies:
+-      brace-expansion: 5.0.9
+-
+-  minimatch@9.0.9:
+-    dependencies:
+-      brace-expansion: 2.1.4
+-
+-  minipass@7.1.3: {}
+-
+-  ms@2.1.3: {}
+-
+-  nanoid@3.3.18: {}
+-
+-  package-json-from-dist@1.0.1: {}
+-
+-  path-key@3.1.1: {}
+-
+-  path-scurry@1.11.1:
+-    dependencies:
+-      lru-cache: 10.2.0
+-      minipass: 7.1.3
+-
+-  pathe@2.0.3: {}
+-
+-  pathval@2.0.1: {}
+-
+-  picocolors@1.1.1: {}
+-
+-  picomatch@4.0.5: {}
+-
+-  postcss@8.5.26:
+-    dependencies:
+-      nanoid: 3.3.18
+-      picocolors: 1.1.1
+-      source-map-js: 1.2.1
+-
+-  rollup@4.62.4:
+-    dependencies:
+-      '@types/estree': 1.0.9
+-    optionalDependencies:
+-      '@napi-rs/lzma-linux-x64-gnu': 1.5.1
+-      '@rollup/rollup-android-arm-eabi': 4.62.4
+-      '@rollup/rollup-android-arm64': 4.62.4
+-      '@rollup/rollup-darwin-arm64': 4.62.4
+-      '@rollup/rollup-darwin-x64': 4.62.4
+-      '@rollup/rollup-freebsd-arm64': 4.62.4
+-      '@rollup/rollup-freebsd-x64': 4.62.4
+-      '@rollup/rollup-linux-arm-gnueabihf': 4.62.4
+-      '@rollup/rollup-linux-arm-musleabihf': 4.62.4
+-      '@rollup/rollup-linux-arm64-gnu': 4.62.4
+-      '@rollup/rollup-linux-arm64-musl': 4.62.4
+-      '@rollup/rollup-linux-loong64-gnu': 4.62.4
+-      '@rollup/rollup-linux-loong64-musl': 4.62.4
+-      '@rollup/rollup-linux-ppc64-gnu': 4.62.4
+-      '@rollup/rollup-linux-ppc64-musl': 4.62.4
+-      '@rollup/rollup-linux-riscv64-gnu': 4.62.4
+-      '@rollup/rollup-linux-riscv64-musl': 4.62.4
+-      '@rollup/rollup-linux-s390x-gnu': 4.62.4
+-      '@rollup/rollup-linux-x64-gnu': 4.62.4
+-      '@rollup/rollup-linux-x64-musl': 4.62.4
+-      '@rollup/rollup-openbsd-x64': 4.62.4
+-      '@rollup/rollup-openharmony-arm64': 4.62.4
+-      '@rollup/rollup-win32-arm64-msvc': 4.62.4
+-      '@rollup/rollup-win32-ia32-msvc': 4.62.4
+-      '@rollup/rollup-win32-x64-gnu': 4.62.4
+-      '@rollup/rollup-win32-x64-msvc': 4.62.4
+-      fsevents: 2.3.3
+-
+-  semver@7.8.5: {}
+-
+-  shebang-command@2.0.0:
+-    dependencies:
+-      shebang-regex: 3.0.0
+-
+-  shebang-regex@3.0.0: {}
+-
+-  siginfo@2.0.0: {}
+-
+-  signal-exit@4.1.0: {}
+-
+-  source-map-js@1.2.1: {}
+-
+-  stackback@0.0.2: {}
+-
+-  std-env@3.9.0: {}
+-
+-  string-width@4.2.0:
+-    dependencies:
+-      emoji-regex: 8.0.0
+-      is-fullwidth-code-point: 3.0.0
+-      strip-ansi: 6.0.1
+-
+-  string-width@5.1.2:
+-    dependencies:
+-      eastasianwidth: 0.2.0
+-      emoji-regex: 9.2.2
+-      strip-ansi: 7.2.0
+-
+-  strip-ansi@6.0.1:
+-    dependencies:
+-      ansi-regex: 5.0.1
+-
+-  strip-ansi@7.2.0:
+-    dependencies:
+-      ansi-regex: 6.3.0
+-
+-  strip-literal@3.0.0:
+-    dependencies:
+-      js-tokens: 9.0.1
+-
+-  supports-color@7.1.0:
+-    dependencies:
+-      has-flag: 4.0.0
+-
+-  test-exclude@7.0.2:
+-    dependencies:
+-      '@istanbuljs/schema': 0.1.6
+-      glob: 10.5.0
+-      minimatch: 10.2.6
+-
+-  tinybench@2.9.0: {}
+-
+-  tinyexec@0.3.2: {}
+-
+-  tinyglobby@0.2.17:
+-    dependencies:
+-      fdir: 6.5.0(picomatch@4.0.5)
+-      picomatch: 4.0.5
+-
+-  tinypool@1.1.1: {}
+-
+-  tinyrainbow@2.0.0: {}
+-
+-  tinyspy@4.0.4: {}
+-
+-  typescript@5.9.2: {}
+-
+-  undici-types@7.18.2: {}
+-
+-  vite-node@3.2.4(@types/node@24.13.3)(yaml@2.9.0):
+-    dependencies:
+-      cac: 6.7.14
+-      debug: 4.4.3
+-      es-module-lexer: 1.7.0
+-      pathe: 2.0.3
+-      vite: 7.3.6(@types/node@24.13.3)(yaml@2.9.0)
+-    transitivePeerDependencies:
+-      - '@types/node'
+-      - jiti
+-      - less
+-      - lightningcss
+-      - sass
+-      - sass-embedded
+-      - stylus
+-      - sugarss
+-      - supports-color
+-      - terser
+-      - tsx
+-      - yaml
+-
+-  vite@7.3.6(@types/node@24.13.3)(yaml@2.9.0):
+-    dependencies:
+-      esbuild: 0.28.2
+-      fdir: 6.5.0(picomatch@4.0.5)
+-      picomatch: 4.0.5
+-      postcss: 8.5.26
+-      rollup: 4.62.4
+-      tinyglobby: 0.2.17
+-    optionalDependencies:
+-      '@types/node': 24.13.3
+-      fsevents: 2.3.3
+-      yaml: 2.9.0
+-
+-  vitest@3.2.7(@types/node@24.13.3)(yaml@2.9.0):
+-    dependencies:
+-      '@types/chai': 5.2.3
+-      '@vitest/expect': 3.2.7
+-      '@vitest/mocker': 3.2.7(vite@7.3.6(@types/node@24.13.3)(yaml@2.9.0))
+-      '@vitest/pretty-format': 3.2.7
+-      '@vitest/runner': 3.2.7
+-      '@vitest/snapshot': 3.2.7
+-      '@vitest/spy': 3.2.7
+-      '@vitest/utils': 3.2.7
+-      chai: 5.2.0
+-      debug: 4.4.3
+-      expect-type: 1.4.0
+-      magic-string: 0.30.17
+-      pathe: 2.0.3
+-      picomatch: 4.0.5
+-      std-env: 3.9.0
+-      tinybench: 2.9.0
+-      tinyexec: 0.3.2
+-      tinyglobby: 0.2.17
+-      tinypool: 1.1.1
+-      tinyrainbow: 2.0.0
+-      vite: 7.3.6(@types/node@24.13.3)(yaml@2.9.0)
+-      vite-node: 3.2.4(@types/node@24.13.3)(yaml@2.9.0)
+-      why-is-node-running: 2.3.0
+-    optionalDependencies:
+-      '@types/node': 24.13.3
+-    transitivePeerDependencies:
+-      - jiti
+-      - less
+-      - lightningcss
+-      - msw
+-      - sass
+-      - sass-embedded
+-      - stylus
+-      - sugarss
+-      - supports-color
+-      - terser
+-      - tsx
+-      - yaml
+-
+-  which@2.0.1:
+-    dependencies:
+-      isexe: 2.0.0
+-
+-  why-is-node-running@2.3.0:
+-    dependencies:
+-      siginfo: 2.0.0
+-      stackback: 0.0.2
+-
+-  wrap-ansi@7.0.0:
+-    dependencies:
+-      ansi-styles: 4.0.0
+-      string-width: 4.2.0
+-      strip-ansi: 6.0.1
+-
+-  wrap-ansi@8.1.0:
+-    dependencies:
+-      ansi-styles: 6.1.0
+-      string-width: 5.1.2
+-      strip-ansi: 7.2.0
+-
+-  xmlbuilder2@4.0.3:
+-    dependencies:
+-      '@oozcitak/dom': 2.0.2
+-      '@oozcitak/infra': 2.0.2
+-      '@oozcitak/util': 10.0.0
+-      js-yaml: 4.3.1
+-
+-  yaml@2.9.0: {}
+-
+-  zod@4.4.3: {}
+diff --git a/docs/contributing.md b/docs/contributing.md
+index 076d72c..cfa35ba 100644
+--- a/docs/contributing.md
++++ b/docs/contributing.md
+@@ -14 +14 @@ Behavior changes start with a failing test. Keep DSH-specific assumptions inside
+-After changing dependencies, copy `pnpm-lock.yaml` to `assets/runner-pnpm-lock.yaml`. `pnpm validate` and `prepack` reject a stale runner lock.
++The Docker runner uses `assets/runner-pnpm-lock.yaml`, which `pnpm build` generates from the canonical root `pnpm-lock.yaml`. The generated file is ignored by Git and included in the npm package, so dependency changes require no manual lockfile copy.
+diff --git a/docs/scenarios.md b/docs/scenarios.md
+index 8142b98..57767e6 100644
+--- a/docs/scenarios.md
++++ b/docs/scenarios.md
+@@ -39,0 +40,2 @@ timeouts:
++Every lifecycle stage is a case identifier. `--case boot` executes resolve through boot, records all later stages as skipped, and still performs cleanup. Late cases retain their required prefix: `--case uninstall` installs and boots the plugin before exercising uninstall. The selected case is stored in the report and reproduction command. `update` requires `subject.updateFrom`; runtime cases after boot are unavailable in scenarios that declare an expected boot failure.
++
+@@ -46,0 +49,2 @@ The resolved scenario is retained in the run evidence and bound to the report by
++
++The current adapter supports the exact DSH npm version `0.1.0-rc.6`. Exact but unsupported versions return exit code `4` before plugin execution.
+diff --git a/package.json b/package.json
+index 19596a2..8079135 100644
+--- a/package.json
++++ b/package.json
+@@ -3 +3 @@
+-  "version": "0.1.1",
++  "version": "0.1.2",
+@@ -56 +56 @@
+-    "build": "tsc -p tsconfig.json",
++    "build": "node scripts/prepare-runner-lock.mjs && tsc -p tsconfig.json",
+@@ -59 +58,0 @@
+-    "check:runner-lock": "node scripts/check-runner-lock.mjs",
+@@ -68,2 +67,2 @@
+-    "validate": "pnpm check:runner-lock && pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
+-    "prepack": "pnpm check:runner-lock && pnpm check:contracts && pnpm build"
++    "validate": "pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
++    "prepack": "pnpm check:contracts && pnpm build"
+@@ -79,0 +79,2 @@
++    "ajv": "8.20.0",
++    "ajv-formats": "3.0.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 78ae2be..914b1c3 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -29,0 +30,6 @@ importers:
++      ajv:
++        specifier: 8.20.0
++        version: 8.20.0
++      ajv-formats:
++        specifier: 3.0.1
++        version: 3.0.1(ajv@8.20.0)
+@@ -460,0 +467,11 @@ packages:
++  ajv-formats@3.0.1:
++    resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
++    peerDependencies:
++      ajv: ^8.0.0
++    peerDependenciesMeta:
++      ajv:
++        optional: true
++
++  ajv@8.20.0:
++    resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
++
+@@ -564,0 +582,6 @@ packages:
++  fast-deep-equal@3.1.3:
++    resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
++
++  fast-uri@3.1.5:
++    resolution: {integrity: sha512-gHwA1O9LDIcKunMKhObS/HimwtehO1nPUECKAu5TpKgaO19fcWEl4bliWe1jWxVFvIXztJjjQ4L8XQ1EU9f7Jw==}
++
+@@ -631,0 +655,3 @@ packages:
++  json-schema-traverse@1.0.0:
++    resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
++
+@@ -697,0 +724,4 @@ packages:
++  require-from-string@2.0.2:
++    resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
++    engines: {node: '>=0.10.0'}
++
+@@ -1192,0 +1223,11 @@ snapshots:
++  ajv-formats@3.0.1(ajv@8.20.0):
++    optionalDependencies:
++      ajv: 8.20.0
++
++  ajv@8.20.0:
++    dependencies:
++      fast-deep-equal: 3.1.3
++      fast-uri: 3.1.5
++      json-schema-traverse: 1.0.0
++      require-from-string: 2.0.2
++
+@@ -1299,0 +1341,4 @@ snapshots:
++  fast-deep-equal@3.1.3: {}
++
++  fast-uri@3.1.5: {}
++
+@@ -1363,0 +1409,2 @@ snapshots:
++  json-schema-traverse@1.0.0: {}
++
+@@ -1418,0 +1466,2 @@ snapshots:
++  require-from-string@2.0.2: {}
++
+diff --git a/schemas/report-v1.json b/schemas/report-v1.json
+index 0de67ef..28aab67 100644
+--- a/schemas/report-v1.json
++++ b/schemas/report-v1.json
+@@ -33 +33,2 @@
+-        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
++        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++        "case": { "enum": ["resolve", "install-dsh", "package", "install-plugin", "assemble", "boot", "register", "exercise", "update", "uninstall", "reboot", "recover", "cleanup"] }
+diff --git a/scripts/check-release-readiness.mjs b/scripts/check-release-readiness.mjs
+index f80ad2b..9d2cb9a 100644
+--- a/scripts/check-release-readiness.mjs
++++ b/scripts/check-release-readiness.mjs
+@@ -32,0 +33,12 @@ if (!dockerfile.includes('dev.dsh-testkit.context-sha256')) {
++if (!dockerfile.includes('COPY assets/runner-pnpm-lock.yaml ./pnpm-lock.yaml')) {
++  throw new Error('runner.Dockerfile must consume the generated runner lockfile')
++}
++if (!manifest.scripts?.build?.includes('scripts/prepare-runner-lock.mjs')) {
++  throw new Error('build must generate the runner lockfile from the canonical root lock')
++}
++const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
++for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'npm publish --access public']) {
++  if (!releaseWorkflow.includes(required)) {
++    throw new Error(`release workflow is missing trusted-publishing control: ${required}`)
++  }
++}
+diff --git a/scripts/check-runner-lock.mjs b/scripts/check-runner-lock.mjs
+deleted file mode 100644
+index 2330ec9..0000000
+--- a/scripts/check-runner-lock.mjs
++++ /dev/null
+@@ -1,12 +0,0 @@
+-import { readFile } from 'node:fs/promises'
+-import { resolve } from 'node:path'
+-
+-const root = resolve(import.meta.dirname, '..')
+-const [projectLock, runnerLock] = await Promise.all([
+-  readFile(resolve(root, 'pnpm-lock.yaml')),
+-  readFile(resolve(root, 'assets/runner-pnpm-lock.yaml')),
+-])
+-
+-if (!projectLock.equals(runnerLock)) {
+-  throw new Error('assets/runner-pnpm-lock.yaml is stale; copy pnpm-lock.yaml after dependency changes')
+-}
+diff --git a/scripts/prepare-runner-lock.mjs b/scripts/prepare-runner-lock.mjs
+new file mode 100644
+index 0000000..f994b13
+--- /dev/null
++++ b/scripts/prepare-runner-lock.mjs
+@@ -0,0 +1,6 @@
++import { readFile, writeFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '..')
++const source = await readFile(resolve(root, 'pnpm-lock.yaml'))
++await writeFile(resolve(root, 'assets/runner-pnpm-lock.yaml'), source)
+diff --git a/src/action/identity.ts b/src/action/identity.ts
+new file mode 100644
+index 0000000..a4927bf
+--- /dev/null
++++ b/src/action/identity.ts
+@@ -0,0 +1,109 @@
++import { createHash } from 'node:crypto'
++import { realpathSync } from 'node:fs'
++import { appendFile } from 'node:fs/promises'
++import { posix } from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++export interface ActionIdentityInput {
++  plugin: string
++  dshVersion: string
++  output: string
++  artifactName: string
++  checkName: string
++  runId: string
++  runAttempt: string
++  job: string
++  action: string
++}
++
++export interface ActionIdentity {
++  output: string
++  artifactName: string
++  checkName: string
++}
++
++function slug(value: string, fallback: string): string {
++  const result = value
++    .replace(/^@/, '')
++    .replace(/[^A-Za-z0-9._-]+/g, '-')
++    .replace(/-+/g, '-')
++    .replace(/^[-.]+|[-.]+$/g, '')
++    .slice(0, 48)
++  return result || fallback
++}
++
++function pluginLabel(plugin: string): string {
++  return slug(plugin.split(/[\\/]/).filter(Boolean).at(-1) ?? plugin, 'plugin')
++}
++
++function validateLine(value: string, label: string): void {
++  if (/[\r\n]/.test(value)) throw new Error(`${label} must be a single line`)
++}
++
++function validateOutput(output: string): string {
++  validateLine(output, 'Action output')
++  if (output.includes('\\') || posix.isAbsolute(output)) {
++    throw new Error('Action output must be a relative directory inside the workspace')
++  }
++  const normalized = posix.normalize(output)
++  if (normalized === '.' || normalized === '..' || normalized.startsWith('../')) {
++    throw new Error('Action output must be a relative directory inside the workspace')
++  }
++  return normalized
++}
++
++function validateArtifactName(name: string): string {
++  validateLine(name, 'Artifact name')
++  if (name.length === 0 || name.length > 255 || /["':<>|*?/\\]/.test(name)) {
++    throw new Error('Artifact name is empty, too long, or contains a GitHub-invalid character')
++  }
++  return name
++}
++
++export function computeActionIdentity(input: ActionIdentityInput): ActionIdentity {
++  const digest = createHash('sha256').update(JSON.stringify({
++    plugin: input.plugin,
++    dshVersion: input.dshVersion,
++    runId: input.runId,
++    runAttempt: input.runAttempt,
++    job: input.job,
++    action: input.action,
++  })).digest('hex').slice(0, 12)
++  const subject = pluginLabel(input.plugin)
++  const job = slug(input.job, 'job')
++  const output = validateOutput(input.output || `.dsh-testkit/action-${digest}`)
++  const artifactName = validateArtifactName(
++    input.artifactName || `dsh-testkit-${job}-${subject}-${digest}`,
++  )
++  const checkName = input.checkName || `DSH lifecycle: ${subject} @ ${input.dshVersion} (${digest})`
++  validateLine(checkName, 'Check name')
++
++  return { output, artifactName, checkName }
++}
++
++async function main(): Promise<void> {
++  const githubOutput = process.env.GITHUB_OUTPUT
++  if (githubOutput === undefined) throw new Error('GITHUB_OUTPUT is required')
++  const identity = computeActionIdentity({
++    plugin: process.env.INPUT_PLUGIN ?? '',
++    dshVersion: process.env.INPUT_DSH_VERSION ?? '',
++    output: process.env.INPUT_OUTPUT ?? '',
++    artifactName: process.env.INPUT_ARTIFACT_NAME ?? '',
++    checkName: process.env.INPUT_CHECK_NAME ?? '',
++    runId: process.env.GITHUB_RUN_ID ?? '',
++    runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? '',
++    job: process.env.GITHUB_JOB ?? '',
++    action: process.env.GITHUB_ACTION ?? '',
++  })
++  await appendFile(githubOutput, [
++    `output=${identity.output}`,
++    `report=${process.env.GITHUB_WORKSPACE}/${identity.output}/report.json`,
++    `artifact-name=${identity.artifactName}`,
++    `check-name=${identity.checkName}`,
++    '',
++  ].join('\n'))
++}
++
++const isMain = process.argv[1] !== undefined
++  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
++if (isMain) await main()
+diff --git a/src/action/run.ts b/src/action/run.ts
+new file mode 100644
+index 0000000..5ef731b
+--- /dev/null
++++ b/src/action/run.ts
+@@ -0,0 +1,68 @@
++import { spawn } from 'node:child_process'
++import { existsSync, realpathSync } from 'node:fs'
++import { appendFile } from 'node:fs/promises'
++import { isAbsolute, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++
++export function parseAdditionalActionArgs(argsJson: string, legacyArgs: string): string[] {
++  if (argsJson.trim() !== '' && argsJson.trim() !== '[]' && legacyArgs.trim() !== '') {
++    throw new Error('Use args-json or legacy args, not both')
++  }
++  if (argsJson.trim() !== '' && argsJson.trim() !== '[]') {
++    const parsed: unknown = JSON.parse(argsJson)
++    if (!Array.isArray(parsed) || !parsed.every(value => typeof value === 'string')) {
++      throw new Error('args-json must be a JSON array of strings')
++    }
++    return parsed
++  }
++  return legacyArgs.trim() === '' ? [] : legacyArgs.trim().split(/\s+/)
++}
++
++export interface ActionCommandInput {
++  plugin: string
++  dshVersion: string
++  config: string
++  output: string
++  argsJson: string
++  legacyArgs: string
++  workspace: string
++}
++
++export function buildActionArguments(input: ActionCommandInput): string[] {
++  const workspacePlugin = resolve(input.workspace, input.plugin)
++  const plugin = !isAbsolute(input.plugin) && existsSync(workspacePlugin)
++    ? workspacePlugin
++    : input.plugin
++  const args = [plugin, '--dsh', input.dshVersion, '--output', resolve(input.workspace, input.output)]
++  if (input.config !== '') args.push('--config', resolve(input.workspace, input.config))
++  args.push(...parseAdditionalActionArgs(input.argsJson, input.legacyArgs))
++  return args
++}
++
++async function main(): Promise<void> {
++  const githubOutput = process.env.GITHUB_OUTPUT
++  const workspace = process.env.GITHUB_WORKSPACE
++  if (githubOutput === undefined || workspace === undefined) {
++    throw new Error('GITHUB_OUTPUT and GITHUB_WORKSPACE are required')
++  }
++  const args = buildActionArguments({
++    plugin: process.env.INPUT_PLUGIN ?? '',
++    dshVersion: process.env.INPUT_DSH_VERSION ?? '',
++    config: process.env.INPUT_CONFIG ?? '',
++    output: process.env.RESOLVED_OUTPUT ?? '',
++    argsJson: process.env.INPUT_ARGS_JSON ?? '[]',
++    legacyArgs: process.env.INPUT_ARGS ?? '',
++    workspace,
++  })
++  const cliPath = resolve(import.meta.dirname, '../cli.js')
++  const exitCode = await new Promise<number>((resolveExit, reject) => {
++    const child = spawn(process.execPath, [cliPath, ...args], { stdio: 'inherit' })
++    child.once('error', reject)
++    child.once('exit', code => resolveExit(code ?? 3))
++  })
++  await appendFile(githubOutput, `exit-code=${exitCode}\n`)
++}
++
++const isMain = process.argv[1] !== undefined
++  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
++if (isMain) await main()
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+index a33577d..85f1d46 100644
+--- a/src/adapters/dsh/npm-adapter.ts
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -1137 +1137,4 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-    if (!await exists(probePath) || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
++    const probeExists = await exists(probePath)
++    const probeArtifacts = probeExists ? [`evidence/${basename(probePath)}`] : []
++    if (probeExists) this.addArtifact(probePath)
++    if (!probeExists || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
+@@ -1147 +1150 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-        artifacts: commandArtifacts(result),
++        artifacts: [...commandArtifacts(result), ...probeArtifacts],
+@@ -1151 +1153,0 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-    this.addArtifact(probePath)
+@@ -1162 +1164 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-      artifacts: [...commandArtifacts(result), `evidence/${basename(probePath)}`],
++      artifacts: [...commandArtifacts(result), ...probeArtifacts],
+diff --git a/src/adapters/dsh/support.ts b/src/adapters/dsh/support.ts
+new file mode 100644
+index 0000000..8e3cb05
+--- /dev/null
++++ b/src/adapters/dsh/support.ts
+@@ -0,0 +1,20 @@
++export const SUPPORTED_DSH_NPM_VERSIONS = ['0.1.0-rc.6'] as const
++
++export type SupportedDshNpmVersion = typeof SUPPORTED_DSH_NPM_VERSIONS[number]
++
++export class UnsupportedDshVersionError extends Error {
++  readonly exitCode = 4
++
++  constructor(readonly version: string) {
++    super(`Unsupported DSH version ${version}; supported versions: ${SUPPORTED_DSH_NPM_VERSIONS.join(', ')}`)
++    this.name = 'UnsupportedDshVersionError'
++  }
++}
++
++export function isSupportedDshVersion(version: string): version is SupportedDshNpmVersion {
++  return (SUPPORTED_DSH_NPM_VERSIONS as readonly string[]).includes(version)
++}
++
++export function assertSupportedDshVersion(version: string): asserts version is SupportedDshNpmVersion {
++  if (!isSupportedDshVersion(version)) throw new UnsupportedDshVersionError(version)
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 6f1cbc1..e6ba654 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -10,0 +11,4 @@ import { parse as parseYaml } from 'yaml'
++import {
++  assertSupportedDshVersion,
++  UnsupportedDshVersionError,
++} from './adapters/dsh/support.js'
+@@ -12 +16 @@ import { buildScenario, parseScenario, validateRunnerSelection } from './config/
+-import { exitCodeForVerdict } from './domain/lifecycle.js'
++import { exitCodeForVerdict, validateLifecycleCase } from './domain/lifecycle.js'
+@@ -14,2 +18,2 @@ import { aggregateRunReports } from './domain/repeatability.js'
+-import { RunReportSchema } from './domain/report.js'
+-import type { RunReport } from './domain/report.js'
++import { RunReportSchema, StageIdSchema } from './domain/report.js'
++import type { RunReport, StageId } from './domain/report.js'
+@@ -30,0 +35 @@ interface CliOptions {
++  case?: StageId
+@@ -60,0 +66,8 @@ function parseRepeat(value: string): number {
++function parseLifecycleCase(value: string): StageId {
++  const parsed = StageIdSchema.safeParse(value)
++  if (!parsed.success) {
++    throw new InvalidArgumentError(`must be a lifecycle case: ${StageIdSchema.options.join(', ')}`)
++  }
++  return parsed.data
++}
++
+@@ -169,0 +183 @@ function buildProgram(deps: CliDependencies): Command {
++    .option('--case <stage>', 'rerun through one lifecycle case', parseLifecycleCase)
+@@ -236,0 +251,2 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
++    assertSupportedDshVersion(mergedScenario.dsh.version)
++    if (options.case !== undefined) validateLifecycleCase(mergedScenario, options.case)
+@@ -266,0 +283 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
++    if (options.case !== undefined) reproductionArgs.push('--case', options.case)
+@@ -289,0 +307 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
++        ...(options.case === undefined ? {} : { case: options.case }),
+@@ -312,0 +331 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
++    if (error instanceof UnsupportedDshVersionError) return error.exitCode
+diff --git a/src/domain/lifecycle.ts b/src/domain/lifecycle.ts
+index 2ffc1f8..be51976 100644
+--- a/src/domain/lifecycle.ts
++++ b/src/domain/lifecycle.ts
+@@ -7,0 +8 @@ import type {
++import type { Scenario } from './scenario.js'
+@@ -147,0 +149,10 @@ export function exitCodeForVerdict(verdict: Verdict): number {
++
++export function validateLifecycleCase(scenario: Scenario, selectedCase: StageId): void {
++  if (selectedCase === 'update' && scenario.subject.updateFrom === undefined) {
++    throw new Error('lifecycle case update requires subject.updateFrom or --update-from')
++  }
++  if (scenario.expect.boot === 'failure'
++    && ['register', 'exercise', 'update', 'uninstall', 'reboot'].includes(selectedCase)) {
++    throw new Error(`lifecycle case ${selectedCase} is unavailable when boot failure is expected`)
++  }
++}
+diff --git a/src/domain/report.ts b/src/domain/report.ts
+index 6b67939..2adf901 100644
+--- a/src/domain/report.ts
++++ b/src/domain/report.ts
+@@ -5 +5 @@ import { REPORT_SCHEMA_VERSION } from '../version.js'
+-export const StageIdSchema = z.enum([
++export const LIFECYCLE_STAGE_IDS = [
+@@ -19 +19,3 @@ export const StageIdSchema = z.enum([
+-])
++] as const
++
++export const StageIdSchema = z.enum(LIFECYCLE_STAGE_IDS)
+@@ -110,0 +113 @@ export const RunReportSchema = z.object({
++    case: StageIdSchema.optional(),
+diff --git a/src/index.ts b/src/index.ts
+index faaa8d3..1f4f563 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -0,0 +1 @@
++export * from './adapters/dsh/support.js'
+diff --git a/src/version.ts b/src/version.ts
+index 1a73d29..42d1c50 100644
+--- a/src/version.ts
++++ b/src/version.ts
+@@ -1 +1 @@
+-export const TESTKIT_VERSION = '0.1.1'
++export const TESTKIT_VERSION = '0.1.2'
+diff --git a/src/worker/lifecycle-worker.ts b/src/worker/lifecycle-worker.ts
+index ed15fdd..4097ba0 100644
+--- a/src/worker/lifecycle-worker.ts
++++ b/src/worker/lifecycle-worker.ts
+@@ -5,0 +6 @@ import {
++import { LIFECYCLE_STAGE_IDS } from '../domain/report.js'
+@@ -26,0 +28,6 @@ export class LifecycleWorker {
++    const selectedCaseIndex = request.case === undefined
++      ? Number.POSITIVE_INFINITY
++      : LIFECYCLE_STAGE_IDS.indexOf(request.case)
++    const includesCase = (id: StageId): boolean => id === 'cleanup'
++      || LIFECYCLE_STAGE_IDS.indexOf(id) <= selectedCaseIndex
++    const selectionReason = (): string => `not selected by --case ${request.case}`
+@@ -48 +55 @@ export class LifecycleWorker {
+-    const dshInstalled = resolved.ok
++    const dshInstalled = resolved.ok && includesCase('install-dsh')
+@@ -51 +58,2 @@ export class LifecycleWorker {
+-    if (!resolved.ok) recorder.skip('install-dsh', 'subject resolution failed')
++    if (!includesCase('install-dsh')) recorder.skip('install-dsh', selectionReason())
++    else if (!resolved.ok) recorder.skip('install-dsh', 'subject resolution failed')
+@@ -53 +61 @@ export class LifecycleWorker {
+-    const packaged = dshInstalled.ok
++    const packaged = dshInstalled.ok && includesCase('package')
+@@ -56 +64,2 @@ export class LifecycleWorker {
+-    if (!dshInstalled.ok) recorder.skip('package', 'DSH installation did not complete')
++    if (!includesCase('package')) recorder.skip('package', selectionReason())
++    else if (!dshInstalled.ok) recorder.skip('package', 'DSH installation did not complete')
+@@ -58 +67 @@ export class LifecycleWorker {
+-    const pluginInstalled = packaged.ok
++    const pluginInstalled = packaged.ok && includesCase('install-plugin')
+@@ -62 +71,2 @@ export class LifecycleWorker {
+-    if (!packaged.ok) recorder.skip('install-plugin', 'subject packaging did not complete')
++    if (!includesCase('install-plugin')) recorder.skip('install-plugin', selectionReason())
++    else if (!packaged.ok) recorder.skip('install-plugin', 'subject packaging did not complete')
+@@ -64 +74 @@ export class LifecycleWorker {
+-    const assembled = pluginInstalled.ok
++    const assembled = pluginInstalled.ok && includesCase('assemble')
+@@ -67 +77,2 @@ export class LifecycleWorker {
+-    if (!pluginInstalled.ok) recorder.skip('assemble', 'plugin installation did not complete')
++    if (!includesCase('assemble')) recorder.skip('assemble', selectionReason())
++    else if (!pluginInstalled.ok) recorder.skip('assemble', 'plugin installation did not complete')
+@@ -69 +80 @@ export class LifecycleWorker {
+-    const booted = assembled.ok
++    const booted = assembled.ok && includesCase('boot')
+@@ -102 +113,2 @@ export class LifecycleWorker {
+-    if (!assembled.ok) recorder.skip('boot', 'configuration assembly did not complete')
++    if (!includesCase('boot')) recorder.skip('boot', selectionReason())
++    else if (!assembled.ok) recorder.skip('boot', 'configuration assembly did not complete')
+@@ -108 +120,3 @@ export class LifecycleWorker {
+-    if (bootObservation?.outcome === 'success') {
++    if (!includesCase('register')) {
++      recorder.skip('register', selectionReason())
++    } else if (bootObservation?.outcome === 'success') {
+@@ -114 +128,3 @@ export class LifecycleWorker {
+-    if (registered.ok && bootObservation !== undefined) {
++    if (!includesCase('exercise')) {
++      recorder.skip('exercise', selectionReason())
++    } else if (registered.ok && bootObservation !== undefined) {
+@@ -120 +136,3 @@ export class LifecycleWorker {
+-    if (request.scenario.subject.updateFrom !== undefined && bootObservation?.outcome === 'success' && registered.ok) {
++    if (!includesCase('update')) {
++      recorder.skip('update', selectionReason())
++    } else if (request.scenario.subject.updateFrom !== undefined && bootObservation?.outcome === 'success' && registered.ok) {
+@@ -128 +146,5 @@ export class LifecycleWorker {
+-    if (shouldRecover) {
++    if (!includesCase('uninstall')) {
++      recorder.skip('uninstall', selectionReason())
++      recorder.skip('reboot', selectionReason())
++      recorder.skip('recover', selectionReason())
++    } else if (shouldRecover) {
+@@ -131 +153,3 @@ export class LifecycleWorker {
+-      if (request.scenario.recovery.onBootFailure === 'remove-plugin') {
++      if (!includesCase('recover')) {
++        recorder.skip('recover', selectionReason())
++      } else if (request.scenario.recovery.onBootFailure === 'remove-plugin') {
+@@ -141 +165,2 @@ export class LifecycleWorker {
+-        await safe('reboot', () => this.adapter.reboot(), 'subject')
++        if (includesCase('reboot')) await safe('reboot', () => this.adapter.reboot(), 'subject')
++        else recorder.skip('reboot', selectionReason())
+@@ -146 +171,2 @@ export class LifecycleWorker {
+-      if (shouldRecover) await safe('recover', () => this.adapter.recover(), 'subject')
++      if (!includesCase('recover')) recorder.skip('recover', selectionReason())
++      else if (shouldRecover) await safe('recover', () => this.adapter.recover(), 'subject')
+@@ -151 +177,3 @@ export class LifecycleWorker {
+-      if (pluginInstalled.ok || assembled.ok || booted.ok) {
++      if (!includesCase('recover')) {
++        recorder.skip('recover', selectionReason())
++      } else if (pluginInstalled.ok || assembled.ok || booted.ok) {
+@@ -192,0 +221 @@ export class LifecycleWorker {
++        ...(request.case === undefined ? {} : { case: request.case }),
+diff --git a/src/worker/main.ts b/src/worker/main.ts
+index 81a52ad..ca1a1f3 100644
+--- a/src/worker/main.ts
++++ b/src/worker/main.ts
+@@ -6,0 +7 @@ import { DshNpmAdapter } from '../adapters/dsh/npm-adapter.js'
++import { assertSupportedDshVersion, UnsupportedDshVersionError } from '../adapters/dsh/support.js'
+@@ -17,0 +19 @@ export async function runWorker(argv: string[]): Promise<number> {
++  assertSupportedDshVersion(request.scenario.dsh.version)
+@@ -33 +35 @@ if (isMain) {
+-    process.exitCode = 3
++    process.exitCode = error instanceof UnsupportedDshVersionError ? error.exitCode : 3
+diff --git a/src/worker/protocol.ts b/src/worker/protocol.ts
+index a360606..c956662 100644
+--- a/src/worker/protocol.ts
++++ b/src/worker/protocol.ts
+@@ -2,0 +3 @@ import { z } from 'zod'
++import { StageIdSchema } from '../domain/report.js'
+@@ -10,0 +12 @@ export const WorkerRequestSchema = z.object({
++  case: StageIdSchema.optional(),
+diff --git a/tests/contracts/fixtures/report-v1.0.1.json b/tests/contracts/fixtures/report-v1.0.1.json
+new file mode 100644
+index 0000000..3556295
+--- /dev/null
++++ b/tests/contracts/fixtures/report-v1.0.1.json
+@@ -0,0 +1,42 @@
++{
++  "schemaVersion": 1,
++  "runId": "v0.1.1-compatibility",
++  "startedAt": "2026-08-15T00:00:00.000Z",
++  "endedAt": "2026-08-15T00:00:01.000Z",
++  "verdict": "passed",
++  "subject": {
++    "input": "dsh-example-plugin@1.0.0",
++    "kind": "npm",
++    "packageName": "dsh-example-plugin",
++    "packageVersion": "1.0.0",
++    "sourceDigest": "sha256:compatibility",
++    "gitCommit": null,
++    "mutable": false
++  },
++  "dsh": {
++    "version": "0.1.0-rc.6",
++    "integrity": null
++  },
++  "scenario": {
++    "name": "v0.1.1-compatibility",
++    "suite": "quick",
++    "schemaVersion": 1,
++    "profile": "compatibility",
++    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++  },
++  "testkitVersion": "0.1.1",
++  "environment": {
++    "runner": "docker",
++    "node": "v22.18.0"
++  },
++  "observerCoverage": {
++    "filesystem": { "available": true, "mode": "snapshot", "limitations": [] },
++    "process": { "available": true, "mode": "snapshot", "limitations": [] },
++    "ports": { "available": true, "mode": "snapshot", "limitations": [] },
++    "network": { "available": false, "mode": "unsupported", "limitations": ["not observed"] },
++    "canary": { "available": true, "mode": "log-scan", "limitations": [] }
++  },
++  "stages": [],
++  "artifacts": ["report.json", "junit.xml", "report.md"],
++  "reproductionCommand": "dsh-test dsh-example-plugin@1.0.0 --dsh 0.1.0-rc.6"
++}
+diff --git a/tests/contracts/fixtures/scenario-v1.0.1.json b/tests/contracts/fixtures/scenario-v1.0.1.json
+new file mode 100644
+index 0000000..08dcd2c
+--- /dev/null
++++ b/tests/contracts/fixtures/scenario-v1.0.1.json
+@@ -0,0 +1,34 @@
++{
++  "schemaVersion": 1,
++  "name": "v0.1.1-compatibility",
++  "suite": "quick",
++  "subject": {
++    "source": "dsh-example-plugin@1.0.0"
++  },
++  "dsh": {
++    "version": "0.1.0-rc.6"
++  },
++  "profile": "compatibility",
++  "expect": {
++    "boot": "success",
++    "rows": ["example"],
++    "services": [],
++    "tools": []
++  },
++  "exercise": [],
++  "recovery": {
++    "onBootFailure": "remove-plugin"
++  },
++  "observers": {
++    "filesystem": "required",
++    "process": "preferred",
++    "ports": "preferred",
++    "network": "off",
++    "canary": "preferred"
++  },
++  "timeouts": {
++    "installMs": 300000,
++    "bootMs": 30000,
++    "cleanupMs": 30000
++  }
++}
+diff --git a/tests/contracts/v1-compatibility.test.ts b/tests/contracts/v1-compatibility.test.ts
+new file mode 100644
+index 0000000..82e435a
+--- /dev/null
++++ b/tests/contracts/v1-compatibility.test.ts
+@@ -0,0 +1,37 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++import { Ajv2020 } from 'ajv/dist/2020.js'
++import addFormatsModule from 'ajv-formats'
++import { describe, expect, it } from 'vitest'
++
++import { RunReportSchema } from '../../src/domain/report.js'
++import { ScenarioSchema } from '../../src/domain/scenario.js'
++
++async function readJson(path: string): Promise<unknown> {
++  return JSON.parse(await readFile(resolve(process.cwd(), path), 'utf8'))
++}
++
++describe('published v1 contract compatibility', () => {
++  it.each([
++    {
++      name: 'scenario',
++      fixture: 'tests/contracts/fixtures/scenario-v1.0.1.json',
++      schema: 'schemas/scenario-v1.json',
++      runtime: ScenarioSchema,
++    },
++    {
++      name: 'report',
++      fixture: 'tests/contracts/fixtures/report-v1.0.1.json',
++      schema: 'schemas/report-v1.json',
++      runtime: RunReportSchema,
++    },
++  ])('accepts the shipped $name fixture with runtime and JSON schemas', async ({ fixture, schema, runtime }) => {
++    const [fixtureValue, schemaValue] = await Promise.all([readJson(fixture), readJson(schema)])
++    const ajv = new Ajv2020({ allErrors: true, strict: true })
++    addFormatsModule.default(ajv)
++
++    expect(runtime.safeParse(fixtureValue).success).toBe(true)
++    expect(ajv.validate(schemaValue as object, fixtureValue), ajv.errorsText()).toBe(true)
++  })
++})
+diff --git a/tests/e2e/pack-consumer.mjs b/tests/e2e/pack-consumer.mjs
+index 0152e63..10457b4 100644
+--- a/tests/e2e/pack-consumer.mjs
++++ b/tests/e2e/pack-consumer.mjs
+@@ -2 +2 @@ import { execFile } from 'node:child_process'
+-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
++import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+@@ -8,0 +9,2 @@ const root = resolve(import.meta.dirname, '../..')
++const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
++const version = rootManifest.version
+@@ -12,4 +14 @@ const consumerDir = join(temporary, 'consumer')
+-await Promise.all([
+-  mkdir(packDir, { recursive: true }),
+-  mkdir(consumerDir, { recursive: true }),
+-])
++const image = `dsh-testkit-pack-smoke:${version}`
+@@ -17,39 +16,67 @@ await Promise.all([
+-const packed = await executeFile('npm', ['pack', '--json', '--pack-destination', packDir], {
+-  cwd: root,
+-  timeout: 120_000,
+-  maxBuffer: 8 * 1024 * 1024,
+-})
+-const metadata = JSON.parse(packed.stdout)
+-const filename = metadata[0]?.filename
+-if (typeof filename !== 'string') throw new Error(`npm pack returned no filename: ${packed.stdout}`)
+-const tarball = join(packDir, filename)
+-await writeFile(join(consumerDir, 'package.json'), `${JSON.stringify({
+-  name: 'dsh-testkit-clean-consumer',
+-  private: true,
+-  type: 'module',
+-}, null, 2)}\n`)
+-await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
+-  cwd: consumerDir,
+-  timeout: 120_000,
+-  maxBuffer: 8 * 1024 * 1024,
+-})
+-const help = await executeFile(join(consumerDir, 'node_modules', '.bin', 'dsh-test'), ['--help'], {
+-  cwd: consumerDir,
+-  timeout: 30_000,
+-})
+-if (!help.stdout.includes('Real-host lifecycle testing for DSH plugins.')) {
+-  throw new Error('packed CLI help is missing the product description')
+-}
+-const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
+-  "import { ScenarioSchema, TESTKIT_VERSION } from 'dsh-testkit'",
+-  "if (!ScenarioSchema || TESTKIT_VERSION !== '0.1.1') process.exit(1)",
+-].join(';')], { cwd: consumerDir, timeout: 30_000 })
+-if (imported.stderr !== '') process.stderr.write(imported.stderr)
+-const manifest = JSON.parse(await readFile(join(consumerDir, 'node_modules', 'dsh-testkit', 'package.json'), 'utf8'))
+-if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js') throw new Error('packed bin mapping is invalid')
+-const installedPackage = join(consumerDir, 'node_modules', 'dsh-testkit')
+-for (const dockerInput of ['.dockerignore', 'assets/runner.Dockerfile', 'assets/runner-pnpm-lock.yaml', 'pnpm-workspace.yaml']) {
+-  await readFile(join(installedPackage, dockerInput))
+-}
+-for (const schema of ['schemas/report-v1.json', 'schemas/scenario-v1.json']) {
+-  JSON.parse(await readFile(join(installedPackage, schema), 'utf8'))
++try {
++  await Promise.all([
++    mkdir(packDir, { recursive: true }),
++    mkdir(consumerDir, { recursive: true }),
++  ])
++
++  const packed = await executeFile('npm', ['pack', '--json', '--pack-destination', packDir], {
++    cwd: root,
++    timeout: 120_000,
++    maxBuffer: 8 * 1024 * 1024,
++  })
++  const metadata = JSON.parse(packed.stdout)
++  const filename = metadata[0]?.filename
++  if (typeof filename !== 'string') throw new Error(`npm pack returned no filename: ${packed.stdout}`)
++  const tarball = join(packDir, filename)
++  await writeFile(join(consumerDir, 'package.json'), `${JSON.stringify({
++    name: 'dsh-testkit-clean-consumer',
++    private: true,
++    type: 'module',
++  }, null, 2)}\n`)
++  await executeFile('pnpm', ['add', '--ignore-scripts', tarball], {
++    cwd: consumerDir,
++    timeout: 120_000,
++    maxBuffer: 8 * 1024 * 1024,
++  })
++  const help = await executeFile(join(consumerDir, 'node_modules', '.bin', 'dsh-test'), ['--help'], {
++    cwd: consumerDir,
++    timeout: 30_000,
++  })
++  if (!help.stdout.includes('Real-host lifecycle testing for DSH plugins.')) {
++    throw new Error('packed CLI help is missing the product description')
++  }
++  const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
++    "import { ScenarioSchema, TESTKIT_VERSION } from 'dsh-testkit'",
++    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}') process.exit(1)`,
++  ].join(';')], { cwd: consumerDir, timeout: 30_000 })
++  if (imported.stderr !== '') process.stderr.write(imported.stderr)
++
++  const installedPackage = join(consumerDir, 'node_modules', 'dsh-testkit')
++  const manifest = JSON.parse(await readFile(join(installedPackage, 'package.json'), 'utf8'))
++  if (manifest.version !== version) throw new Error('packed manifest version is stale')
++  if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js') throw new Error('packed bin mapping is invalid')
++  for (const dockerInput of ['.dockerignore', 'assets/runner.Dockerfile', 'assets/runner-pnpm-lock.yaml', 'pnpm-workspace.yaml']) {
++    await readFile(join(installedPackage, dockerInput))
++  }
++  for (const schema of ['schemas/report-v1.json', 'schemas/scenario-v1.json']) {
++    JSON.parse(await readFile(join(installedPackage, schema), 'utf8'))
++  }
++  const sourceMap = JSON.parse(await readFile(join(installedPackage, 'dist', 'src', 'cli.js.map'), 'utf8'))
++  if (!Array.isArray(sourceMap.sourcesContent) || sourceMap.sourcesContent.length === 0) {
++    throw new Error('published source maps must embed their TypeScript sources')
++  }
++
++  await executeFile('docker', [
++    'build',
++    '--file', join(installedPackage, 'assets', 'runner.Dockerfile'),
++    '--build-arg', `TESTKIT_VERSION=${version}-pack-smoke`,
++    '--tag', image,
++    installedPackage,
++  ], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
++  process.stdout.write(`packed consumer smoke passed: ${filename}\n`)
++} finally {
++  await executeFile('docker', ['image', 'rm', '--force', image], {
++    timeout: 60_000,
++    maxBuffer: 8 * 1024 * 1024,
++  }).catch(() => undefined)
++  await rm(temporary, { recursive: true, force: true })
+@@ -57,8 +83,0 @@ for (const schema of ['schemas/report-v1.json', 'schemas/scenario-v1.json']) {
+-await executeFile('docker', [
+-  'build',
+-  '--file', join(installedPackage, 'assets', 'runner.Dockerfile'),
+-  '--build-arg', 'TESTKIT_VERSION=0.1.1-pack-smoke',
+-  '--tag', 'dsh-testkit-pack-smoke:0.1.1',
+-  installedPackage,
+-], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
+-process.stdout.write(`packed consumer smoke passed: ${filename}\n`)
+diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
+index 33b65e0..430539f 100644
+--- a/tests/e2e/real-dsh.test.ts
++++ b/tests/e2e/real-dsh.test.ts
+@@ -8,0 +9 @@ import { describe, expect, it } from 'vitest'
++import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+@@ -14 +15 @@ const cli = join(root, 'dist', 'src', 'cli.js')
+-const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? '0.1.0-rc.6'
++const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
+@@ -21 +22,5 @@ interface FixtureRun {
+-async function runFixture(name: string, args: string[] = []): Promise<FixtureRun> {
++async function runFixture(
++  name: string,
++  args: string[] = [],
++  runner: 'local' | 'docker' = 'local',
++): Promise<FixtureRun> {
+@@ -30,2 +35,2 @@ async function runFixture(name: string, args: string[] = []): Promise<FixtureRun
+-      '--runner', 'local',
+-      '--unsafe-local',
++      '--runner', runner,
++      ...(runner === 'local' ? ['--unsafe-local'] : []),
+@@ -70,0 +76,24 @@ describe.sequential('real DSH lifecycle fixtures', () => {
++  it('reruns one real-host boot case and skips later lifecycle cases', async () => {
++    const result = await runFixture('healthy-plugin', [
++      '--expect-row', 'fixture-healthy',
++      '--case', 'boot',
++    ])
++    expect(result.code).toBe(0)
++    expect(result.report.scenario.case).toBe('boot')
++    expect(result.report.stages.find(stage => stage.id === 'boot')?.status).toBe('passed')
++    expect(result.report.stages.find(stage => stage.id === 'register')).toMatchObject({
++      status: 'skipped',
++      summary: 'not selected by --case boot',
++    })
++    expect(result.report.stages.at(-1)?.id).toBe('cleanup')
++  }, 900_000)
++
++  it('retains an expected boot-failure probe as declared Docker evidence', async () => {
++    const result = await runFixture('boot-failure-plugin', [], 'docker')
++    expect(result.code).toBe(0)
++    expect(result.report.verdict).toBe('passed')
++    expect(result.report.artifacts).toContain('evidence/probe-boot.json')
++    expect(result.report.stages.find(stage => stage.id === 'boot')?.artifacts)
++      .toContain('evidence/probe-boot.json')
++  }, 900_000)
++
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 3beee59..849b07e 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -26,0 +27 @@ function passingReport(request: WorkerRequest, verdict: RunReport['verdict'] = '
++      ...(request.case === undefined ? {} : { case: request.case }),
+@@ -28 +29 @@ function passingReport(request: WorkerRequest, verdict: RunReport['verdict'] = '
+-    testkitVersion: '0.1.1',
++    testkitVersion: '0.1.2',
+@@ -83,0 +85,87 @@ describe('CLI integration', () => {
++  it('reruns one lifecycle case with its identity in the report and reproduction command', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-case-'))
++    let captured: WorkerRequest | undefined
++    const runner: Runner = {
++      run: async request => {
++        captured = request
++        return passingReport(request)
++      },
++    }
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--case', 'boot',
++      '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: () => undefined,
++      runnerFactory: () => runner,
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8')) as RunReport
++    expect(exitCode).toBe(0)
++    expect(captured?.case).toBe('boot')
++    expect(report.scenario.case).toBe('boot')
++    expect(report.reproductionCommand).toContain('--case boot')
++  })
++
++  it('rejects unsupported DSH versions before constructing a runner', async () => {
++    const stderr: string[] = []
++    let factoryCalled = false
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.5', '--runner', 'local', '--unsafe-local',
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(4)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('0.1.0-rc.6')
++  })
++
++  it('rejects an unknown lifecycle case before constructing a runner', async () => {
++    const stderr: string[] = []
++    let factoryCalled = false
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--case', 'publish',
++      '--runner', 'local', '--unsafe-local',
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('lifecycle case')
++  })
++
++  it('rejects a selected case that the declared scenario cannot execute', async () => {
++    const stderr: string[] = []
++    let factoryCalled = false
++
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--case', 'update',
++      '--runner', 'local', '--unsafe-local',
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('requires subject.updateFrom')
++  })
++
+@@ -164 +252 @@ describe('CLI integration', () => {
+-    expect(stdout.join('')).toBe('0.1.1\n')
++    expect(stdout.join('')).toBe('0.1.2\n')
+diff --git a/tests/integration/worker.test.ts b/tests/integration/worker.test.ts
+index 16d0771..0a157c9 100644
+--- a/tests/integration/worker.test.ts
++++ b/tests/integration/worker.test.ts
+@@ -122,0 +123,27 @@ describe('LifecycleWorker', () => {
++  it('reruns a selected case with its required prefix and always cleans up', async () => {
++    const adapter = new FakeAdapter()
++    const report = await new LifecycleWorker(adapter).run(await request({ case: 'boot' }))
++
++    expect(report.verdict).toBe('passed')
++    expect(report.scenario.case).toBe('boot')
++    expect(adapter.calls).toEqual([
++      'resolve', 'installDsh', 'package', 'installPlugin', 'assemble', 'boot', 'cleanup',
++    ])
++    expect(report.stages.find(stage => stage.id === 'register')).toMatchObject({
++      status: 'skipped',
++      summary: 'not selected by --case boot',
++    })
++    expect(report.stages.at(-1)?.id).toBe('cleanup')
++  })
++
++  it('stops after a selected uninstall case instead of continuing to reboot', async () => {
++    const adapter = new FakeAdapter()
++    const report = await new LifecycleWorker(adapter).run(await request({ case: 'uninstall' }))
++
++    expect(report.verdict).toBe('passed')
++    expect(adapter.calls).toContain('uninstall')
++    expect(adapter.calls).not.toContain('reboot')
++    expect(adapter.calls.at(-1)).toBe('cleanup')
++    expect(report.stages.find(stage => stage.id === 'reboot')?.status).toBe('skipped')
++  })
++
+diff --git a/tests/unit/action-identity.test.ts b/tests/unit/action-identity.test.ts
+new file mode 100644
+index 0000000..d9ff47f
+--- /dev/null
++++ b/tests/unit/action-identity.test.ts
+@@ -0,0 +1,72 @@
++import { describe, expect, it } from 'vitest'
++
++import { computeActionIdentity } from '../../src/action/identity.js'
++import { buildActionArguments, parseAdditionalActionArgs } from '../../src/action/run.js'
++
++const baseInput = {
++  plugin: 'fixtures/healthy-plugin',
++  dshVersion: '0.1.0-rc.6',
++  output: '',
++  artifactName: '',
++  checkName: '',
++  runId: '12345',
++  runAttempt: '1',
++  job: 'test-plugins',
++  action: '__iiwish_dsh-testkit',
++}
++
++describe('GitHub Action identity', () => {
++  it('derives unique evidence identities for matrix subjects', () => {
++    const first = computeActionIdentity(baseInput)
++    const second = computeActionIdentity({ ...baseInput, plugin: 'fixtures/boot-failure-plugin' })
++
++    expect(first.output).not.toBe(second.output)
++    expect(first.artifactName).not.toBe(second.artifactName)
++    expect(first.checkName).not.toBe(second.checkName)
++    expect(first.artifactName).toMatch(/^dsh-testkit-test-plugins-healthy-plugin-[0-9a-f]{12}$/)
++  })
++
++  it('distinguishes repeated action invocations in one job', () => {
++    const first = computeActionIdentity(baseInput)
++    const second = computeActionIdentity({ ...baseInput, action: '__iiwish_dsh-testkit_2' })
++
++    expect(first.artifactName).not.toBe(second.artifactName)
++    expect(first.output).not.toBe(second.output)
++  })
++
++  it('preserves valid explicit names and rejects output traversal', () => {
++    expect(computeActionIdentity({
++      ...baseInput,
++      output: '.evidence/plugin-a',
++      artifactName: 'plugin-a-evidence',
++      checkName: 'Plugin A lifecycle',
++    })).toMatchObject({
++      output: '.evidence/plugin-a',
++      artifactName: 'plugin-a-evidence',
++      checkName: 'Plugin A lifecycle',
++    })
++
++    expect(() => computeActionIdentity({ ...baseInput, output: '../outside' }))
++      .toThrow(/relative directory inside the workspace/i)
++  })
++
++  it('preserves quoted and spaced CLI values through args-json', () => {
++    expect(parseAdditionalActionArgs('["--expect-row","row with spaces"]', ''))
++      .toEqual(['--expect-row', 'row with spaces'])
++    expect(() => parseAdditionalActionArgs('["--json"]', '--suite full'))
++      .toThrow(/not both/i)
++    expect(buildActionArguments({
++      plugin: 'package-name@1.0.0',
++      dshVersion: '0.1.0-rc.6',
++      config: '',
++      output: '.dsh-testkit/action-a',
++      argsJson: '["--expect-row","row with spaces"]',
++      legacyArgs: '',
++      workspace: '/workspace',
++    })).toEqual([
++      'package-name@1.0.0', '--dsh', '0.1.0-rc.6',
++      '--output', '/workspace/.dsh-testkit/action-a',
++      '--expect-row', 'row with spaces',
++    ])
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index 63effe3..4ed4f81 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -13 +13 @@ describe('Docker runner command planning', () => {
+-      image: 'dsh-testkit-runner:0.1.1',
++      image: 'dsh-testkit-runner:0.1.2',
+@@ -47 +47 @@ describe('Docker runner command planning', () => {
+-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.1-aaaaaaaaaaaa')
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.1.2-aaaaaaaaaaaa')
+diff --git a/tsconfig.json b/tsconfig.json
+index bbd922f..bf7c620 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -11,0 +12 @@
++    "inlineSources": true,
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 6b28b79..346280b 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -7 +7 @@ export default defineConfig({
+-      : ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
++      : ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/contracts/**/*.test.ts'],

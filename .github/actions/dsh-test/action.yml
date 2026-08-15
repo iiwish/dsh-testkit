@@ -12,13 +12,29 @@ inputs:
     required: false
     default: ''
   output:
-    description: Evidence directory relative to the workspace.
-    required: false
-    default: .dsh-testkit/action-run
-  args:
-    description: Additional dsh-test arguments.
+    description: Evidence directory relative to the workspace. A unique path is derived when empty.
     required: false
     default: ''
+  artifact-name:
+    description: Uploaded artifact name. A matrix-safe name is derived when empty.
+    required: false
+    default: ''
+  check-name:
+    description: JUnit check name. A subject-specific name is derived when empty.
+    required: false
+    default: ''
+  artifact-retention-days:
+    description: Number of days to retain lifecycle evidence.
+    required: false
+    default: '14'
+  args:
+    description: Legacy whitespace-delimited dsh-test arguments without quoting.
+    required: false
+    default: ''
+  args-json:
+    description: Additional dsh-test arguments as a JSON array of strings.
+    required: false
+    default: '[]'
 outputs:
   report:
     description: Canonical JSON report path.
@@ -26,13 +42,28 @@ outputs:
   exit-code:
     description: Stable dsh-test exit code.
     value: ${{ steps.lifecycle.outputs.exit-code }}
+  output:
+    description: Resolved evidence directory relative to the workspace.
+    value: ${{ steps.paths.outputs.output }}
+  artifact-name:
+    description: Uploaded artifact name.
+    value: ${{ steps.paths.outputs.artifact-name }}
+  artifact-id:
+    description: GitHub artifact ID.
+    value: ${{ steps.evidence.outputs.artifact-id }}
+  artifact-url:
+    description: GitHub artifact URL.
+    value: ${{ steps.evidence.outputs.artifact-url }}
+  artifact-digest:
+    description: GitHub artifact SHA-256 digest.
+    value: ${{ steps.evidence.outputs.artifact-digest }}
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       with:
         version: 11.1.3
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: '22'
     - name: Build DSH Testkit
@@ -42,49 +73,40 @@ runs:
     - id: paths
       shell: bash
       env:
-        OUTPUT: ${{ inputs.output }}
-      run: echo "report=$GITHUB_WORKSPACE/$OUTPUT/report.json" >> "$GITHUB_OUTPUT"
+        INPUT_PLUGIN: ${{ inputs.plugin }}
+        INPUT_DSH_VERSION: ${{ inputs.dsh-version }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        INPUT_CHECK_NAME: ${{ inputs.check-name }}
+      run: node "$GITHUB_ACTION_PATH/../../../dist/src/action/identity.js"
     - id: lifecycle
       name: Run lifecycle test
       continue-on-error: true
       shell: bash
       env:
-        PLUGIN: ${{ inputs.plugin }}
-        DSH_VERSION: ${{ inputs.dsh-version }}
-        CONFIG: ${{ inputs.config }}
-        OUTPUT: ${{ inputs.output }}
-        EXTRA_ARGS: ${{ inputs.args }}
-      run: |
-        plugin="$PLUGIN"
-        if [[ "$plugin" != /* && -e "$GITHUB_WORKSPACE/$plugin" ]]; then
-          plugin="$GITHUB_WORKSPACE/$plugin"
-        fi
-        command=(node "$GITHUB_ACTION_PATH/../../../dist/src/cli.js" "$plugin" --dsh "$DSH_VERSION" --output "$GITHUB_WORKSPACE/$OUTPUT")
-        [[ -z "$CONFIG" ]] || command+=(--config "$GITHUB_WORKSPACE/$CONFIG")
-        if [[ -n "$EXTRA_ARGS" ]]; then
-          read -r -a extra <<< "$EXTRA_ARGS"
-          command+=("${extra[@]}")
-        fi
-        set +e
-        "${command[@]}"
-        code=$?
-        set -e
-        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
-        exit 0
+        INPUT_PLUGIN: ${{ inputs.plugin }}
+        INPUT_DSH_VERSION: ${{ inputs.dsh-version }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_ARGS_JSON: ${{ inputs.args-json }}
+        RESOLVED_OUTPUT: ${{ steps.paths.outputs.output }}
+      run: node "$GITHUB_ACTION_PATH/../../../dist/src/action/run.js"
     - name: Publish JUnit
       if: always()
-      uses: mikepenz/action-junit-report@3585e9575db828022551b4231f165eb59a0e74e3 # v5.6.2
+      uses: mikepenz/action-junit-report@d9f48fc87bc235f7e214acf696ca5abc0a986f16 # v6.4.2
       with:
-        report_paths: ${{ github.workspace }}/${{ inputs.output }}/junit.xml
-        check_name: DSH lifecycle
+        report_paths: ${{ github.workspace }}/${{ steps.paths.outputs.output }}/junit.xml
+        check_name: ${{ steps.paths.outputs.check-name }}
         fail_on_failure: false
     - name: Upload lifecycle evidence
+      id: evidence
       if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: dsh-testkit-${{ github.run_id }}
-        path: ${{ github.workspace }}/${{ inputs.output }}
+        name: ${{ steps.paths.outputs.artifact-name }}
+        path: ${{ github.workspace }}/${{ steps.paths.outputs.output }}
         if-no-files-found: error
+        retention-days: ${{ inputs.artifact-retention-days }}
     - name: Enforce lifecycle verdict
       if: always()
       shell: bash

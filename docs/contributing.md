@@ -11,7 +11,7 @@ pnpm test:pack
 
 Behavior changes start with a failing test. Keep DSH-specific assumptions inside `src/adapters/dsh` or the versioned runtime probe. Scenario and report changes must update the Zod contract, confirmed JSON schema, published `schemas/` copy, fixtures, and projections together.
 
-After changing dependencies, copy `pnpm-lock.yaml` to `assets/runner-pnpm-lock.yaml`. `pnpm validate` and `prepack` reject a stale runner lock.
+The Docker runner uses `assets/runner-pnpm-lock.yaml`, which `pnpm build` generates from the canonical root `pnpm-lock.yaml`. The generated file is ignored by Git and included in the npm package, so dependency changes require no manual lockfile copy.
 
 The real-host E2E suite executes intentionally broken packages. Use Docker for untrusted subjects. Local E2E is reserved for repository-owned fixtures and still requires explicit unsafe consent.
 

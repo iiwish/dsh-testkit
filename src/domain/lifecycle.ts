@@ -5,6 +5,7 @@ import type {
   StageResult,
   Verdict,
 } from './report.js'
+import type { Scenario } from './scenario.js'
 
 export interface StageCompletion {
   summary: string
@@ -144,4 +145,14 @@ const EXIT_CODES: Record<Verdict, number> = {
 
 export function exitCodeForVerdict(verdict: Verdict): number {
   return EXIT_CODES[verdict]
+}
+
+export function validateLifecycleCase(scenario: Scenario, selectedCase: StageId): void {
+  if (selectedCase === 'update' && scenario.subject.updateFrom === undefined) {
+    throw new Error('lifecycle case update requires subject.updateFrom or --update-from')
+  }
+  if (scenario.expect.boot === 'failure'
+    && ['register', 'exercise', 'update', 'uninstall', 'reboot'].includes(selectedCase)) {
+    throw new Error(`lifecycle case ${selectedCase} is unavailable when boot failure is expected`)
+  }
 }

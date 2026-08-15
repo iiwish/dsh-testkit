@@ -31,6 +31,8 @@ One scenario records these ordered stages:
 - Every unavailable observer is disclosed. Requiring unavailable coverage yields `unsupported`, not a false pass.
 - `--suite full` runs five isolated attempts and returns `flaky` when their semantic outcomes disagree.
 
+The current DSH adapter supports `@deepseek-ai/dsh@0.1.0-rc.6`. Other exact versions fail with exit code `4` before a runner is created, preventing host-version drift from being reported as a plugin failure.
+
 ## Scenario
 
 Place `dsh-testkit.yaml` in the plugin project:
@@ -73,6 +75,14 @@ Each run writes:
 
 Full or explicitly repeated runs retain each complete report under `attempts/{nn}/` and write an aggregate root report with semantic digests. Use `--repeat 2` through `--repeat 20` for targeted repeatability checks; full requires at least five attempts.
 
+Lifecycle stages are stable case identifiers. Rerun a failed stage with its required prefix and the same scenario identity using `--case`:
+
+```bash
+pnpm dsh-test . --dsh 0.1.0-rc.6 --case boot
+```
+
+Later stages are recorded as skipped and cleanup still runs. The selected case is preserved in `report.json` and the reproduction command.
+
 The package publishes `schemas/scenario-v1.json` and `schemas/report-v1.json` for CI consumers that validate artifacts outside Node.js.
 
 Stable exit codes are `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported required capability, and `5` flaky.
@@ -85,6 +95,10 @@ The composite Action publishes JUnit and uploads the complete run directory:
     plugin: .
     dsh-version: 0.1.0-rc.6
 ```
+
+Matrix jobs derive unique output directories, check names, and artifact names. `artifact-name`, `check-name`, `output`, and `artifact-retention-days` remain configurable; `artifact-id`, `artifact-url`, and `artifact-digest` are Action outputs. Pass complex extra options without shell quoting loss through `args-json`, for example `args-json: '["--expect-row", "row with spaces"]'`.
+
+The composite Action targets GitHub.com because `actions/upload-artifact@v4+` is unavailable on GitHub Enterprise Server. GHES and other CI systems can invoke the `dsh-test` CLI directly and retain the same JSON/JUnit evidence.
 
 Private plugins stay on the CI runner. The Testkit has no SaaS dependency and does not upload source or credentials.
 
