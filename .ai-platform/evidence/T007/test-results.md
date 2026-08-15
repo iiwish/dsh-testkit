@@ -38,6 +38,10 @@ Last updated: 2026-08-15
 
 ## Hosted And Public Acceptance
 
-- Pending protected-branch PR and hosted CI.
-- Pending merge commit, `v0.2.1`, moving `v0`, GitHub Release and npm trusted publication/provenance.
-- Pending cold public install and native DSH profile verification of the published artifact.
+- [PR #9](https://github.com/iiwish/dsh-testkit/pull/9) merged as `a16da3e304c48361fdb6fef3050201cce2939041` after [CI run 31890006111](https://github.com/iiwish/dsh-testkit/actions/runs/31890006111) and [CodeQL run 31890005084](https://github.com/iiwish/dsh-testkit/actions/runs/31890005084) passed.
+- [Main CI run 31890278253](https://github.com/iiwish/dsh-testkit/actions/runs/31890278253) and [CodeQL run 31890278125](https://github.com/iiwish/dsh-testkit/actions/runs/31890278125) passed on the merge commit.
+- [Release run 31890580554](https://github.com/iiwish/dsh-testkit/actions/runs/31890580554) passed all release gates and published through npm OIDC trusted publishing.
+- [`v0.2.1`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.2.1) and moving `v0` dereference to the release commit.
+- [`dsh-testkit@0.2.1`](https://www.npmjs.com/package/dsh-testkit/v/0.2.1) has SHA-1 `45e1930f7a07c34a35d5220eda281240ff78edef`, integrity `sha512-ODAjLkDOVmo747k0eONyQPyGUrvLH39ibwmdjiG9H59VkxchTV4rQ62acPZ70B5tI9mIya227rISi3X1mr5YTg==` and a [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.2.1).
+- A clean public-registry consumer returned CLI version 0.2.1, exposed the community CLI, imported `createDshTestTool`, installed no optional DSH host peer and emitted no peer warning.
+- A clean DSH rc.6 profile installed the public package, exposed `tool-dsh-testkit` in `--dump-config`, emitted no peer warning and removed the bundle successfully.

@@ -1,6 +1,6 @@
 # T007 Delivery Summary
 
-Status: In_Progress
+Status: Needs_Review
 Task: v0.2.1 Community Proof And Release Automation
 Last updated: 2026-08-15
 
@@ -21,7 +21,8 @@ Last updated: 2026-08-15
 - Bug and code quality: no open P0/P1 finding after focused, full, packed-consumer and real-host review.
 - Credential boundary: child environments use an allowlist and omit model, npm, GitHub, cloud, remote Docker and Docker registry credentials.
 - Disclosure boundary: committed cohort artifacts contain no plugin identity; raw named reports remain under a local `/tmp` evidence directory.
-- QA acceptance: local gates pass; hosted PR, main, release and public-consumer gates remain pending.
+- QA acceptance: local, PR, main, CodeQL, release-workflow, cold public-consumer and public DSH profile gates pass.
+- Release acceptance: PR #9 merged as `a16da3e304c48361fdb6fef3050201cce2939041`; `v0.2.1`, moving `v0`, GitHub Release, npm 0.2.1 and SLSA provenance resolve to that release identity.
 - Execution mode: Direct Execute because current host policy does not authorize subagent delegation; the self-contained T007 packet constrained scope and validation.
 
 ## Residual Risks
@@ -30,4 +31,4 @@ Last updated: 2026-08-15
 - Docker reduces exposure but is not a hardened malware sandbox, and community code retains public-network access inside disposable containers.
 - Network tracing is unavailable; output-canary absence does not prove absence of egress.
 - DSH is still an rc contract. Canary success is evidence, not automatic support promotion.
-- Public release identities and provenance are pending the reviewed protected-branch merge and trusted-publishing workflow.
+- The governed task remains `Needs_Review` until explicit user acceptance.
