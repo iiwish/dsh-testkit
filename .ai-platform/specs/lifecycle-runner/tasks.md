@@ -50,7 +50,7 @@ Tasks:
 - [x] T002 [US-001, US-003, US-004, US-005] Implement worker, DSH adapter, probe, runners and CLI.
 - [x] T003 [US-001, US-002, US-005] Add fixtures, real-host proof, Action, docs and release verification.
 - [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
-- [ ] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
+- [x] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
 
 ## Task Details
 
@@ -361,7 +361,7 @@ Evidence required:
 Status: Needs_Review
 Priority: P0
 Depends on: T004
-Blocks: v0.1.2 public release
+Blocks: None
 Story / Requirement: FR-002, FR-016, FR-018, NFR-002, NFR-007, NFR-008, NFR-012
 Parallel: No
 Conflicts with: None

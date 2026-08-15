@@ -1,6 +1,6 @@
 # T005 Evidence Summary
 
-Status: Local_Review_Passed
+Status: Published_Needs_User_Acceptance
 Task: v0.1.2 contract, CI and release hardening
 Date: 2026-08-15
 
@@ -16,9 +16,20 @@ Date: 2026-08-15
 ## Review Result
 
 - Spec compliance: Pass.
-- Bug and code-quality review: Pass locally.
-- QA acceptance: Pass locally.
-- Release acceptance: Needs hosted PR CI, npm trust configuration, tag workflow and public artifact verification.
+- Bug and code-quality review: Pass.
+- QA acceptance: Pass in pull-request CI, main CI and the release workflow.
+- Release acceptance: Pass. `v0.1.2` and `v0` resolve to release commit `01d0a344f06d170238106a3a867f44f13caf7d1e`; npm `dsh-testkit@0.1.2` is public with SLSA provenance.
+- Governed user acceptance: Pending explicit acceptance of the published result.
+
+## Public Identities
+
+- Pull request: <https://github.com/iiwish/dsh-testkit/pull/6>
+- Main CI: <https://github.com/iiwish/dsh-testkit/actions/runs/31879201445>
+- Release workflow: <https://github.com/iiwish/dsh-testkit/actions/runs/31879424206>
+- CodeQL: <https://github.com/iiwish/dsh-testkit/actions/runs/31879314348>
+- GitHub Release: <https://github.com/iiwish/dsh-testkit/releases/tag/v0.1.2>
+- npm: <https://www.npmjs.com/package/dsh-testkit/v/0.1.2>
+- Provenance: <https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.1.2>
 
 ## Residual Risk
 
