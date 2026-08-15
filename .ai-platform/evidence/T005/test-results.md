@@ -8,11 +8,14 @@ Date: 2026-08-15
 
 Result: Expected failure. Five focused assertions failed because case selection, report case identity, DSH support gating and Action identity were absent; the Action identity module did not exist.
 
+Hosted matrix RED: CI run `31878604087` proved unique artifacts and checks, while the Docker boot-failure job exposed an undeclared partial `evidence/probe-boot.json` and failed with exit code 3.
+
 ## GREEN
 
 - `pnpm validate`: passed, 13 files and 76 tests.
-- Coverage: 51.13% statements, 75.70% branches, 54.76% functions, 51.13% lines.
+- Coverage: 51.09% statements, 75.70% branches, 54.76% functions, 51.09% lines.
 - `pnpm test:e2e`: passed, 7 real DSH cases in 285.284 seconds.
+- Targeted Docker regression: passed in 91.016 seconds and retained `evidence/probe-boot.json` in both stage and report artifact declarations.
 - `pnpm test:pack`: passed for `dsh-testkit-0.1.2.tgz` and its Docker image.
 - `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`: passed.
 - `pnpm dlx publint@latest`: passed with publint v0.3.23.

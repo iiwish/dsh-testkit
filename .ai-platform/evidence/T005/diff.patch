@@ -1,5 +1,5 @@
 diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
-index 054ac88..bb6f12b 100644
+index 054ac88..6c718fb 100644
 --- a/.ai-platform/docs/release-report.md
 +++ b/.ai-platform/docs/release-report.md
 @@ -3,3 +3,3 @@
@@ -36,8 +36,8 @@ index 054ac88..bb6f12b 100644
 -| Delivery artifacts | T001 through T004 packet and evidence contracts validate |
 +| TDD RED | Passed: focused tests failed for missing case selection, support gating, Action identity and compatibility fixtures |
 +| `pnpm validate` | Passed: 13 test files, 76 tests, typecheck, contract checks, coverage and build |
-+| Coverage | Passed: 51.13% statements, 75.70% branches, 54.76% functions and 51.13% lines |
-+| Real DSH E2E | Passed: 7 fixtures/cases against `@deepseek-ai/dsh@0.1.0-rc.6` in 285.284 seconds |
++| Coverage | Passed: 51.09% statements, 75.70% branches, 54.76% functions and 51.09% lines |
++| Real DSH E2E | Passed: 7 local-runner fixtures/cases in 285.284 seconds plus the targeted Docker boot-failure regression in 91.016 seconds |
 +| Single-case real host | Passed: resolve through boot executed, later stages skipped, cleanup retained |
 +| Packed consumer | Passed: dynamic v0.1.2 identity, embedded source maps, schemas, lock generation and Docker build |
 +| Contract compatibility | Passed: v0.1.1 scenario and report fixtures validate with runtime and published JSON schemas |
@@ -177,10 +177,10 @@ index 0000000..5aba446
 +- Public field success criteria are not yet met.
 diff --git a/.ai-platform/evidence/T005/test-results.md b/.ai-platform/evidence/T005/test-results.md
 new file mode 100644
-index 0000000..1c7ed47
+index 0000000..2c69645
 --- /dev/null
 +++ b/.ai-platform/evidence/T005/test-results.md
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,29 @@
 +# T005 Test Results
 +
 +Date: 2026-08-15
@@ -191,11 +191,14 @@ index 0000000..1c7ed47
 +
 +Result: Expected failure. Five focused assertions failed because case selection, report case identity, DSH support gating and Action identity were absent; the Action identity module did not exist.
 +
++Hosted matrix RED: CI run `31878604087` proved unique artifacts and checks, while the Docker boot-failure job exposed an undeclared partial `evidence/probe-boot.json` and failed with exit code 3.
++
 +## GREEN
 +
 +- `pnpm validate`: passed, 13 files and 76 tests.
-+- Coverage: 51.13% statements, 75.70% branches, 54.76% functions, 51.13% lines.
++- Coverage: 51.09% statements, 75.70% branches, 54.76% functions, 51.09% lines.
 +- `pnpm test:e2e`: passed, 7 real DSH cases in 285.284 seconds.
++- Targeted Docker regression: passed in 91.016 seconds and retained `evidence/probe-boot.json` in both stage and report artifact declarations.
 +- `pnpm test:pack`: passed for `dsh-testkit-0.1.2.tgz` and its Docker image.
 +- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`: passed.
 +- `pnpm dlx publint@latest`: passed with publint v0.3.23.
@@ -2733,6 +2736,24 @@ index 0000000..5ef731b
 +const isMain = process.argv[1] !== undefined
 +  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
 +if (isMain) await main()
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+index a33577d..85f1d46 100644
+--- a/src/adapters/dsh/npm-adapter.ts
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -1137 +1137,4 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-    if (!await exists(probePath) || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
++    const probeExists = await exists(probePath)
++    const probeArtifacts = probeExists ? [`evidence/${basename(probePath)}`] : []
++    if (probeExists) this.addArtifact(probePath)
++    if (!probeExists || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
+@@ -1147 +1150 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-        artifacts: commandArtifacts(result),
++        artifacts: [...commandArtifacts(result), ...probeArtifacts],
+@@ -1151 +1153,0 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-    this.addArtifact(probePath)
+@@ -1162 +1164 @@ export class DshNpmAdapter implements LifecycleAdapter {
+-      artifacts: [...commandArtifacts(result), `evidence/${basename(probePath)}`],
++      artifacts: [...commandArtifacts(result), ...probeArtifacts],
 diff --git a/src/adapters/dsh/support.ts b/src/adapters/dsh/support.ts
 new file mode 100644
 index 0000000..8e3cb05
@@ -3215,7 +3236,7 @@ index 0152e63..10457b4 100644
 -], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
 -process.stdout.write(`packed consumer smoke passed: ${filename}\n`)
 diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
-index 33b65e0..baa570d 100644
+index 33b65e0..430539f 100644
 --- a/tests/e2e/real-dsh.test.ts
 +++ b/tests/e2e/real-dsh.test.ts
 @@ -8,0 +9 @@ import { describe, expect, it } from 'vitest'
@@ -3223,7 +3244,19 @@ index 33b65e0..baa570d 100644
 @@ -14 +15 @@ const cli = join(root, 'dist', 'src', 'cli.js')
 -const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? '0.1.0-rc.6'
 +const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
-@@ -70,0 +72,15 @@ describe.sequential('real DSH lifecycle fixtures', () => {
+@@ -21 +22,5 @@ interface FixtureRun {
+-async function runFixture(name: string, args: string[] = []): Promise<FixtureRun> {
++async function runFixture(
++  name: string,
++  args: string[] = [],
++  runner: 'local' | 'docker' = 'local',
++): Promise<FixtureRun> {
+@@ -30,2 +35,2 @@ async function runFixture(name: string, args: string[] = []): Promise<FixtureRun
+-      '--runner', 'local',
+-      '--unsafe-local',
++      '--runner', runner,
++      ...(runner === 'local' ? ['--unsafe-local'] : []),
+@@ -70,0 +76,24 @@ describe.sequential('real DSH lifecycle fixtures', () => {
 +  it('reruns one real-host boot case and skips later lifecycle cases', async () => {
 +    const result = await runFixture('healthy-plugin', [
 +      '--expect-row', 'fixture-healthy',
@@ -3237,6 +3270,15 @@ index 33b65e0..baa570d 100644
 +      summary: 'not selected by --case boot',
 +    })
 +    expect(result.report.stages.at(-1)?.id).toBe('cleanup')
++  }, 900_000)
++
++  it('retains an expected boot-failure probe as declared Docker evidence', async () => {
++    const result = await runFixture('boot-failure-plugin', [], 'docker')
++    expect(result.code).toBe(0)
++    expect(result.report.verdict).toBe('passed')
++    expect(result.report.artifacts).toContain('evidence/probe-boot.json')
++    expect(result.report.stages.find(stage => stage.id === 'boot')?.artifacts)
++      .toContain('evidence/probe-boot.json')
 +  }, 900_000)
 +
 diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts

@@ -18,8 +18,8 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. Exact unsupported host versi
 |---|---|
 | TDD RED | Passed: focused tests failed for missing case selection, support gating, Action identity and compatibility fixtures |
 | `pnpm validate` | Passed: 13 test files, 76 tests, typecheck, contract checks, coverage and build |
-| Coverage | Passed: 51.13% statements, 75.70% branches, 54.76% functions and 51.13% lines |
-| Real DSH E2E | Passed: 7 fixtures/cases against `@deepseek-ai/dsh@0.1.0-rc.6` in 285.284 seconds |
+| Coverage | Passed: 51.09% statements, 75.70% branches, 54.76% functions and 51.09% lines |
+| Real DSH E2E | Passed: 7 local-runner fixtures/cases in 285.284 seconds plus the targeted Docker boot-failure regression in 91.016 seconds |
 | Single-case real host | Passed: resolve through boot executed, later stages skipped, cleanup retained |
 | Packed consumer | Passed: dynamic v0.1.2 identity, embedded source maps, schemas, lock generation and Docker build |
 | Contract compatibility | Passed: v0.1.1 scenario and report fixtures validate with runtime and published JSON schemas |

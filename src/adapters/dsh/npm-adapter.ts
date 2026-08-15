@@ -1134,7 +1134,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
         signal: result.signal,
       })
     }
-    if (!await exists(probePath) || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
+    const probeExists = await exists(probePath)
+    const probeArtifacts = probeExists ? [`evidence/${basename(probePath)}`] : []
+    if (probeExists) this.addArtifact(probePath)
+    if (!probeExists || (result.exitCode !== 0 && result.signal !== 'SIGTERM')) {
       const crashed = result.signal !== null && !result.stoppedAfterCompletion
       return {
         value: { outcome: crashed ? 'crash' : 'failure', probe: null },
@@ -1144,11 +1147,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
         command: result.command,
         exitCode: result.exitCode,
         signal: result.signal,
-        artifacts: commandArtifacts(result),
+        artifacts: [...commandArtifacts(result), ...probeArtifacts],
       }
     }
     const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
-    this.addArtifact(probePath)
     const probe: ProbeArtifact = {
       assertions: document.assertions,
       exercises: document.exercises,
@@ -1159,7 +1161,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       command: result.command,
       exitCode: result.exitCode,
       signal: result.signal,
-      artifacts: [...commandArtifacts(result), `evidence/${basename(probePath)}`],
+      artifacts: [...commandArtifacts(result), ...probeArtifacts],
     }
   }
 
