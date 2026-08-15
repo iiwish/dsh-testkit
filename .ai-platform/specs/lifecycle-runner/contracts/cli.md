@@ -16,6 +16,7 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
 | `--dsh {version}` | required unless config supplies it | Exact npm version only |
 | `--config {path}` | `dsh-testkit.yaml` when present | Scenario YAML or JSON |
 | `--suite {quick-or-full}` | `quick` | Selects built-in stage set |
+| `--case {lifecycle-stage}` | all stages | Executes the selected stage with its required prefix, skips later stages, and always cleans up |
 | `--repeat {2-through-20}` | suite-dependent | Repeats quick explicitly; full defaults to five and requires at least five |
 | `--runner {docker-or-local}` | `docker` | Local requires `--unsafe-local` |
 | `--unsafe-local` | false | Records unsafe execution permanently |
@@ -37,7 +38,7 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
 | `1` | lifecycle test failed |
 | `2` | invalid input or scenario |
 | `3` | infrastructure or cleanup error |
-| `4` | required capability unsupported |
+| `4` | required capability or DSH adapter version unsupported |
 | `5` | flaky result |
 
 ## Output Files
@@ -48,6 +49,7 @@ dsh-test {plugin-source} --dsh {exact-version} [options]
 - `logs/{stage}.stdout.log` and `logs/{stage}.stderr.log`: sanitized stage output.
 - `evidence/`: probe, profile, file, process and port snapshots.
 - Full or repeated runs retain each projection under `attempts/{nn}/`; the root report contains semantic digests and the aggregate verdict.
+- A selected lifecycle case is stored as `scenario.case` and included in `reproductionCommand`.
 
 ## Safety
 

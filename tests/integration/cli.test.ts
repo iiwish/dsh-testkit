@@ -24,8 +24,9 @@ function passingReport(request: WorkerRequest, verdict: RunReport['verdict'] = '
       schemaVersion: 1,
       profile: 'dsh-testkit',
       digest: `sha256:${'a'.repeat(64)}`,
+      ...(request.case === undefined ? {} : { case: request.case }),
     },
-    testkitVersion: '0.1.1',
+    testkitVersion: '0.1.2',
     environment: { runner: 'fake', outputDir: request.outputDir },
     observerCoverage: {
       filesystem: { available: true, mode: 'fake', limitations: [] },
@@ -79,6 +80,93 @@ describe('CLI integration', () => {
     expect(exitCode).toBe(2)
     expect(factoryCalled).toBe(false)
     expect(stderr.join('')).toContain('--unsafe-local')
+  })
+
+  it('reruns one lifecycle case with its identity in the report and reproduction command', async () => {
+    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-case-'))
+    let captured: WorkerRequest | undefined
+    const runner: Runner = {
+      run: async request => {
+        captured = request
+        return passingReport(request)
+      },
+    }
+
+    const exitCode = await runCli([
+      '.', '--dsh', '0.1.0-rc.6', '--case', 'boot',
+      '--runner', 'local', '--unsafe-local', '--output', output,
+    ], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+      runnerFactory: () => runner,
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8')) as RunReport
+    expect(exitCode).toBe(0)
+    expect(captured?.case).toBe('boot')
+    expect(report.scenario.case).toBe('boot')
+    expect(report.reproductionCommand).toContain('--case boot')
+  })
+
+  it('rejects unsupported DSH versions before constructing a runner', async () => {
+    const stderr: string[] = []
+    let factoryCalled = false
+
+    const exitCode = await runCli([
+      '.', '--dsh', '0.1.0-rc.5', '--runner', 'local', '--unsafe-local',
+    ], {
+      stdout: () => undefined,
+      stderr: value => stderr.push(value),
+      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    expect(exitCode).toBe(4)
+    expect(factoryCalled).toBe(false)
+    expect(stderr.join('')).toContain('0.1.0-rc.6')
+  })
+
+  it('rejects an unknown lifecycle case before constructing a runner', async () => {
+    const stderr: string[] = []
+    let factoryCalled = false
+
+    const exitCode = await runCli([
+      '.', '--dsh', '0.1.0-rc.6', '--case', 'publish',
+      '--runner', 'local', '--unsafe-local',
+    ], {
+      stdout: () => undefined,
+      stderr: value => stderr.push(value),
+      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    expect(exitCode).toBe(2)
+    expect(factoryCalled).toBe(false)
+    expect(stderr.join('')).toContain('lifecycle case')
+  })
+
+  it('rejects a selected case that the declared scenario cannot execute', async () => {
+    const stderr: string[] = []
+    let factoryCalled = false
+
+    const exitCode = await runCli([
+      '.', '--dsh', '0.1.0-rc.6', '--case', 'update',
+      '--runner', 'local', '--unsafe-local',
+    ], {
+      stdout: () => undefined,
+      stderr: value => stderr.push(value),
+      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    expect(exitCode).toBe(2)
+    expect(factoryCalled).toBe(false)
+    expect(stderr.join('')).toContain('requires subject.updateFrom')
   })
 
   it('rejects a non-empty output directory instead of mixing evidence from different runs', async () => {
@@ -161,7 +249,7 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(0)
     expect(factoryCalled).toBe(false)
-    expect(stdout.join('')).toBe('0.1.1\n')
+    expect(stdout.join('')).toBe('0.1.2\n')
   })
 
   it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {

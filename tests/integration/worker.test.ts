@@ -120,6 +120,33 @@ describe('LifecycleWorker', () => {
     ])
   })
 
+  it('reruns a selected case with its required prefix and always cleans up', async () => {
+    const adapter = new FakeAdapter()
+    const report = await new LifecycleWorker(adapter).run(await request({ case: 'boot' }))
+
+    expect(report.verdict).toBe('passed')
+    expect(report.scenario.case).toBe('boot')
+    expect(adapter.calls).toEqual([
+      'resolve', 'installDsh', 'package', 'installPlugin', 'assemble', 'boot', 'cleanup',
+    ])
+    expect(report.stages.find(stage => stage.id === 'register')).toMatchObject({
+      status: 'skipped',
+      summary: 'not selected by --case boot',
+    })
+    expect(report.stages.at(-1)?.id).toBe('cleanup')
+  })
+
+  it('stops after a selected uninstall case instead of continuing to reboot', async () => {
+    const adapter = new FakeAdapter()
+    const report = await new LifecycleWorker(adapter).run(await request({ case: 'uninstall' }))
+
+    expect(report.verdict).toBe('passed')
+    expect(adapter.calls).toContain('uninstall')
+    expect(adapter.calls).not.toContain('reboot')
+    expect(adapter.calls.at(-1)).toBe('cleanup')
+    expect(report.stages.find(stage => stage.id === 'reboot')?.status).toBe('skipped')
+  })
+
   it('continues to uninstall and cleanup after a registration assertion fails', async () => {
     const adapter = new FakeAdapter()
     adapter.registerFailure = true

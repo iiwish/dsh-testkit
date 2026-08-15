@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { StageIdSchema } from '../domain/report.js'
 import { ScenarioSchema } from '../domain/scenario.js'
 
 export const WorkerRequestSchema = z.object({
@@ -8,6 +9,7 @@ export const WorkerRequestSchema = z.object({
   scenario: ScenarioSchema,
   outputDir: z.string().min(1),
   reproductionCommand: z.string().min(1),
+  case: StageIdSchema.optional(),
   allowMutableSource: z.boolean().default(false),
   runner: z.enum(['docker', 'local']),
   unsafeLocal: z.boolean(),

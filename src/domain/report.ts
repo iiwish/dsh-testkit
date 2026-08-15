@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { REPORT_SCHEMA_VERSION } from '../version.js'
 
-export const StageIdSchema = z.enum([
+export const LIFECYCLE_STAGE_IDS = [
   'resolve',
   'install-dsh',
   'package',
@@ -16,7 +16,9 @@ export const StageIdSchema = z.enum([
   'reboot',
   'recover',
   'cleanup',
-])
+] as const
+
+export const StageIdSchema = z.enum(LIFECYCLE_STAGE_IDS)
 
 export const StageStatusSchema = z.enum(['passed', 'failed', 'skipped', 'unsupported'])
 export const VerdictSchema = z.enum([
@@ -108,6 +110,7 @@ export const RunReportSchema = z.object({
     schemaVersion: z.literal(1),
     profile: z.string().min(1),
     digest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    case: StageIdSchema.optional(),
   }).strict(),
   testkitVersion: z.string(),
   environment: z.record(z.string(), z.unknown()),

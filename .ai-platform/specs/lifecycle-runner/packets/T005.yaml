@@ -1,0 +1,119 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T005
+task_id: T005
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/docs/product-design.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/docs/release-report.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    technical_plan_and_work_graph: Confirmed
+    release_hardening: User approved the review findings and v0.1.2 release on 2026-08-15
+work_unit:
+  title: v0.1.2 contract, CI and release hardening
+  goal: Close the approved post-release findings and publish v0.1.2 from a verified commit.
+  epic: E001
+  story: US-001
+  requirements: [FR-002, FR-016, FR-018, NFR-002, NFR-007, NFR-008, NFR-012]
+  priority: P0
+  depends_on: [T004]
+  blocks: [v0.1.2 public release]
+  parallel: false
+  conflicts_with: []
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - .github/actions/dsh-test/action.yml
+    - .github/workflows/ci.yml
+    - src/cli.ts
+    - src/worker/**
+    - src/adapters/dsh/**
+    - src/domain/report.ts
+    - schemas/**
+    - tests/**
+  existing_patterns:
+    - Lifecycle stages are the stable JUnit test cases.
+    - The canonical report is validated before projections are rendered.
+    - Docker remains the default runner and real DSH E2E backs adapter claims.
+  interfaces_or_contracts:
+    - .ai-platform/specs/lifecycle-runner/contracts/cli.md
+    - .ai-platform/specs/lifecycle-runner/contracts/report.schema.json
+    - .ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+  forbidden_changes:
+    - Do not weaken lifecycle, residue, identity or observer assertions.
+    - Do not add, modify or commit the user-owned AGENTS.md file.
+    - Do not publish from an unverified or dirty tree.
+execution_constraints:
+  branch_or_worktree: codex/release-hardening
+  allowed_files:
+    - .ai-platform/**
+    - .github/**
+    - src/**
+    - tests/**
+    - assets/**
+    - schemas/**
+    - scripts/**
+    - docs/**
+    - examples/**
+    - package.json
+    - pnpm-lock.yaml
+    - pnpm-workspace.yaml
+    - vitest.config.ts
+    - README.md
+    - SECURITY.md
+    - CHANGELOG.md
+    - .dockerignore
+    - .gitignore
+  test_targets:
+    - tests/unit/**
+    - tests/integration/**
+    - tests/contracts/**
+    - tests/e2e/**
+  ownership_notes:
+    - Preserve the untracked AGENTS.md exactly as found.
+tdd_plan:
+  required: true
+  exception: Workflow and documentation-only edits use static validation rather than synthetic runtime failures.
+  red:
+    command: pnpm test -- tests/integration/worker.test.ts tests/integration/cli.test.ts tests/contracts
+    expected_failure: Case selection, unsupported-version gating and compatibility fixtures fail before implementation.
+  green:
+    command: pnpm validate
+    expected_signal: Focused regressions, contract checks, typecheck, coverage and build pass.
+  refactor:
+    command: pnpm test:e2e && pnpm test:pack
+    expected_signal: Real DSH and clean packed-consumer acceptance pass.
+validation_loop:
+  commands:
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:pack
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T005
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest implementation or contract defect within approved scope.
+    second_failure: Add diagnostics and verify the DSH, Docker, Action or npm assumption.
+    third_failure: Classify a genuine external blocker without weakening acceptance.
+    beyond_budget: Stop and record blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T005/summary.md
+  diff: .ai-platform/evidence/T005/diff.patch
+  test_results: .ai-platform/evidence/T005/test-results.md
+  required: [RED/GREEN results, full release validation, public CI identities, commit and tag, npm identity and provenance, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, qa_acceptance, release_acceptance]
+  acceptance_rule: Public release requires a verified commit, green CI and successful npm verification.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [merge reviewed pull request, tag v0.1.2, publish trusted npm release]
+stop_conditions: [Docker unavailable for final E2E, real DSH incompatibility, npm trusted publisher unavailable, unresolved release blocker]

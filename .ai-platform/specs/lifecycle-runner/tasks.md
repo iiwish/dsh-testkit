@@ -50,6 +50,7 @@ Tasks:
 - [x] T002 [US-001, US-003, US-004, US-005] Implement worker, DSH adapter, probe, runners and CLI.
 - [x] T003 [US-001, US-002, US-005] Add fixtures, real-host proof, Action, docs and release verification.
 - [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
+- [ ] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
 
 ## Task Details
 
@@ -354,6 +355,90 @@ Evidence required:
 - Coverage summary and real DSH reports.
 - Packed artifact identity and immutable Git identity.
 - Diff summary and residual risks.
+
+### T005: v0.1.2 Contract, CI And Release Hardening
+
+Status: Needs_Review
+Priority: P0
+Depends on: T004
+Blocks: v0.1.2 public release
+Story / Requirement: FR-002, FR-016, FR-018, NFR-002, NFR-007, NFR-008, NFR-012
+Parallel: No
+Conflicts with: None
+
+Goal:
+Close the post-release review findings, preserve v1 contract compatibility, make Action matrix use reliable, and publish v0.1.2 from an auditable release identity.
+
+Allowed files:
+- `.ai-platform/**`
+- `.github/**`
+- `src/**`
+- `tests/**`
+- `assets/**`
+- `schemas/**`
+- `scripts/**`
+- `docs/**`
+- `examples/**`
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `vitest.config.ts`
+- `README.md`
+- `SECURITY.md`
+- `CHANGELOG.md`
+- `.dockerignore`
+- `.gitignore`
+
+Test targets:
+- `tests/unit/action-identity.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/integration/worker.test.ts`
+- `tests/contracts/v1-compatibility.test.ts`
+- `tests/e2e/real-dsh.test.ts`
+- `tests/e2e/pack-consumer.mjs`
+
+Deliverables:
+- Lifecycle-stage case selector and report identity.
+- Exact DSH adapter support registry.
+- Runtime and published-schema compatibility fixtures.
+- Matrix-safe composite Action identities and argument transport.
+- Scoped CI and npm trusted-publishing workflow.
+- Generated runner lock, embedded source maps and deterministic pack cleanup.
+
+Acceptance criteria:
+- Composite Action invocations derive unique output, JUnit check and artifact identities and expose upload metadata.
+- Stored v1 scenario and report fixtures validate with both runtime schemas and published JSON Schema.
+- `--case <stage>` executes the necessary prefix, skips later stages, always cleans up and appears in the reproduction command.
+- Unsupported DSH versions return exit code 4 before runner construction.
+- CI permissions are job-scoped, stale runs are cancelled, and a trusted npm release workflow validates tag/version/commit identity.
+- Packed consumer checks derive the package version dynamically and clean temporary resources.
+- Full validation, real DSH E2E, packed consumption, Action smoke and public package verification pass.
+
+Definition of Done:
+- Focused behavior tests demonstrate RED before implementation and GREEN after it.
+- Local validation, real-host E2E, packed consumer, actionlint, publint and audits pass.
+- Hosted PR matrix passes without artifact/check collisions.
+- `v0.1.2` points to the reviewed merge commit and npm exposes the same version with provenance.
+
+Validation commands:
+- `pnpm validate`
+- `pnpm test:e2e`
+- `pnpm test:pack`
+- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T005`
+
+TDD plan:
+- RED: add regressions for case selection, unsupported DSH, Action identity and stored v1 fixtures.
+- GREEN: implement the smallest controller, worker, schema and Action changes that satisfy the regressions.
+- REFACTOR: consolidate release identity, lock generation and CI permissions, then run real-host and package gates.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
+
+Evidence required:
+- RED/GREEN results for case selection, support gating, Action identity and compatibility fixtures.
+- Full release validation and public CI URLs.
+- Commit, tag, GitHub release, npm version and provenance identities.
+- Residual risks and external repository-setting changes.
 
 ## Gate
 

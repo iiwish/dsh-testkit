@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 import { DshNpmAdapter } from '../adapters/dsh/npm-adapter.js'
+import { assertSupportedDshVersion, UnsupportedDshVersionError } from '../adapters/dsh/support.js'
 import { exitCodeForVerdict } from '../domain/lifecycle.js'
 import { RunReportSchema } from '../domain/report.js'
 import { renderJson } from '../reporters/json.js'
@@ -15,6 +16,7 @@ export async function runWorker(argv: string[]): Promise<number> {
   const requestPath = requestIndex === -1 ? undefined : argv[requestIndex + 1]
   if (requestPath === undefined) throw new Error('worker requires --request <path>')
   const request = WorkerRequestSchema.parse(JSON.parse(await readFile(requestPath, 'utf8')))
+  assertSupportedDshVersion(request.scenario.dsh.version)
   await mkdir(request.outputDir, { recursive: true })
   const report = RunReportSchema.parse(await new LifecycleWorker(new DshNpmAdapter()).run(request))
   const reportPath = `${request.outputDir}/report.json`
@@ -30,6 +32,6 @@ if (isMain) {
     process.exitCode = await runWorker(process.argv.slice(2))
   } catch (error) {
     process.stderr.write(`dsh-test worker: ${error instanceof Error ? error.stack ?? error.message : String(error)}\n`)
-    process.exitCode = 3
+    process.exitCode = error instanceof UnsupportedDshVersionError ? error.exitCode : 3
   }
 }

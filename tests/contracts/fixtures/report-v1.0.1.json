@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "runId": "v0.1.1-compatibility",
+  "startedAt": "2026-08-15T00:00:00.000Z",
+  "endedAt": "2026-08-15T00:00:01.000Z",
+  "verdict": "passed",
+  "subject": {
+    "input": "dsh-example-plugin@1.0.0",
+    "kind": "npm",
+    "packageName": "dsh-example-plugin",
+    "packageVersion": "1.0.0",
+    "sourceDigest": "sha256:compatibility",
+    "gitCommit": null,
+    "mutable": false
+  },
+  "dsh": {
+    "version": "0.1.0-rc.6",
+    "integrity": null
+  },
+  "scenario": {
+    "name": "v0.1.1-compatibility",
+    "suite": "quick",
+    "schemaVersion": 1,
+    "profile": "compatibility",
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "testkitVersion": "0.1.1",
+  "environment": {
+    "runner": "docker",
+    "node": "v22.18.0"
+  },
+  "observerCoverage": {
+    "filesystem": { "available": true, "mode": "snapshot", "limitations": [] },
+    "process": { "available": true, "mode": "snapshot", "limitations": [] },
+    "ports": { "available": true, "mode": "snapshot", "limitations": [] },
+    "network": { "available": false, "mode": "unsupported", "limitations": ["not observed"] },
+    "canary": { "available": true, "mode": "log-scan", "limitations": [] }
+  },
+  "stages": [],
+  "artifacts": ["report.json", "junit.xml", "report.md"],
+  "reproductionCommand": "dsh-test dsh-example-plugin@1.0.0 --dsh 0.1.0-rc.6"
+}

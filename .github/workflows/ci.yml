@@ -5,36 +5,92 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  checks: write
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lifecycle: ${{ steps.filter.outputs.lifecycle }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: filter
+        name: Detect lifecycle-impacting changes
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base="$BASE_SHA"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          lifecycle=false
+          while IFS= read -r file; do
+            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
+              lifecycle=true
+              break
+            fi
+          done < <(git diff --name-only "$base" "$GITHUB_SHA")
+          echo "lifecycle=$lifecycle" >> "$GITHUB_OUTPUT"
+
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 11.1.3
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate
+
+  real-host:
+    needs: [changes, validate]
+    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test:e2e
       - run: pnpm test:pack
 
   action-smoke:
+    needs: [changes, validate]
+    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - plugin: fixtures/healthy-plugin
+            config: fixtures/healthy-plugin/dsh-testkit.yaml
+          - plugin: fixtures/boot-failure-plugin
+            config: fixtures/boot-failure-plugin/dsh-testkit.yaml
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/dsh-test
         with:
-          plugin: fixtures/healthy-plugin
+          plugin: ${{ matrix.plugin }}
           dsh-version: 0.1.0-rc.6
-          config: fixtures/healthy-plugin/dsh-testkit.yaml
+          config: ${{ matrix.config }}
+          artifact-retention-days: '14'
