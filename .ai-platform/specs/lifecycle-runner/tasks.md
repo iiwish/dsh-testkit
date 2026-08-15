@@ -520,7 +520,7 @@ Evidence required:
 
 ### T007: v0.2.1 Community Proof And Release Automation
 
-Status: In_Progress
+Status: Needs_Review
 Priority: P0
 Depends on: T006
 Blocks: v0.2.1 public release

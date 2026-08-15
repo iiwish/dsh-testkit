@@ -119,6 +119,6 @@ review_contract:
   acceptance_rule: Public release requires a reviewed merge commit, green full gates, reconciled aggregate community evidence, trusted npm publication and public install verification.
 handoff:
   external_issue: null
-  pull_request: null
+  pull_request: https://github.com/iiwish/dsh-testkit/pull/9
   finish_options: [merge reviewed pull request, publish v0.2.1, move v0, prepare unofficial Show-and-tell draft]
 stop_conditions: [Docker unavailable for final E2E, community runner would expose credentials, aggregate cannot reconcile to raw reports, npm trusted publisher unavailable, unresolved release blocker]
