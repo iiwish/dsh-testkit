@@ -1,10 +1,10 @@
 # DSH Testkit Release Report
 
 Version: v0.2.0
-Status: Release Candidate
-Decision: CONDITIONAL_GO
+Status: Published Public Preview
+Decision: GO
 Last updated: 2026-08-15
-Release commit: Pending reviewed merge commit
+Release commit: [`73e6058258564698911f3b1ca92d062647f1b423`](https://github.com/iiwish/dsh-testkit/commit/73e6058258564698911f3b1ca92d062647f1b423)
 
 ## Release Scope
 
@@ -24,11 +24,15 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 | Packed consumer | Passed: v0.2.0 CLI/library import, DSH manifest, patch export, tool schema, embedded sources and Docker image build |
 | Tool safety regressions | Passed: confirmation, DSH approval gate, downstream denial preservation, credential rejection, workspace escape, symlink escape, output-parent escape, forced Docker and bounded projection |
 | Workflow validation | `actionlint v1.7.12` passed for CI and release workflows |
+| Required-check continuity | Contract coverage keeps `real-host` and both Action smoke matrix identities successful for documentation-only pull requests while skipping their expensive execution steps |
 | Package quality | `publint v0.3.23` passed; dry-run tarball is under 150 KB and contains the declared bundle/runtime assets |
-| Dependency security | No known high or critical production vulnerability from the public npm advisory endpoint |
+| Dependency security | `pnpm audit --prod --registry https://registry.npmjs.org/` passed with no known production vulnerability |
 | Delivery artifacts | T006 packet, implementation evidence and residual risks are recorded |
-| Hosted PR and release gates | Pending protected-branch PR, required checks and trusted publishing |
-| npm and marketplace | Pending `dsh-testkit@0.2.0` publication and official directory submission |
+| Protected-branch PR | [PR #7](https://github.com/iiwish/dsh-testkit/pull/7) merged after [CI run 31883230903](https://github.com/iiwish/dsh-testkit/actions/runs/31883230903) passed validate, Action smoke and real-host gates |
+| Main branch | [CI run 31883503152](https://github.com/iiwish/dsh-testkit/actions/runs/31883503152) and [CodeQL run 31883502999](https://github.com/iiwish/dsh-testkit/actions/runs/31883502999) passed on the release commit |
+| Trusted publication | [Release run 31883743981](https://github.com/iiwish/dsh-testkit/actions/runs/31883743981) passed validation, both real-host suites, packed-consumer testing, npm OIDC publication and public verification |
+| Public consumer | A clean project installed `dsh-testkit@0.2.0` from `registry.npmjs.org`; the CLI returned `0.2.0`, the root library exported `createDshTestTool`, and the installed package declared the DSH bundle and peers |
+| Official directory | [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is open with English and Chinese entries for the released package |
 
 ## Review
 
@@ -36,7 +40,7 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 - Engineering quality: Passed locally with no open P0 or P1 finding.
 - Security boundary: Passed locally; the tool preserves downstream denials and adds DSH approval only when an agent originates a confirmed call.
 - QA acceptance: Passed locally across unit, contract, existing real-host, native-bundle and packed-consumer paths.
-- Release acceptance: Conditional on protected-branch CI, immutable tag, trusted npm publication and public verification.
+- Release acceptance: Passed for the published artifact; governed task T006 remains `Needs_Review` until explicit user acceptance.
 
 ## Residual Risks
 
@@ -49,6 +53,9 @@ The release supports `@deepseek-ai/dsh@0.1.0-rc.6`. The native tool returns a bo
 ## Publication Targets
 
 - Repository: [iiwish/dsh-testkit](https://github.com/iiwish/dsh-testkit)
-- Release tag: `v0.2.0` pending
-- npm package: `dsh-testkit@0.2.0` pending
-- Official plugin directory submission: pending
+- GitHub release: [`v0.2.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.2.0), with `v0` pointing to the same release commit
+- npm package: [`dsh-testkit@0.2.0`](https://www.npmjs.com/package/dsh-testkit/v/0.2.0)
+- npm tarball SHA-1: `5db1e8322307decacb3d3b80564f37591a8bb6a8`
+- npm integrity: `sha512-cDgCYVtCnlR8P6lY4NVUdTZ2DD8LP0FM6qihKwmVH1UW5hZQAcKPRBAq5MZ9+cL5sjxmhs0pl0ZVaIYoXLfIbg==`
+- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.2.0)
+- Official plugin directory submission: [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562)

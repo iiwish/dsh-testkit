@@ -94,6 +94,6 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T005.yaml`
 
 #### Work Item T006: Native DSH Bundle And v0.2.0 Release
 
-Status: Running
+Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t006-native-dsh-bundle-and-v020-release`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T006.yaml`

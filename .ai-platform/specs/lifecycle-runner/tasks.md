@@ -51,7 +51,7 @@ Tasks:
 - [x] T003 [US-001, US-002, US-005] Add fixtures, real-host proof, Action, docs and release verification.
 - [x] T004 [US-001 through US-005] Resolve release-acceptance findings and prove an immutable release candidate.
 - [x] T005 [US-001 through US-005] Harden contracts and CI, complete case reruns, and publish v0.1.2 through a trusted release path.
-- [ ] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
+- [x] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
 
 ## Task Details
 
@@ -443,10 +443,10 @@ Evidence required:
 
 ### T006: Native DSH Bundle And v0.2.0 Release
 
-Status: Running
+Status: Needs_Review
 Priority: P0
 Depends on: T005
-Blocks: v0.2.0 public release and plugin-directory submission
+Blocks: None
 Story / Requirement: US-006, FR-019 through FR-022, NFR-002 through NFR-004, NFR-008, NFR-012, SC-011, SC-012
 Parallel: No
 Conflicts with: None

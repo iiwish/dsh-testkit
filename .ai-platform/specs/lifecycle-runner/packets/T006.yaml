@@ -110,6 +110,6 @@ review_contract:
   acceptance_rule: Public release requires a verified merge commit, green CI, real DSH bundle proof and successful npm verification.
 handoff:
   external_issue: null
-  pull_request: null
+  pull_request: https://github.com/iiwish/dsh-testkit/pull/7
   finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit official plugin directory entry]
 stop_conditions: [Docker unavailable for final E2E, real DSH bundle incompatibility, npm trusted publisher unavailable, unresolved release blocker]
