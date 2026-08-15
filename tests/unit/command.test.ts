@@ -56,6 +56,27 @@ describe('command runner', () => {
     expect(result.exitCode).not.toBe(0)
   })
 
+  it('forwards an AbortSignal to the owned process group', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-command-abort-'))
+    const controller = new AbortController()
+    const running = runCommand({
+      executable: process.execPath,
+      args: ['-e', 'setInterval(() => {}, 1000)'],
+      cwd: root,
+      timeoutMs: 5_000,
+      logDir: root,
+      logName: 'abort',
+      signal: controller.signal,
+    })
+    setTimeout(() => controller.abort(), 50)
+
+    const result = await running
+    expect(result.timedOut).toBe(false)
+    expect(result.interruptedBy).toBe('SIGTERM')
+    expect(result.exitCode).not.toBe(0)
+    expect(result.durationMs).toBeLessThan(2_000)
+  })
+
   it('bounds captured output and records truncation explicitly', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-command-bounded-'))
     const result = await runCommand({

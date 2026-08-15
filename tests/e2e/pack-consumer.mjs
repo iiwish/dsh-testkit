@@ -46,8 +46,8 @@ try {
     throw new Error('packed CLI help is missing the product description')
   }
   const imported = await executeFile(process.execPath, ['--input-type=module', '--eval', [
-    "import { ScenarioSchema, TESTKIT_VERSION } from 'dsh-testkit'",
-    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}') process.exit(1)`,
+    "import { ScenarioSchema, TESTKIT_VERSION, createDshTestTool } from 'dsh-testkit'",
+    `if (!ScenarioSchema || TESTKIT_VERSION !== '${version}' || createDshTestTool().name !== 'dsh_test') process.exit(1)`,
   ].join(';')], { cwd: consumerDir, timeout: 30_000 })
   if (imported.stderr !== '') process.stderr.write(imported.stderr)
 
@@ -55,6 +55,12 @@ try {
   const manifest = JSON.parse(await readFile(join(installedPackage, 'package.json'), 'utf8'))
   if (manifest.version !== version) throw new Error('packed manifest version is stale')
   if (manifest.bin?.['dsh-test'] !== 'dist/src/cli.js') throw new Error('packed bin mapping is invalid')
+  if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('packed DSH bundle manifest is invalid')
+  if (manifest.exports?.['./cordis.patch.yml'] !== './cordis.patch.yml') throw new Error('packed bundle patch export is missing')
+  const patch = await readFile(join(installedPackage, 'cordis.patch.yml'), 'utf8')
+  if (!patch.includes('id: tool-dsh-testkit') || !patch.includes('name: dsh-testkit')) {
+    throw new Error('packed bundle patch does not register dsh-testkit')
+  }
   for (const dockerInput of ['.dockerignore', 'assets/runner.Dockerfile', 'assets/runner-pnpm-lock.yaml', 'pnpm-workspace.yaml']) {
     await readFile(join(installedPackage, dockerInput))
   }

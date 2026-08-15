@@ -23,6 +23,16 @@ for (const path of [
 
 const readme = await readFile('README.md', 'utf8')
 if (readme.includes('YOUR_ORG')) throw new Error('README.md contains an unresolved repository placeholder')
+if (!readme.includes('dsh plugin --profile web add dsh-testkit@0.2.0')) {
+  throw new Error('README.md must document the native DSH bundle installation path')
+}
+if (manifest.dsh?.bundle?.patch !== './cordis.patch.yml') {
+  throw new Error('package.json must declare the official DSH bundle patch')
+}
+const bundlePatch = await readFile('cordis.patch.yml', 'utf8')
+if (!bundlePatch.includes('id: tool-dsh-testkit') || !bundlePatch.includes('name: dsh-testkit')) {
+  throw new Error('cordis.patch.yml must register the dsh-testkit Cordis row')
+}
 const dockerfile = await readFile('assets/runner.Dockerfile', 'utf8')
 if (!/^FROM \S+@sha256:[0-9a-f]{64}$/m.test(dockerfile)) {
   throw new Error('runner.Dockerfile must pin its base image by digest')
@@ -37,7 +47,7 @@ if (!manifest.scripts?.build?.includes('scripts/prepare-runner-lock.mjs')) {
   throw new Error('build must generate the runner lockfile from the canonical root lock')
 }
 const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
-for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'npm publish --access public']) {
+for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'pnpm test:bundle-e2e', 'npm publish --access public']) {
   if (!releaseWorkflow.includes(required)) {
     throw new Error(`release workflow is missing trusted-publishing control: ${required}`)
   }

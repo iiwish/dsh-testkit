@@ -11,6 +11,15 @@ pnpm dsh-test . --dsh 0.1.0-rc.6 \
   --expect-tool my_tool
 ```
 
+DSH Testkit is also an official DSH Profile Bundle. Install it into the profile where you want the tool available:
+
+```bash
+dsh plugin --profile web add dsh-testkit@0.2.0
+dsh --profile web --dump-config
+```
+
+The bundle registers `dsh_test`. It tests the active workspace by default, accepts the same expected row/service/tool assertions, and returns the verdict plus paths to the complete report. The tool always uses Docker, ignores implicit `dsh-testkit.yaml` configuration, restricts local inputs to the active workspace, requires `confirm: true`, and asks through DSH's pre-execution approval pipeline for agent-originated calls. It never exposes unsafe-local execution or arbitrary CLI arguments.
+
 Docker is the default runner. The plugin and its install scripts execute inside a fresh container, while the source mount is read-only and the run root uses disposable filesystems. Local execution is deliberately loud:
 
 ```bash
@@ -105,6 +114,8 @@ Private plugins stay on the CI runner. The Testkit has no SaaS dependency and do
 ## Scope And Safety
 
 DSH Testkit tests DSH lifecycle behavior. It is not a plugin marketplace, cross-Harness standard, model-quality benchmark, static security scanner, or proof that executable code is safe. Docker reduces the default blast radius but is not a hardened malware sandbox. Do not run untrusted plugins with `--unsafe-local`.
+
+The native `dsh_test` tool requires access to the Docker daemon and can execute package scripts with network access inside the runner. Confirmation is a deliberate trust decision, not a security certification.
 
 Architecture and trust boundaries are documented in [Architecture](docs/architecture.md). Development workflow is in [Contributing](docs/contributing.md).
 

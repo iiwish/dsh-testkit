@@ -92,7 +92,7 @@ export function buildDockerRunArgs(plan: DockerRunPlan): string[] {
 }
 
 export class DockerRunner implements Runner {
-  async run(request: WorkerRequest): Promise<RunReport> {
+  async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
     try {
       await mkdir(request.outputDir, { recursive: true })
       const logsDir = join(request.outputDir, 'logs')
@@ -101,8 +101,8 @@ export class DockerRunner implements Runner {
       const contextDigest = await dockerContextDigest(root)
       const image = runnerImageName(contextDigest)
       try {
-        await this.ensureImage(image, contextDigest, root, controllerLogsDir)
-        const imageId = await this.imageId(image, root, controllerLogsDir)
+        await this.ensureImage(image, contextDigest, root, controllerLogsDir, signal)
+        const imageId = await this.imageId(image, root, controllerLogsDir, signal)
 
         const inputs: DockerInputMount[] = []
         const scenario = structuredClone(request.scenario)
@@ -145,6 +145,7 @@ export class DockerRunner implements Runner {
           }),
           cwd: root,
           timeoutMs: runnerTimeoutMs(request),
+          ...(signal === undefined ? {} : { signal }),
           logDir: controllerLogsDir,
           logName: 'docker-runner',
         }).finally(async () => {
@@ -184,7 +185,13 @@ export class DockerRunner implements Runner {
     }
   }
 
-  private async ensureImage(image: string, contextDigest: string, root: string, logsDir: string): Promise<void> {
+  private async ensureImage(
+    image: string,
+    contextDigest: string,
+    root: string,
+    logsDir: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
     const inspected = await runCommand({
       executable: 'docker',
       args: ['image', 'inspect', '--format', '{{ index .Config.Labels "dev.dsh-testkit.context-sha256" }}', image],
@@ -192,6 +199,7 @@ export class DockerRunner implements Runner {
       timeoutMs: 30_000,
       logDir: logsDir,
       logName: 'docker-image-inspect',
+      ...(signal === undefined ? {} : { signal }),
     })
     if (inspected.exitCode === 0 && inspected.stdout.trim() === contextDigest) return
     const built = await runCommand({
@@ -208,13 +216,19 @@ export class DockerRunner implements Runner {
       timeoutMs: 1_800_000,
       logDir: logsDir,
       logName: 'docker-image-build',
+      ...(signal === undefined ? {} : { signal }),
     })
     if (built.exitCode !== 0 || built.timedOut) {
       throw new RunnerError(`Unable to build ${image}: ${built.stderr.trim() || built.stdout.trim()}`, 3)
     }
   }
 
-  private async imageId(image: string, root: string, logsDir: string): Promise<string> {
+  private async imageId(
+    image: string,
+    root: string,
+    logsDir: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const result = await runCommand({
       executable: 'docker',
       args: ['image', 'inspect', '--format', '{{.Id}}', image],
@@ -222,6 +236,7 @@ export class DockerRunner implements Runner {
       timeoutMs: 30_000,
       logDir: logsDir,
       logName: 'docker-image-identity',
+      ...(signal === undefined ? {} : { signal }),
     })
     if (result.exitCode !== 0) throw new RunnerError(`Unable to inspect ${image} identity`, 3)
     return result.stdout.trim()

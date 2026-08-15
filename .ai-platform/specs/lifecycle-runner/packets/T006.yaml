@@ -1,0 +1,115 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T006
+task_id: T006
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    technical_plan_and_work_graph: Confirmed
+    native_bundle_and_release: User approved the reviewed native DSH bundle direction and v0.2.0 release on 2026-08-15
+work_unit:
+  title: Native DSH bundle and v0.2.0 release
+  goal: Publish the existing lifecycle engine through a safe DSH-native tool and release the verified package.
+  epic: E001
+  story: US-006
+  requirements: [FR-019, FR-020, FR-021, FR-022, NFR-002, NFR-003, NFR-004, NFR-008, NFR-012, SC-011, SC-012]
+  priority: P0
+  depends_on: [T005]
+  blocks: [v0.2.0 public release, plugin-directory submission]
+  parallel: false
+  conflicts_with: []
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - package.json
+    - src/index.ts
+    - src/cli.ts
+    - src/runners/**
+    - src/process/command.ts
+    - tests/e2e/**
+  existing_patterns:
+    - runCli is the only controller entry into lifecycle execution.
+    - Docker is the default isolated runner and local execution requires explicit unsafe consent.
+    - The canonical report is persisted before terminal projection.
+  interfaces_or_contracts:
+    - official dsh.bundle.patch package manifest
+    - Cordis apply(ctx) plugin entry
+    - @deepseek-ai/dsh-tools defineTool schema
+  forbidden_changes:
+    - Do not duplicate the lifecycle engine inside the DSH adapter.
+    - Do not expose unsafe-local, mutable-source, arbitrary argv or arbitrary output paths.
+    - Do not permit local path or symlink escape outside the active workspace.
+    - Do not add, modify or commit the user-owned AGENTS.md file.
+execution_constraints:
+  branch_or_worktree: codex/dsh-bundle-v0.2.0
+  allowed_files:
+    - .ai-platform/**
+    - .github/**
+    - src/**
+    - tests/**
+    - scripts/**
+    - docs/**
+    - examples/**
+    - cordis.patch.yml
+    - package.json
+    - pnpm-lock.yaml
+    - README.md
+    - CHANGELOG.md
+  test_targets:
+    - tests/unit/dsh-plugin.test.ts
+    - tests/unit/command.test.ts
+    - tests/integration/cli.test.ts
+    - tests/contracts/dsh-bundle.test.ts
+    - tests/e2e/pack-consumer.mjs
+    - tests/e2e/real-dsh-bundle.test.ts
+  ownership_notes:
+    - Preserve the untracked AGENTS.md exactly as found.
+tdd_plan:
+  required: true
+  exception: Documentation, manifest metadata and release operations use static or hosted validation.
+  red:
+    command: pnpm test -- tests/unit/dsh-plugin.test.ts tests/contracts/dsh-bundle.test.ts tests/unit/command.test.ts
+    expected_failure: Native tool module, official manifest and cancellation forwarding do not exist.
+  green:
+    command: pnpm validate
+    expected_signal: Tool, contract, cancellation, compatibility, coverage, typecheck and build tests pass.
+  refactor:
+    command: pnpm test:e2e && pnpm test:bundle-e2e && pnpm test:pack
+    expected_signal: Existing lifecycle, real DSH bundle and clean packed-consumer acceptance pass.
+validation_loop:
+  commands:
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:bundle-e2e
+    - pnpm test:pack
+    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T006
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest implementation or contract defect within the approved adapter scope.
+    second_failure: Add diagnostics and verify DSH, Docker, peer dependency or profile assumptions.
+    third_failure: Classify a genuine external blocker without weakening acceptance.
+    beyond_budget: Stop and record blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T006/summary.md
+  diff: .ai-platform/evidence/T006/diff.patch
+  test_results: .ai-platform/evidence/T006/test-results.md
+  required: [RED/GREEN results, security-boundary traceability, full release validation, public identities, marketplace submission, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, security_boundary, qa_acceptance, release_acceptance]
+  acceptance_rule: Public release requires a verified merge commit, green CI, real DSH bundle proof and successful npm verification.
+handoff:
+  external_issue: null
+  pull_request: null
+  finish_options: [merge reviewed pull request, tag v0.2.0, publish trusted npm release, submit official plugin directory entry]
+stop_conditions: [Docker unavailable for final E2E, real DSH bundle incompatibility, npm trusted publisher unavailable, unresolved release blocker]

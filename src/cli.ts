@@ -52,6 +52,8 @@ export interface CliDependencies {
   runnerFactory: (kind: RunnerKind) => Runner
   cwd: string
   env: NodeJS.ProcessEnv
+  signal: AbortSignal | undefined
+  useDefaultConfig: boolean
 }
 
 const collect = (value: string, previous: string[]): string[] => [...previous, value]
@@ -78,6 +80,8 @@ function defaultDependencies(): CliDependencies {
     runnerFactory: createRunner,
     cwd: process.cwd(),
     env: process.env,
+    signal: undefined,
+    useDefaultConfig: true,
   }
 }
 
@@ -207,7 +211,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
 
     const explicitConfig = options.config === undefined ? undefined : resolve(deps.cwd, options.config)
     const defaultConfig = join(deps.cwd, 'dsh-testkit.yaml')
-    const configPath = explicitConfig ?? (await exists(defaultConfig) ? defaultConfig : undefined)
+    const configPath = explicitConfig ?? (deps.useDefaultConfig && await exists(defaultConfig) ? defaultConfig : undefined)
     const configured = configPath === undefined ? undefined : await loadScenarioConfig(configPath)
     const sourceArgument = program.args[0]
     const source = sourceArgument ?? configured?.subject.source
@@ -309,7 +313,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
         runner: options.runner,
         unsafeLocal: options.unsafeLocal,
       })
-      reports.push(await persistReport(await runner.run(request), attemptDir))
+      reports.push(await persistReport(await runner.run(request, deps.signal), attemptDir))
     }
     const report = reports.length === 1
       ? reports[0]!

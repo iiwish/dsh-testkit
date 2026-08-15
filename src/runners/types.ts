@@ -4,7 +4,7 @@ import type { WorkerRequest } from '../worker/protocol.js'
 export type RunnerKind = 'docker' | 'local'
 
 export interface Runner {
-  run(request: WorkerRequest): Promise<RunReport>
+  run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport>
 }
 
 export function runnerTimeoutMs(request: WorkerRequest): number {

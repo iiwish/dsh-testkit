@@ -10,7 +10,7 @@ import { runnerTimeoutMs } from './types.js'
 import type { Runner } from './types.js'
 
 export class LocalRunner implements Runner {
-  async run(request: WorkerRequest): Promise<RunReport> {
+  async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
     await mkdir(request.outputDir, { recursive: true })
     const requestPath = join(request.outputDir, 'worker-request.json')
     const workRoot = join(request.outputDir, '.owned-run-root')
@@ -26,6 +26,7 @@ export class LocalRunner implements Runner {
         DSH_TESTKIT_WORK_ROOT: workRoot,
       },
       timeoutMs: runnerTimeoutMs(request),
+      ...(signal === undefined ? {} : { signal }),
       logDir: join(request.outputDir, 'logs'),
       logName: 'local-worker',
     }).finally(async () => {

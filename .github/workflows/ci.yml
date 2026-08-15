@@ -33,7 +33,7 @@ jobs:
           fi
           lifecycle=false
           while IFS= read -r file; do
-            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
+            if [[ "$file" =~ ^(src/|tests/|fixtures/|assets/|schemas/|scripts/|cordis\.patch\.yml$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.json$|vitest\.config\.ts$|\.github/actions/|\.github/workflows/) ]]; then
               lifecycle=true
               break
             fi
@@ -69,6 +69,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:e2e
+      - run: pnpm test:bundle-e2e
       - run: pnpm test:pack
 
   action-smoke:
