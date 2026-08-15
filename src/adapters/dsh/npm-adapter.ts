@@ -73,6 +73,15 @@ const PackOutputSchema = z.array(z.object({
   version: z.string().min(1),
 }).passthrough()).min(1)
 
+type PackOutput = z.infer<typeof PackOutputSchema>
+
+export function parseNpmPackJsonOutput(output: string): PackOutput {
+  const lines = output.split(/\r?\n/)
+  const start = lines.findLastIndex(line => line.trimStart().startsWith('['))
+  if (start === -1) throw new Error('npm pack did not emit JSON metadata')
+  return PackOutputSchema.parse(JSON.parse(lines.slice(start).join('\n')))
+}
+
 const ProbeDocumentSchema = z.object({
   schemaVersion: z.literal(1),
   assertions: z.array(AssertionSchema),
@@ -883,6 +892,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
           inheritEnv: false,
           redactions: [this.canary, ...environmentRedactions()],
         })
+        for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
+        if (result.redactionMatches.includes(0)) this.canaryHits.add(`resolve-git-${basename(absolute)}`)
         if (result.exitCode === 0) gitCommit = result.stdout.trim() || null
       }
       return { input: absolute, kind, mutable: false, gitCommit }
@@ -912,9 +923,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
       cwd,
       this.request.scenario.timeouts.installMs,
     )
-    let parsed: z.infer<typeof PackOutputSchema>
+    let parsed: PackOutput
     try {
-      parsed = PackOutputSchema.parse(JSON.parse(result.stdout))
+      parsed = parseNpmPackJsonOutput(result.stdout)
     } catch (error) {
       throw new StageFailure(`npm pack returned invalid metadata: ${error instanceof Error ? error.message : String(error)}`, {
         failureKind: 'subject',
@@ -968,7 +979,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       baselineDir,
       this.request.scenario.timeouts.installMs,
     )
-    const metadata = PackOutputSchema.parse(JSON.parse(packed.stdout))[0]
+    const metadata = parseNpmPackJsonOutput(packed.stdout)[0]
     if (metadata === undefined) throw new StageFailure('Baseline package produced no tarball metadata')
     const tarball = containedPath(this.packagesDir, metadata.filename)
     const installed = await this.dshPlugin('baseline-install', ['add', tarball, '--save-exact'])

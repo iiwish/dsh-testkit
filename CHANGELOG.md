@@ -4,6 +4,13 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-16
+
+### Fixed
+
+- Declared Git commit probe logs as lifecycle artifacts so testing a plugin at its repository root passes Docker output auditing.
+- Added a real local Git repository regression test for commit identity and retained resolution evidence.
+
 ## [0.3.0] - 2026-08-16
 
 ### Added
@@ -86,7 +93,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/iiwish/dsh-testkit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/iiwish/dsh-testkit/compare/v0.1.2...v0.2.0
