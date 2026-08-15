@@ -28,10 +28,28 @@ function externalUses(value, found = []) {
   return found
 }
 
+function valuesForKey(value, wanted, found = []) {
+  if (Array.isArray(value)) {
+    for (const child of value) valuesForKey(child, wanted, found)
+  } else if (value !== null && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      if (key === wanted) found.push(child)
+      valuesForKey(child, wanted, found)
+    }
+  }
+  return found
+}
+
 const violations = []
 for (const path of await yamlFiles('.github')) {
-  for (const uses of externalUses(parse(await readFile(path, 'utf8')))) {
+  const document = parse(await readFile(path, 'utf8'))
+  for (const uses of externalUses(document)) {
     if (!/^[^/@]+\/[^/@]+@[0-9a-f]{40}$/i.test(uses)) violations.push(`${path}: ${uses}`)
+  }
+  for (const cachePath of valuesForKey(document, 'cache-dependency-path')) {
+    if (typeof cachePath === 'string' && /(^|\/)\.\.(\/|$)/.test(cachePath)) {
+      violations.push(`${path}: cache-dependency-path cannot contain parent traversal: ${cachePath}`)
+    }
   }
 }
 
