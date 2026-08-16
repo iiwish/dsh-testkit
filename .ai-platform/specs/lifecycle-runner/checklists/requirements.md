@@ -1,6 +1,6 @@
 # DSH Testkit Requirements Checklist
 
-Version: v0.3.0
+Version: v0.3.2
 Status: Completed
 Source spec: `.ai-platform/docs/product-design.md`
 Last updated: 2026-08-16
@@ -38,6 +38,9 @@ Last updated: 2026-08-16
 - [x] “一键”和“快速”分别量化为一个 init 命令、无网络、2 秒预算、三个目标文件和下一条验证命令。[Clarity]
 - [x] 上游目标遵守官方不接受外部 PR 的当前政策，模板集成以 released v0.3.0 为前置条件。[External Integration]
 - [x] FR-029 至 FR-036、NFR-015 至 NFR-018 和 SC-017 至 SC-020 全部映射到 T008。[Traceability]
+- [x] FR-037 至 FR-039 明确区分 repository root 与 plugin root，并规定显式/自动解析、生成文件归属、repo-relative workflow 引用和跨根目录零部分写入。[Completeness]
+- [x] NFR-019 至 NFR-020 和 SC-021 覆盖 containment、symlink、root-layout 兼容、嵌套 fixture 与显式 root fixture。[Safety]
+- [x] 设计伙伴试点固定为两个精确公开版本，不把 star、互链或单个维护者采用表述为市场验证。[Evidence Integrity]
 
 ## Findings Summary
 
@@ -64,8 +67,9 @@ Last updated: 2026-08-16
 - `US-004` 由 NFR-003、NFR-004、NFR-011 和脱敏报告覆盖。
 - `US-005` 由 FR-011、FR-017 和故障 fixture 覆盖。
 - `US-008` 由 FR-029 至 FR-036、NFR-015 至 NFR-018 和 T008 覆盖。
+- `US-009` 由 FR-037 至 FR-039、NFR-019 至 NFR-020、SC-021 和 T009 覆盖。
 
 ## User Review Gate
 
-- Approval: Completed under the user's 2026-08-16 instruction to create the goal and deliver Show & Tell, v0.3.0 onboarding, Agent Skill and upstream/template integration
-- Reviewer notes: Critical/High findings are resolved; structured evidence, non-destructive ownership and optional runtime discovery remain explicit.
+- Approval: Completed under the user's 2026-08-16 instructions to deliver v0.3.0 adoption work and then complete a bounded first design-partner pilot with nested plugin-root support
+- Reviewer notes: Critical/High findings are resolved; structured evidence, cross-root non-destructive ownership, optional runtime discovery and the non-market-validation boundary remain explicit.

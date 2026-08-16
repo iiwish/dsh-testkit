@@ -546,7 +546,33 @@ Risks and mitigations:
 Task impact:
 - T008 records Show & Tell, official Ideas and template PR identities in release evidence.
 
+## TDR-024: Separate Repository Root From Plugin Root
+
+Decision:
+`dsh-test init [directory]` treats the requested directory as the plugin root and resolves a separate repository root from an explicit `--repo-root` or the nearest non-symlink `.git` ancestor. The scenario stays beside the plugin manifest. The GitHub workflow and project Agent Skill live at repository root. All three targets use repository-relative paths and complete one shared preflight before any write.
+
+Requirement mapping:
+- US-009, FR-037 through FR-039, NFR-019 through NFR-020, SC-021
+
+Rationale:
+- GitHub only discovers workflows under the repository-root `.github/workflows` directory.
+- A repository-level Skill must be visible before an agent descends into a nested plugin package.
+- Keeping the scenario beside `package.json` preserves `subject.source: .` and makes local scenario ownership unambiguous.
+
+Alternatives considered:
+- Write every file under the plugin root: rejected because GitHub ignores nested workflow directories and repository-level agents may not discover the Skill.
+- Move the scenario to repository root: rejected because relative subject resolution and multi-package ownership become ambiguous.
+- Require `--repo-root` every time: rejected because a real Git worktree provides a deterministic offline boundary; the explicit option remains available for exported sources and unusual layouts.
+- Add general monorepo orchestration: rejected because one lifecycle still tests one subject plugin and workflow merging requires a separate product contract.
+
+Risks and mitigations:
+- An incorrectly selected ancestor could widen write ownership. Resolve real paths, require plugin containment, reject symlink markers and allow an explicit root override.
+- Existing repository workflow or Skill files may belong to maintainers. Preserve whole-transaction conflict behavior and require `--force` for replacement.
+
+Task impact:
+- T009 adds nested-root scaffold contracts, generated repo-relative paths, backward compatibility tests and a bounded design-partner pilot.
+
 ## User Review Gate
 
 - Approval: Approved on 2026-08-16
-- Reviewer notes: 用户明确批准 Show & Tell、v0.3.0 一键接入与 Agent Skill，以及按官方贡献政策推进官方 Skill 和插件模板集成。Decisions preserve lifecycle, schema and safety boundaries.
+- Reviewer notes: 用户明确批准 Show & Tell、v0.3.0 一键接入与 Agent Skill，以及按官方贡献政策推进官方 Skill 和插件模板集成；2026-08-16 批准以首位设计伙伴试点验证并修复嵌套 plugin root。Decisions preserve lifecycle, schema and safety boundaries.

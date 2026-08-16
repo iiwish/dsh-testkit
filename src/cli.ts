@@ -49,6 +49,7 @@ interface CliOptions {
 
 interface InitCliOptions {
   dsh?: string
+  repoRoot?: string
   force: boolean
 }
 
@@ -208,11 +209,12 @@ function buildProgram(deps: CliDependencies): Command {
 function buildInitProgram(deps: CliDependencies): Command {
   return new Command()
     .name('dsh-test init')
-    .description('Scaffold DSH Testkit in an existing DSH bundle repository.')
+    .description('Scaffold DSH Testkit for an existing DSH bundle.')
     .exitOverride()
     .configureOutput({ writeOut: deps.stdout, writeErr: deps.stderr })
-    .argument('[directory]', 'DSH plugin repository', '.')
+    .argument('[directory]', 'DSH plugin directory', '.')
     .option('--dsh <version>', 'exact supported DSH version')
+    .option('--repo-root <directory>', 'repository root for a nested DSH plugin')
     .option('--force', 'replace conflicting scaffold targets', false)
 }
 
@@ -226,6 +228,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
       const directory = String(program.processedArgs[0] ?? '.')
       const result = await initializeDshTestkitProject({
         directory: resolve(deps.cwd, directory),
+        ...(options.repoRoot === undefined ? {} : { repositoryRoot: resolve(deps.cwd, options.repoRoot) }),
         ...(options.dsh === undefined ? {} : { dshVersion: options.dsh }),
         force: options.force,
       })

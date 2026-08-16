@@ -4,6 +4,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- Added repository-root discovery and `--repo-root` for a single DSH bundle located below the Git worktree root.
+
+### Fixed
+
+- Kept nested-plugin scenarios beside the bundle while generating GitHub Actions and the project Agent Skill at repository root with correct relative paths and one atomic preflight.
+
 ## [0.3.1] - 2026-08-16
 
 ### Fixed

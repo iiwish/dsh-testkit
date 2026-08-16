@@ -286,6 +286,40 @@ describe('CLI integration', () => {
       .resolves.toContain('DSH lifecycle')
   })
 
+  it('initializes a nested bundle from its repository root', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-cli-init-nested-'))
+    await mkdir(join(repositoryRoot, '.git'))
+    const pluginRoot = join(repositoryRoot, 'plugin')
+    await mkdir(pluginRoot)
+    await writeFile(join(pluginRoot, 'package.json'), `${JSON.stringify({
+      name: 'cli-nested-fixture',
+      version: '1.0.0',
+      dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }, null, 2)}\n`)
+    await writeFile(join(pluginRoot, 'cordis.patch.yml'), [
+      '- insert:',
+      '    - id: tool-cli-nested',
+      '      name: ./index.js',
+      '',
+    ].join('\n'))
+    const stdout: string[] = []
+
+    const exitCode = await runCli(['init', 'plugin', '--repo-root', '.'], {
+      stdout: value => stdout.push(value),
+      stderr: value => stdout.push(value),
+      cwd: repositoryRoot,
+      env: {},
+    })
+
+    expect(exitCode).toBe(0)
+    expect(stdout.join('')).toContain('created  plugin/dsh-testkit.yaml')
+    expect(stdout.join('')).toContain('Next: pnpm dsh-test --config plugin/dsh-testkit.yaml')
+    await expect(readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
+      .resolves.toContain('plugin: ./plugin')
+    await expect(readFile(join(pluginRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
+      .rejects.toThrow()
+  })
+
   it('runs the full suite five times and reports inconsistent outcomes as flaky', async () => {
     const output = await mkdtemp(join(tmpdir(), 'dsh-cli-full-'))
     let attempts = 0

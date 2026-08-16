@@ -88,6 +88,14 @@ cordis.patch.yml
 - Update the existing official Show & Tell, submit a policy-compliant official Agent Skill proposal, and open a released integration PR against a maintained public plugin template.
 - Release v0.3.0 through the protected-branch and trusted-publishing path.
 
+### Slice 7: Design-Partner Nested Plugin Pilot
+
+- Separate repository-root integrations from plugin-root scenario ownership without changing the lifecycle schema.
+- Add automatic Git worktree detection plus an explicit `--repo-root` override for exported or unusual layouts.
+- Prove root and nested scaffold transactions through RED/GREEN tests and exact generated paths.
+- Validate the released partner tags `dsh-plugin-doctor@v1.14.0` and `dsh-subscribe@v0.3.1` without treating their adoption as market validation.
+- Prepare reproducible evidence and a low-cost maintainer follow-up; npm publication remains a separate user-approved operation.
+
 ## Validation Strategy
 
 - RED/GREEN Vitest tests per task.
