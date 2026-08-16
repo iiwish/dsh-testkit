@@ -1,6 +1,6 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.3.0
+Version: v0.3.2
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
 Last updated: 2026-08-16
@@ -98,6 +98,16 @@ Scenario:
 3. 命令生成声明式场景、GitHub Actions workflow 和项目级 `dsh-testkit` Skill；已有非等价文件不会被静默覆盖。
 4. DSH 原生 bundle 在 `skills` service 可用时注册同一份运行时 Skill，使宿主内 Agent 能发现何时以及如何调用 `dsh_test`。
 
+### US-009: 嵌套插件获得仓库级发布门禁
+
+As a plugin maintainer whose DSH bundle lives below the Git repository root, I want initialization to keep plugin-specific configuration beside the bundle and repository integrations at the repository root, so that GitHub Actions and coding agents can discover the generated gate.
+
+Scenario:
+1. 维护者从仓库根目录运行 `dsh-test init plugin/`，或从插件目录运行 `dsh-test init`。
+2. Testkit 自动识别最近的 Git worktree；无 Git 元数据时允许通过 `--repo-root` 显式指定仓库根目录。
+3. 场景写入插件根目录，workflow 与项目 Skill 写入仓库根目录，workflow 使用正确的 repo-relative plugin/config 路径。
+4. 两个根目录下的全部目标在写入前统一 preflight；preflight 发现的任一冲突、symlink 或路径越界都保持零写入。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -147,6 +157,9 @@ Scenario:
 - FR-034: DSH 原生 bundle 必须在可选 `skills` service 存在时注册与项目文件相同的 Skill 定义；service 缺失时 tool 仍可激活，不得把 `skills` 变成硬依赖。
 - FR-035: `init` 不得安装依赖、运行插件、访问网络、改写 `package.json`/lockfile/`AGENTS.md` 或在目标根目录之外创建文件。
 - FR-036: v0.3.0 必须发布并验证 Skill、scaffold 和原生注册；官方 Agent Skill 集成通过符合上游贡献政策的 Ideas 讨论推进，至少向一个公开插件模板提交可审核的一键接入 PR。
+- FR-037: `init` 必须区分 plugin root 与 repository root。repository root 由显式 `--repo-root` 或 plugin root 最近的非 symlink `.git` 祖先确定；plugin root 必须位于 repository root 内，无 Git 元数据时默认两者相同。
+- FR-038: 嵌套插件的 `dsh-testkit.yaml` 必须位于 plugin root，`.github/workflows/dsh-lifecycle.yml` 与 `.agents/skills/dsh-testkit/SKILL.md` 必须位于 repository root；生成 workflow 必须使用 repository-relative 的 plugin 与 config 路径。
+- FR-039: 跨 plugin/repository root 的 scaffold 必须在任何写入前完成统一 preflight，结果路径和下一条验证命令必须从 repository root 可直接使用；preflight 发现的任一冲突、symlink 或 containment 失败不得留下部分写入。
 
 ## 6. Non-Functional Requirements
 
@@ -168,6 +181,8 @@ Scenario:
 - NFR-016 Scaffold safety: 目标根目录、patch 和所有生成文件必须经过 containment 与 symlink 边界检查；一次冲突不得留下部分 scaffold。
 - NFR-017 Skill efficiency: 模型目录 description 必须不超过 DSH 默认 500 字符限制，Skill 正文不超过 4 KiB，完整场景语法通过现有文档引用而不是复制。
 - NFR-018 Compatibility: v0.3.0 不改变现有 root CLI、v1 scenario/report schema、退出码、Action 输入或生命周期 verdict 语义。
+- NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
+- NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
 
 ## 7. 功能范围
 
@@ -196,6 +211,7 @@ Scenario:
 - 从 bundle manifest 与 patch 生成最小场景和 GitHub lifecycle workflow。
 - 发布一份规范化 `dsh-testkit` Agent Skill，并同时提供项目文件与可选 DSH 运行时注册。
 - 通过官方 Ideas 讨论和公开插件模板 PR 争取把生命周期测试放入插件开发默认路径。
+- 支持单个 DSH bundle 位于 Git 仓库子目录的一键接入，并把 workflow 与项目 Skill 放在仓库可发现位置。
 
 ### 后续候选
 
@@ -280,6 +296,7 @@ Scenario:
 - SC-018: 单元测试、打包消费者和真实 DSH bundle E2E 分别证明 Skill 文件身份、项目级发现契约和可选运行时注册，且 `skills` 缺失不阻塞 `dsh_test`。
 - SC-019: v0.3.0 发布后，官方 Ideas 区存在可直接采纳的 vendor-neutral Agent Skill 建议，至少一个公开插件模板 PR 使用 released `v0` Action 和生成场景。
 - SC-020: 首批采用阶段以 5 个外部插件仓库运行 lifecycle Action、3 个持续 check 和至少 1 个上游/模板引用为目标；该 field metric 不阻塞 v0.3.0 发布。
+- SC-021: root bundle、自动识别 Git root 的嵌套 bundle 和显式 `--repo-root` 的嵌套 bundle 均生成可解析场景与正确 workflow 路径；跨根目录冲突和越界测试证明零部分写入。
 
 ## 13. 验收标准
 
@@ -295,6 +312,7 @@ Scenario:
 - `npm pack` 的干净消费者可验证 bundle manifest、patch、Cordis 入口和 `dsh_test` schema。
 - 真实 DSH profile 可安装打包后的 Testkit、观察 bundle layer，并对 healthy fixture 完成一次 `dsh_test` Docker 调用。
 - `dsh-test init` 对合法 fixture 生成三个受控文件，对幂等重跑不改字节，对冲突与 symlink 路径在写入前失败。
+- `dsh-test init plugin/` 将场景留在 `plugin/`，将 workflow 与 Skill 放在仓库根目录，并输出可从仓库根目录直接运行的验证命令。
 - Agent Skill 的路由描述、正文大小、安全约束和生成文件通过契约测试，真实 DSH profile 可同时观察 `dsh_test` 和 `dsh-testkit` Skill。
 - v0.3.0 公共 npm 包、GitHub Release、Show & Tell 更新、官方 Ideas 建议和插件模板 PR 均引用同一个发布身份。
 
@@ -318,6 +336,8 @@ Scenario:
   A: 否。Skill 负责在正确任务时路由并教授最小工作流；CLI help、结构化错误、`init` 和 required check 负责确定性执行。Skill 被发现前仍需要官方开发指引或插件模板提供入口。
 - Q: 是否自动修改所有 Agent 的配置目录？
   A: 否。`init` 写入 DSH 与跨 Agent 使用的 `.agents/skills` 标准位置，不静默修改 `AGENTS.md`。特定 Agent 的额外目录适配由模板或用户显式选择。
+- Q: 嵌套插件支持是否意味着 Testkit 开始编排 monorepo 中的多个插件？
+  A: 否。一次 `init` 和一次 lifecycle 仍只面向一个 DSH bundle；本能力只解决 repository root 与 plugin root 不同导致的 workflow/Skill 不可发现问题。
 
 ## 15. 开放问题
 
@@ -326,4 +346,4 @@ None blocking product review. 技术栈、runner 后端、模块布局和首批 
 ## 16. User Review Gate
 
 - Approval: Approved on 2026-08-16
-- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板。既有 lifecycle、schema 和安全边界保持不变。
+- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板；2026-08-16 进一步批准首位设计伙伴受控试点和嵌套插件 repo-root 修复。既有 lifecycle、schema 和安全边界保持不变。

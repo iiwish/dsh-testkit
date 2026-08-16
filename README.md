@@ -30,13 +30,20 @@ pnpm dsh-test init
 pnpm dsh-test
 ```
 
-`init` works offline and reads the bundle's declared patch to create exactly three reviewable files:
+If the DSH bundle is below the repository root, point `init` at the plugin directory:
 
-- `dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
-- `.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check
-- `.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
+```bash
+pnpm dsh-test init plugin/
+pnpm dsh-test --config plugin/dsh-testkit.yaml
+```
 
-Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files stop the command before any target is written unless `--force` is explicit.
+`init` detects the nearest Git worktree offline. For an exported tree without `.git` metadata, pass `--repo-root .` explicitly. It reads the bundle's declared patch and creates exactly three reviewable files:
+
+- `<plugin-root>/dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
+- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check and correct plugin/config paths
+- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
+
+For a root-level bundle, plugin root and repository root are the same and the existing paths stay unchanged. Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files in either root stop the command before any target is written unless `--force` is explicit.
 
 Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
 
@@ -61,12 +68,14 @@ These tools are complementary, not competing replacements.
 
 | Need | Best fit |
 |---|---|
-| Fast static checks, manifest diagnostics, dependency guidance | `dsh-plugin-doctor` or a plugin preflight check |
+| Fast static checks, manifest diagnostics, dependency guidance | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) or a plugin preflight check |
 | Conflicts among several bundles before or during assembly | `dsh-composition-check` |
 | Plugin-owned unit logic | Your test framework |
 | Install, boot, exercise, uninstall, reboot, recovery, residue, and repeatability on a real host | **DSH Testkit** |
 
 DSH Testkit deliberately tests one subject plugin per isolated lifecycle. Multi-plugin state ownership and update order remain outside the current scenario contract until field evidence shows a failure that single-plugin lifecycle testing plus composition checks cannot reproduce.
+
+A practical release gate runs Doctor on every commit for cheap preflight and DSH Testkit on release PRs or tags for the packed artifact's real-host lifecycle. Neither result is a security certification.
 
 ## Scenario As Code
 
@@ -110,6 +119,8 @@ The [Scenario Reference](docs/scenarios.md) covers update targets, expected fail
 ```
 
 The Action publishes JUnit and uploads the complete run directory. `artifact-name`, `check-name`, `output`, and retention are configurable; artifact ID, URL, and digest are outputs. GitHub Enterprise Server and other CI systems can invoke the CLI directly because `actions/upload-artifact@v4+` is not available on GHES.
+
+For a nested bundle, the generated workflow remains at repository root and uses `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`; GitHub never needs to discover a workflow inside the plugin directory.
 
 Stable exit codes are: `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported capability, and `5` flaky. Published JSON Schemas live at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
 

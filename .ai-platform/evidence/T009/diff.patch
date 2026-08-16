@@ -1,0 +1,857 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 98bcc67..4862d98 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -3 +3 @@
+-Version: v0.3.0
++Version: v0.3.2
+@@ -100,0 +101,10 @@ Scenario:
++### US-009: 嵌套插件获得仓库级发布门禁
++
++As a plugin maintainer whose DSH bundle lives below the Git repository root, I want initialization to keep plugin-specific configuration beside the bundle and repository integrations at the repository root, so that GitHub Actions and coding agents can discover the generated gate.
++
++Scenario:
++1. 维护者从仓库根目录运行 `dsh-test init plugin/`，或从插件目录运行 `dsh-test init`。
++2. Testkit 自动识别最近的 Git worktree；无 Git 元数据时允许通过 `--repo-root` 显式指定仓库根目录。
++3. 场景写入插件根目录，workflow 与项目 Skill 写入仓库根目录，workflow 使用正确的 repo-relative plugin/config 路径。
++4. 两个根目录下的全部目标在写入前统一 preflight；preflight 发现的任一冲突、symlink 或路径越界都保持零写入。
++
+@@ -149,0 +160,3 @@ Scenario:
++- FR-037: `init` 必须区分 plugin root 与 repository root。repository root 由显式 `--repo-root` 或 plugin root 最近的非 symlink `.git` 祖先确定；plugin root 必须位于 repository root 内，无 Git 元数据时默认两者相同。
++- FR-038: 嵌套插件的 `dsh-testkit.yaml` 必须位于 plugin root，`.github/workflows/dsh-lifecycle.yml` 与 `.agents/skills/dsh-testkit/SKILL.md` 必须位于 repository root；生成 workflow 必须使用 repository-relative 的 plugin 与 config 路径。
++- FR-039: 跨 plugin/repository root 的 scaffold 必须在任何写入前完成统一 preflight，结果路径和下一条验证命令必须从 repository root 可直接使用；preflight 发现的任一冲突、symlink 或 containment 失败不得留下部分写入。
+@@ -170,0 +184,2 @@ Scenario:
++- NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
++- NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
+@@ -198,0 +214 @@ Scenario:
++- 支持单个 DSH bundle 位于 Git 仓库子目录的一键接入，并把 workflow 与项目 Skill 放在仓库可发现位置。
+@@ -282,0 +299 @@ Scenario:
++- SC-021: root bundle、自动识别 Git root 的嵌套 bundle 和显式 `--repo-root` 的嵌套 bundle 均生成可解析场景与正确 workflow 路径；跨根目录冲突和越界测试证明零部分写入。
+@@ -297,0 +315 @@ Scenario:
++- `dsh-test init plugin/` 将场景留在 `plugin/`，将 workflow 与 Skill 放在仓库根目录，并输出可从仓库根目录直接运行的验证命令。
+@@ -320,0 +339,2 @@ Scenario:
++- Q: 嵌套插件支持是否意味着 Testkit 开始编排 monorepo 中的多个插件？
++  A: 否。一次 `init` 和一次 lifecycle 仍只面向一个 DSH bundle；本能力只解决 repository root 与 plugin root 不同导致的 workflow/Skill 不可发现问题。
+@@ -329 +349 @@ None blocking product review. 技术栈、runner 后端、模块布局和首批
+-- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板。既有 lifecycle、schema 和安全边界保持不变。
++- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板；2026-08-16 进一步批准首位设计伙伴受控试点和嵌套插件 repo-root 修复。既有 lifecycle、schema 和安全边界保持不变。
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index 8a9186f..d1fe2e9 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -3 +3 @@
+-Version: v0.3.0
++Version: v0.3.2
+@@ -111,0 +112,6 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
++
++#### Work Item T009: Nested Plugin Root And Design-Partner Pilot
++
++Status: Needs_Review
++Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t009-nested-plugin-root-and-design-partner-pilot`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index 0c96c3d..22f9e20 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -548,0 +549,26 @@ Task impact:
++## TDR-024: Separate Repository Root From Plugin Root
++
++Decision:
++`dsh-test init [directory]` treats the requested directory as the plugin root and resolves a separate repository root from an explicit `--repo-root` or the nearest non-symlink `.git` ancestor. The scenario stays beside the plugin manifest. The GitHub workflow and project Agent Skill live at repository root. All three targets use repository-relative paths and complete one shared preflight before any write.
++
++Requirement mapping:
++- US-009, FR-037 through FR-039, NFR-019 through NFR-020, SC-021
++
++Rationale:
++- GitHub only discovers workflows under the repository-root `.github/workflows` directory.
++- A repository-level Skill must be visible before an agent descends into a nested plugin package.
++- Keeping the scenario beside `package.json` preserves `subject.source: .` and makes local scenario ownership unambiguous.
++
++Alternatives considered:
++- Write every file under the plugin root: rejected because GitHub ignores nested workflow directories and repository-level agents may not discover the Skill.
++- Move the scenario to repository root: rejected because relative subject resolution and multi-package ownership become ambiguous.
++- Require `--repo-root` every time: rejected because a real Git worktree provides a deterministic offline boundary; the explicit option remains available for exported sources and unusual layouts.
++- Add general monorepo orchestration: rejected because one lifecycle still tests one subject plugin and workflow merging requires a separate product contract.
++
++Risks and mitigations:
++- An incorrectly selected ancestor could widen write ownership. Resolve real paths, require plugin containment, reject symlink markers and allow an explicit root override.
++- Existing repository workflow or Skill files may belong to maintainers. Preserve whole-transaction conflict behavior and require `--force` for replacement.
++
++Task impact:
++- T009 adds nested-root scaffold contracts, generated repo-relative paths, backward compatibility tests and a bounded design-partner pilot.
++
+@@ -552 +578 @@ Task impact:
+-- Reviewer notes: 用户明确批准 Show & Tell、v0.3.0 一键接入与 Agent Skill，以及按官方贡献政策推进官方 Skill 和插件模板集成。Decisions preserve lifecycle, schema and safety boundaries.
++- Reviewer notes: 用户明确批准 Show & Tell、v0.3.0 一键接入与 Agent Skill，以及按官方贡献政策推进官方 Skill 和插件模板集成；2026-08-16 批准以首位设计伙伴试点验证并修复嵌套 plugin root。Decisions preserve lifecycle, schema and safety boundaries.
+diff --git a/.ai-platform/evidence/T009/summary.md b/.ai-platform/evidence/T009/summary.md
+new file mode 100644
+index 0000000..e2f68a4
+--- /dev/null
++++ b/.ai-platform/evidence/T009/summary.md
+@@ -0,0 +1,64 @@
++# T009 Evidence Summary
++
++Status: Needs_Review
++Task: Nested Plugin Root And Design-Partner Pilot
++Date: 2026-08-16
++
++## Outcome
++
++`dsh-test init` distinguishes the DSH bundle root from its repository root. A nested bundle keeps `dsh-testkit.yaml` beside `package.json`, while GitHub Actions and the project Agent Skill are generated at repository root with repository-relative plugin and config paths.
++
++The root-layout output remains compatible. Automatic nearest-Git-root discovery and explicit `--repo-root` both work offline. One complete preflight covers the plugin scenario and both repository integrations before writing; containment, symlink and conflict tests retain zero-write behavior for rejected inputs.
++
++The English and Simplified Chinese README files contain the reciprocal `dsh-plugin-doctor` link and describe the bounded two-stage gate: Doctor for commit-time preflight, Testkit for release-time real-host lifecycle evidence.
++
++## Exact Pilot Inputs
++
++### dsh-plugin-doctor
++
++- Repository: `https://github.com/zoahdev/dsh-plugin-doctor`
++- Tag: `v1.14.0`
++- Commit: `73d28e88b5c07baab0a1680972d36d7cc68452c0`
++- Layout: DSH bundle at repository root
++- Scenario row: `doctor`
++- Run: `20260816041700-17d72baa`
++- Subject digest: `sha256:c7f4b4039a78212774b4e5792703e0b4b07793835837537d3efc48810b30d1c7`
++- Verdict: `passed`
++- Retained artifacts: 52
++
++### dsh-subscribe
++
++- Repository: `https://github.com/zoahdev/dsh-subscribe`
++- Tag: `v0.3.1`
++- Commit: `e2d3ca135dcc63c647a5524dbc58a7fe74a29330`
++- Layout: DSH bundle under `plugin/`
++- Scenario row: `dsh-subscribe`
++- Generated Action inputs: `plugin: ./plugin`, `config: plugin/dsh-testkit.yaml`
++- Run: `20260816041825-1bb4305c`
++- Subject digest: `sha256:b6d96e043cdb700b347026c0683a79bd91b63fb9fd92581e16d70a6e185d4505`
++- Verdict: `passed`
++- Retained artifacts: 48
++
++Both Docker quick runs passed resolve, exact DSH installation, packaging, plugin installation, assembly, boot, baseline exercise, uninstall, reboot and cleanup against `@deepseek-ai/dsh@0.1.0-rc.6`. Update and recovery were not requested.
++
++## Evidence Boundary
++
++These are technical baseline lifecycle results from an unreleased T009 working tree based on `dsh-testkit@0.3.1`. They are not market adoption, a security certification or proof of each plugin's domain behavior.
++
++The generated scenarios assert deterministic configuration rows but intentionally contain no inferred service or tool expectations. The baseline exercise passed, but Doctor's `plugin_check` behavior and Subscribe's domain-specific success path require maintainer-confirmed arguments and expected results before Testkit can claim plugin-specific exercise coverage.
++
++The nested Subscribe subject report contains the packed source digest but no in-container Git commit because the tested plugin directory does not contain the repository's parent `.git` metadata. The exact public tag and commit above were independently pinned before execution.
++
++## Maintainer Follow-Up
++
++Do not send a second ping before the existing response has had 24 to 48 hours. The next message should carry completed evidence rather than ask for a status update:
++
++> I completed the baseline pilot against `dsh-plugin-doctor@v1.14.0` (`73d28e8`) and `dsh-subscribe@v0.3.1` (`e2d3ca1`). Both exact sources passed the Docker quick lifecycle through pack, install, boot, uninstall, reboot, and cleanup. The nested `plugin/` layout exposed a real scaffold boundary, and Testkit now keeps the scenario under `plugin/` while generating the workflow and project Skill at repository root. Could you confirm one deterministic plugin-specific success path for `plugin_check` and for Subscribe, and whether you would prefer the integration PR to start with `dsh-subscribe` or your plugin template? I will keep the evidence scoped to compatibility, not ranking or certification.
++
++If there is no concrete confirmation or integration action within seven days, the repositories remain compatibility fixtures and no partner-specific roadmap work is added.
++
++## Residual Risks
++
++- General multi-plugin monorepo workflow merging remains out of scope; one initialization owns one lifecycle workflow and one project Skill.
++- An unexpected filesystem failure after preflight can still interrupt sequential writes; the documented guarantee applies to rejected conflicts, containment and pre-existing symlink inputs before writes begin.
++- The public npm package remains `0.3.1`; no release, tag movement or npm publication occurred in T009.
+diff --git a/.ai-platform/evidence/T009/test-results.md b/.ai-platform/evidence/T009/test-results.md
+new file mode 100644
+index 0000000..373bec3
+--- /dev/null
++++ b/.ai-platform/evidence/T009/test-results.md
+@@ -0,0 +1,61 @@
++# T009 Test Results
++
++Date: 2026-08-16
++
++## RED
++
++Command:
++
++```bash
++pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts
++```
++
++Result before implementation: exit 1. Six nested-root assertions failed while 19 tests passed. The root-only scaffold had no `repositoryRoot`, wrote `.github` and `.agents` under the nested plugin, ignored the explicit root, and did not preflight a repository-root conflict.
++
++A second documentation RED run produced one expected failure because neither README documented `--repo-root`; the new symlink-marker test already passed against the implementation.
++
++## GREEN
++
++Focused command:
++
++```bash
++pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts
++```
++
++Result: exit 0, 26 tests passed across three files.
++
++Full command:
++
++```bash
++pnpm validate
++```
++
++Result: exit 0. Contract, Action pin, release-readiness, typecheck, coverage and build gates passed. Vitest executed 117 tests across 22 files with no failures.
++
++Packed consumer command:
++
++```bash
++pnpm test:pack
++```
++
++Result: exit 0. `dsh-testkit-0.3.1.tgz` passed clean consumer and Docker image smoke validation.
++
++## Exact Partner Runs
++
++Doctor:
++
++```bash
++node <T009-dist>/src/cli.js --config dsh-testkit.yaml --output .dsh-testkit/pilot
++```
++
++Result: exit 0, run `20260816041700-17d72baa`, verdict `passed`, 52 artifacts.
++
++Subscribe:
++
++```bash
++node <T009-dist>/src/cli.js --config plugin/dsh-testkit.yaml --output .dsh-testkit/pilot
++```
++
++Result: exit 0, run `20260816041825-1bb4305c`, verdict `passed`, 48 artifacts.
++
++Both repositories were cloned from exact public tags into an owned temporary directory. Initialization was rerun and reported all three generated files as `unchanged`, including `dsh-test init plugin --repo-root .` for the nested layout.
+diff --git a/.ai-platform/specs/lifecycle-runner/analysis.md b/.ai-platform/specs/lifecycle-runner/analysis.md
+index c5a3dc0..7018998 100644
+--- a/.ai-platform/specs/lifecycle-runner/analysis.md
++++ b/.ai-platform/specs/lifecycle-runner/analysis.md
+@@ -3 +3 @@
+-Version: v0.3.0
++Version: v0.3.2
+@@ -15 +15 @@ Last updated: 2026-08-16
+-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T008.yaml`
++- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T009.yaml`
+@@ -19 +19 @@ Last updated: 2026-08-16
+-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008.
++- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008; FR-037 through FR-039, NFR-019 through NFR-020 and SC-021 map to T009.
+@@ -36 +36 @@ Last updated: 2026-08-16
+-- Ownership ambiguity: None. `init` owns only three explicit generated targets, refuses symlink boundaries and does not touch manifests, lockfiles or `AGENTS.md`.
++- Ownership ambiguity: None. `init` owns one plugin-root scenario plus two repository-root integration targets, refuses symlink/containment boundaries and does not touch manifests, lockfiles or `AGENTS.md`.
+@@ -43 +43,8 @@ Last updated: 2026-08-16
+-- Adoption validation: Scaffold safety/idempotence, Skill routing/size, optional runtime registration, CLI compatibility, packed consumption and real-host discovery have focused T008 coverage. Five external adopters remain a post-release field metric.
++- Adoption validation: Scaffold safety/idempotence, Skill routing/size, optional runtime registration, CLI compatibility, packed consumption and real-host discovery have focused T008 coverage. T009 adds a structurally distinct nested-plugin pilot; five independent external adopters remain a post-release field metric.
++
++## T009 Risk Check
++
++- Critical/High findings: None.
++- Medium: Automatic Git-root discovery can widen the write boundary. TDR-024 requires the nearest real non-symlink marker, plugin containment and an explicit override; cross-root writes remain one transaction.
++- Medium: A volunteer's repositories do not establish market demand. The pilot is classified only as technical compatibility evidence and receives a fixed two-plugin scope.
++- Low: The partner has not yet confirmed deterministic exercise expectations. Scaffold and boot/register evidence can proceed; named capability claims wait for maintainer confirmation.
+diff --git a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+index d9768ff..6952528 100644
+--- a/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
++++ b/.ai-platform/specs/lifecycle-runner/checklists/requirements.md
+@@ -3 +3 @@
+-Version: v0.3.0
++Version: v0.3.2
+@@ -40,0 +41,3 @@ Last updated: 2026-08-16
++- [x] FR-037 至 FR-039 明确区分 repository root 与 plugin root，并规定显式/自动解析、生成文件归属、repo-relative workflow 引用和跨根目录零部分写入。[Completeness]
++- [x] NFR-019 至 NFR-020 和 SC-021 覆盖 containment、symlink、root-layout 兼容、嵌套 fixture 与显式 root fixture。[Safety]
++- [x] 设计伙伴试点固定为两个精确公开版本，不把 star、互链或单个维护者采用表述为市场验证。[Evidence Integrity]
+@@ -66,0 +70 @@ Last updated: 2026-08-16
++- `US-009` 由 FR-037 至 FR-039、NFR-019 至 NFR-020、SC-021 和 T009 覆盖。
+@@ -70,2 +74,2 @@ Last updated: 2026-08-16
+-- Approval: Completed under the user's 2026-08-16 instruction to create the goal and deliver Show & Tell, v0.3.0 onboarding, Agent Skill and upstream/template integration
+-- Reviewer notes: Critical/High findings are resolved; structured evidence, non-destructive ownership and optional runtime discovery remain explicit.
++- Approval: Completed under the user's 2026-08-16 instructions to deliver v0.3.0 adoption work and then complete a bounded first design-partner pilot with nested plugin-root support
++- Reviewer notes: Critical/High findings are resolved; structured evidence, cross-root non-destructive ownership, optional runtime discovery and the non-market-validation boundary remain explicit.
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T009.yaml b/.ai-platform/specs/lifecycle-runner/packets/T009.yaml
+new file mode 100644
+index 0000000..538a3b5
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T009.yaml
+@@ -0,0 +1,114 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T009
++task_id: T009
++feature_id: lifecycle-runner
++mode: execute_one_task
++adapter: codex
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  product_contract: .ai-platform/docs/product-design.md
++  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
++  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
++  technical_decisions: .ai-platform/docs/technology-decision-record.md
++  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
++  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
++  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
++  approval_gates:
++    constitution: Confirmed
++    product_or_spec: Confirmed
++    technical_plan_and_work_graph: Confirmed
++    pilot: User approved the bounded first design-partner pilot and nested plugin-root correction on 2026-08-16
++work_unit:
++  title: Nested plugin root and first design-partner pilot
++  goal: Keep plugin configuration beside a nested DSH bundle while placing repository integrations where GitHub and agents discover them, then validate two exact partner releases without treating the result as market proof.
++  epic: E001
++  story: US-009
++  requirements: [FR-037, FR-038, FR-039, NFR-019, NFR-020, SC-021]
++  priority: P1
++  depends_on: [T008]
++  blocks: [first design-partner adoption evidence]
++  parallel: false
++  conflicts_with: []
++codebase_context:
++  local_instructions: [AGENTS.md]
++  relevant_files:
++    - src/scaffold/init.ts
++    - src/cli.ts
++    - tests/unit/scaffold.test.ts
++    - tests/integration/cli.test.ts
++    - tests/contracts/documentation.test.ts
++    - README.md
++    - README.zh-CN.md
++  existing_patterns:
++    - init parses package.json and dsh.bundle.patch structurally and performs no network or package execution.
++    - All scaffold targets are preflighted before any target is written.
++    - Scenario-relative subject resolution uses the scenario file directory as its base.
++    - GitHub discovers workflows only at repository-root .github/workflows.
++  interfaces_or_contracts:
++    - dsh-test init [plugin-directory] [--repo-root repository-directory] [--dsh exact-version] [--force]
++    - plugin-root dsh-testkit.yaml with subject.source set to dot
++    - repository-root .github/workflows/dsh-lifecycle.yml
++    - repository-root .agents/skills/dsh-testkit/SKILL.md
++  forbidden_changes:
++    - Do not add multi-plugin orchestration, workflow merging, marketplace behavior or model evaluation.
++    - Do not install dependencies, run package scripts, access the network or edit manifests, lockfiles or AGENTS.md during init.
++    - Do not publish named partner failure claims before reproducibility and maintainer confirmation.
++    - Do not publish npm or move release tags in this task.
++    - Do not add, modify or commit the user-owned AGENTS.md file.
++execution_constraints:
++  branch_or_worktree: agent/pilot1-nested-plugin
++  allowed_files:
++    - .ai-platform/**
++    - src/scaffold/init.ts
++    - src/cli.ts
++    - tests/unit/scaffold.test.ts
++    - tests/integration/cli.test.ts
++    - tests/contracts/documentation.test.ts
++    - README.md
++    - README.zh-CN.md
++    - CHANGELOG.md
++    - docs/**
++  test_targets:
++    - tests/unit/scaffold.test.ts
++    - tests/integration/cli.test.ts
++    - tests/contracts/documentation.test.ts
++  ownership_notes:
++    - Preserve the untracked AGENTS.md exactly as found.
++    - The repository root contains the real plugin root after realpath resolution.
++    - All three target paths are repository-relative and one shared preflight completes before writes.
++tdd_plan:
++  required: true
++  red:
++    command: pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts
++    expected_failure: The root-only scaffold writes workflow and Skill under a nested plugin and cannot render repository-relative Action inputs.
++  green:
++    command: pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts
++    expected_signal: Root and nested layouts, explicit root, containment, atomicity and bilingual documentation contracts pass.
++  refactor:
++    command: pnpm validate && pnpm test:pack
++    expected_signal: Existing lifecycle, package and root scaffold contracts remain green.
++validation_loop:
++  commands:
++    - pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts
++    - pnpm validate
++    - pnpm test:pack
++    - python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T009
++  retry_budget: 3
++  failure_policy:
++    first_failure: Fix the smallest root-resolution, rendering, containment or documentation defect within scope.
++    second_failure: Recheck worktree markers, symlink handling and scenario-relative path assumptions and add focused evidence.
++    third_failure: Preserve evidence and stop without weakening transaction or containment rules.
++    beyond_budget: Stop and record blocked evidence.
++evidence_contract:
++  summary: .ai-platform/evidence/T009/summary.md
++  diff: .ai-platform/evidence/T009/diff.patch
++  test_results: .ai-platform/evidence/T009/test-results.md
++  required: [RED and GREEN results, full validation, exact partner tag identities, generated path checks, disclosure boundary, residual risks]
++review_contract:
++  required_passes: [spec_compliance, bug_code_quality, scaffold_safety, documentation_parity, pilot_evidence]
++  acceptance_rule: Nested initialization must be backward compatible and transactional; partner evidence is technical compatibility only and npm publication needs separate user approval.
++handoff:
++  external_issue: https://github.com/deepseek-ai/deepseek-harness/discussions/2038
++  pull_request: null
++  finish_options: [open reviewed pull request, merge after CI, prepare maintainer follow-up, defer package release]
++stop_conditions: [repository root does not contain plugin root, scaffold can escape or partially write, existing root behavior regresses, partner identity cannot be pinned, named failure disclosure lacks maintainer confirmation]
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index f1640a9..47cee2b 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -90,0 +91,8 @@ cordis.patch.yml
++### Slice 7: Design-Partner Nested Plugin Pilot
++
++- Separate repository-root integrations from plugin-root scenario ownership without changing the lifecycle schema.
++- Add automatic Git worktree detection plus an explicit `--repo-root` override for exported or unusual layouts.
++- Prove root and nested scaffold transactions through RED/GREEN tests and exact generated paths.
++- Validate the released partner tags `dsh-plugin-doctor@v1.14.0` and `dsh-subscribe@v0.3.1` without treating their adoption as market validation.
++- Prepare reproducible evidence and a low-cost maintainer follow-up; npm publication remains a separate user-approved operation.
++
+diff --git a/.ai-platform/specs/lifecycle-runner/spec.md b/.ai-platform/specs/lifecycle-runner/spec.md
+index 32a749c..dd5fe8b 100644
+--- a/.ai-platform/specs/lifecycle-runner/spec.md
++++ b/.ai-platform/specs/lifecycle-runner/spec.md
+@@ -3 +3 @@
+-Version: v0.2.1
++Version: v0.3.2
+@@ -14,4 +14,4 @@ The lifecycle runner is the first DSH Testkit release slice. It turns a plugin s
+-- User stories: `US-001` through `US-005` in Product Design.
+-- Functional requirements: `FR-001` through `FR-018` in Product Design.
+-- Non-functional requirements: `NFR-001` through `NFR-014` in Product Design.
+-- Success criteria: `SC-001` through `SC-010` in Product Design.
++- User stories: `US-001` through `US-009` in Product Design.
++- Functional requirements: `FR-001` through `FR-039` in Product Design.
++- Non-functional requirements: `NFR-001` through `NFR-020` in Product Design.
++- Success criteria: `SC-001` through `SC-021` in Product Design.
+@@ -33,0 +34 @@ This feature specification does not redefine those requirements. The Product Des
++- One-command root and nested-plugin onboarding with repository-discoverable CI and Agent Skill targets.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index a5033aa..a18135b 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -3 +3 @@
+-Version: v0.3.0
++Version: v0.3.2
+@@ -56,0 +57 @@ Tasks:
++- [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
+@@ -689,0 +691,69 @@ Evidence required:
++### T009: Nested Plugin Root And Design-Partner Pilot
++
++Status: Needs_Review
++Priority: P1
++Depends on: T008
++Blocks: First design-partner adoption evidence
++Story / Requirement: US-009, FR-037 through FR-039, NFR-019 through NFR-020, SC-021
++Parallel: No
++Conflicts with: None
++
++Goal:
++Make one-command initialization correct when a single DSH bundle lives below its Git repository root, then use the exact public Doctor and Subscribe releases as bounded technical pilot inputs.
++
++Allowed files:
++- `.ai-platform/**`
++- `src/scaffold/init.ts`
++- `src/cli.ts`
++- `tests/unit/scaffold.test.ts`
++- `tests/integration/cli.test.ts`
++- `tests/contracts/documentation.test.ts`
++- `README.md`
++- `README.zh-CN.md`
++- `CHANGELOG.md`
++- `docs/**`
++
++Test targets:
++- `tests/unit/scaffold.test.ts`
++- `tests/integration/cli.test.ts`
++- `tests/contracts/documentation.test.ts`
++
++Deliverables:
++- Automatic nearest Git worktree detection and explicit `--repo-root` override.
++- Scenario at plugin root; workflow and Agent Skill at repository root with correct repo-relative references.
++- Atomic preflight across both roots, containment/symlink rejection and root-layout backward compatibility.
++- Reciprocal Doctor documentation link and a partner pilot evidence record using exact immutable tags.
++
++Acceptance criteria:
++- Root-layout scaffold bytes and command behavior remain compatible.
++- `dsh-test init plugin/` writes no nested `.github` or `.agents` directory and generates `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`.
++- Explicit repository root works without Git metadata; a repository root outside the plugin ancestry is rejected before writing.
++- A conflict in either root leaves all not-yet-existing targets absent.
++- Doctor and Subscribe inputs are pinned to `v1.14.0` and `v0.3.1`; named failure evidence is not published before maintainer confirmation.
++
++Definition of Done:
++- Focused tests demonstrate RED before implementation and GREEN afterward.
++- `pnpm validate` and packed consumer validation pass.
++- Exact partner repositories complete scaffold validation; lifecycle results and limitations are recorded without market-validation claims.
++- Diff review has no blocking correctness, safety or documentation finding.
++
++Validation commands:
++- `pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts`
++- `pnpm validate`
++- `pnpm test:pack`
++- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T009`
++
++TDD plan:
++- RED: add nested Git-root, explicit-root, cross-root atomicity and CLI output tests against the root-only scaffold.
++- GREEN: add the smallest root-resolution and repo-relative rendering behavior that satisfies the tests.
++- REFACTOR: consolidate containment/display paths and run exact partner-tag scaffold/lifecycle checks.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
++
++Evidence required:
++- RED/GREEN results and full validation.
++- Exact partner tag/commit identities and generated path checks.
++- Lifecycle result classification, disclosure boundary and residual risks.
++- Changed files and reviewed diff summary.
++
+@@ -698,0 +769 @@ Evidence required:
++- The user explicitly approved the bounded first design-partner pilot and nested plugin-root correction on 2026-08-16; package publication remains out of scope.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c41579b..7851ba6 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,0 +7,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
++### Added
++
++- Added repository-root discovery and `--repo-root` for a single DSH bundle located below the Git worktree root.
++
++### Fixed
++
++- Kept nested-plugin scenarios beside the bundle while generating GitHub Actions and the project Agent Skill at repository root with correct relative paths and one atomic preflight.
++
+diff --git a/README.md b/README.md
+index 8bccb65..9a9379a 100644
+--- a/README.md
++++ b/README.md
+@@ -33 +33 @@ pnpm dsh-test
+-`init` works offline and reads the bundle's declared patch to create exactly three reviewable files:
++If the DSH bundle is below the repository root, point `init` at the plugin directory:
+@@ -35,3 +35,6 @@ pnpm dsh-test
+-- `dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
+-- `.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check
+-- `.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
++```bash
++pnpm dsh-test init plugin/
++pnpm dsh-test --config plugin/dsh-testkit.yaml
++```
++
++`init` detects the nearest Git worktree offline. For an exported tree without `.git` metadata, pass `--repo-root .` explicitly. It reads the bundle's declared patch and creates exactly three reviewable files:
+@@ -39 +42,5 @@ pnpm dsh-test
+-Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files stop the command before any target is written unless `--force` is explicit.
++- `<plugin-root>/dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
++- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check and correct plugin/config paths
++- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
++
++For a root-level bundle, plugin root and repository root are the same and the existing paths stay unchanged. Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files in either root stop the command before any target is written unless `--force` is explicit.
+@@ -64 +71 @@ These tools are complementary, not competing replacements.
+-| Fast static checks, manifest diagnostics, dependency guidance | `dsh-plugin-doctor` or a plugin preflight check |
++| Fast static checks, manifest diagnostics, dependency guidance | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) or a plugin preflight check |
+@@ -70,0 +78,2 @@ DSH Testkit deliberately tests one subject plugin per isolated lifecycle. Multi-
++A practical release gate runs Doctor on every commit for cheap preflight and DSH Testkit on release PRs or tags for the packed artifact's real-host lifecycle. Neither result is a security certification.
++
+@@ -113,0 +123,2 @@ The Action publishes JUnit and uploads the complete run directory. `artifact-nam
++For a nested bundle, the generated workflow remains at repository root and uses `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`; GitHub never needs to discover a workflow inside the plugin directory.
++
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index 1537dc5..d63c2fa 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -33 +33 @@ pnpm dsh-test
+-`init` 会离线读取 bundle 声明的 patch，并且只生成三个可审核文件：
++如果 DSH bundle 位于仓库子目录，请把插件目录传给 `init`：
+@@ -35,3 +35,6 @@ pnpm dsh-test
+-- `dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
+-- `.github/workflows/dsh-lifecycle.yml`：采用最小权限的生命周期检查
+-- `.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
++```bash
++pnpm dsh-test init plugin/
++pnpm dsh-test --config plugin/dsh-testkit.yaml
++```
++
++`init` 会离线识别最近的 Git worktree。导出的源码树没有 `.git` 元数据时，请显式传入 `--repo-root .`。它会读取 bundle 声明的 patch，并且只生成三个可审核文件：
+@@ -39 +42,5 @@ pnpm dsh-test
+-请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任何冲突文件都会让命令在写入全部目标前停止。
++- `<plugin-root>/dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
++- `<repository-root>/.github/workflows/dsh-lifecycle.yml`：采用最小权限，并引用正确的插件与场景路径
++- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
++
++根目录插件的 plugin root 与 repository root 相同，现有路径保持不变。请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任一根目录中的冲突文件都会让命令在写入全部目标前停止。
+@@ -64 +71 @@ Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `r
+-| 快速静态检查、manifest 诊断、依赖建议 | `dsh-plugin-doctor` 或 plugin preflight check |
++| 快速静态检查、manifest 诊断、依赖建议 | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) 或 plugin preflight check |
+@@ -70,0 +78,2 @@ DSH Testkit 当前刻意让每个隔离生命周期只包含一个被测插件
++实用的发布门禁可以在每次提交运行 Doctor 做低成本预检，并在发布 PR 或 tag 上运行 DSH Testkit 验证打包产物的真实宿主生命周期。两者都不是安全认证。
++
+@@ -113,0 +123,2 @@ Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check
++对于嵌套 bundle，生成的 workflow 仍位于仓库根目录，并使用 `plugin: ./plugin` 与 `config: plugin/dsh-testkit.yaml`；GitHub 不需要发现插件目录内部的 workflow。
++
+diff --git a/src/cli.ts b/src/cli.ts
+index 7512ea1..fb5b745 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -51,0 +52 @@ interface InitCliOptions {
++  repoRoot?: string
+@@ -211 +212 @@ function buildInitProgram(deps: CliDependencies): Command {
+-    .description('Scaffold DSH Testkit in an existing DSH bundle repository.')
++    .description('Scaffold DSH Testkit for an existing DSH bundle.')
+@@ -214 +215 @@ function buildInitProgram(deps: CliDependencies): Command {
+-    .argument('[directory]', 'DSH plugin repository', '.')
++    .argument('[directory]', 'DSH plugin directory', '.')
+@@ -215,0 +217 @@ function buildInitProgram(deps: CliDependencies): Command {
++    .option('--repo-root <directory>', 'repository root for a nested DSH plugin')
+@@ -228,0 +231 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
++        ...(options.repoRoot === undefined ? {} : { repositoryRoot: resolve(deps.cwd, options.repoRoot) }),
+diff --git a/src/scaffold/init.ts b/src/scaffold/init.ts
+index 9b01492..2242bb3 100644
+--- a/src/scaffold/init.ts
++++ b/src/scaffold/init.ts
+@@ -31,0 +32 @@ export interface InitializeDshTestkitInput {
++  readonly repositoryRoot?: string
+@@ -37,0 +39 @@ export interface InitializeDshTestkitResult {
++  readonly repositoryRoot: string
+@@ -39 +41 @@ export interface InitializeDshTestkitResult {
+-  readonly nextCommand: 'pnpm dsh-test'
++  readonly nextCommand: string
+@@ -56,2 +58 @@ interface PackageManifest {
+-const TARGET_PATHS = [
+-  'dsh-testkit.yaml',
++const REPOSITORY_TARGET_PATHS = [
+@@ -71 +72 @@ async function exists(path: string): Promise<boolean> {
+-function containedPath(root: string, path: string, label: string): string {
++function containedPath(root: string, path: string, label: string, rootLabel = 'root'): string {
+@@ -75 +76 @@ function containedPath(root: string, path: string, label: string): string {
+-    throw new Error(`${label} must resolve to a file inside the plugin root: ${path}`)
++    throw new Error(`${label} must resolve to a file inside the ${rootLabel}: ${path}`)
+@@ -79,0 +81,47 @@ function containedPath(root: string, path: string, label: string): string {
++function portablePath(path: string): string {
++  return path.replaceAll('\\', '/')
++}
++
++function shellQuote(value: string): string {
++  return /^[A-Za-z0-9_./:@+-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`
++}
++
++function workflowScalar(value: string): string {
++  return /^[A-Za-z0-9_./@+-]+$/.test(value) ? value : JSON.stringify(value)
++}
++
++async function findNearestRepositoryRoot(pluginRoot: string): Promise<string> {
++  let candidate = pluginRoot
++  while (true) {
++    const marker = resolve(candidate, '.git')
++    try {
++      const metadata = await lstat(marker)
++      if (metadata.isSymbolicLink()) {
++        throw new Error(`repository marker must not be a symbolic link: ${marker}`)
++      }
++      if (metadata.isDirectory() || metadata.isFile()) return candidate
++    } catch (error) {
++      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
++    }
++    const parent = dirname(candidate)
++    if (parent === candidate) return pluginRoot
++    candidate = parent
++  }
++}
++
++async function resolveRepositoryRoot(pluginRoot: string, requestedRoot?: string): Promise<string> {
++  const unresolvedRoot = requestedRoot === undefined
++    ? await findNearestRepositoryRoot(pluginRoot)
++    : resolve(requestedRoot)
++  const metadata = await lstat(unresolvedRoot)
++  if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
++    throw new Error(`repository root must be a real directory: ${unresolvedRoot}`)
++  }
++  const repositoryRoot = await realpath(unresolvedRoot)
++  const pluginRelative = relative(repositoryRoot, pluginRoot)
++  if (/^\.\.(?:[\\/]|$)/.test(pluginRelative) || isAbsolute(pluginRelative)) {
++    throw new Error(`repository root must contain the plugin root: ${repositoryRoot}`)
++  }
++  return repositoryRoot
++}
++
+@@ -148 +196 @@ function renderScenario(packageName: unknown, dshVersion: string, rows: string[]
+-function renderWorkflow(dshVersion: string): string {
++function renderWorkflow(dshVersion: string, pluginPath: string, configPath: string): string {
+@@ -171 +219 @@ jobs:
+-          plugin: .
++          plugin: ${workflowScalar(pluginPath)}
+@@ -173 +221 @@ jobs:
+-          config: dsh-testkit.yaml
++          config: ${workflowScalar(configPath)}
+@@ -194 +242 @@ async function readBundle(root: string): Promise<{
+-  const patchPath = containedPath(root, patchReference, 'dsh.bundle.patch')
++  const patchPath = containedPath(root, patchReference, 'dsh.bundle.patch', 'plugin root')
+@@ -260,0 +309,4 @@ export async function initializeDshTestkitProject(
++  const repositoryRoot = await resolveRepositoryRoot(root, input.repositoryRoot)
++  const pluginRelative = portablePath(relative(repositoryRoot, root))
++  const pluginPath = pluginRelative === '' ? '.' : `./${pluginRelative}`
++  const scenarioPath = pluginRelative === '' ? 'dsh-testkit.yaml' : `${pluginRelative}/dsh-testkit.yaml`
+@@ -267 +319 @@ export async function initializeDshTestkitProject(
+-      path: TARGET_PATHS[0],
++      path: scenarioPath,
+@@ -271,2 +323,2 @@ export async function initializeDshTestkitProject(
+-      path: TARGET_PATHS[1],
+-      content: renderWorkflow(dshVersion),
++      path: REPOSITORY_TARGET_PATHS[0],
++      content: renderWorkflow(dshVersion, pluginPath, scenarioPath),
+@@ -275 +327 @@ export async function initializeDshTestkitProject(
+-      path: TARGET_PATHS[2],
++      path: REPOSITORY_TARGET_PATHS[1],
+@@ -282 +334 @@ export async function initializeDshTestkitProject(
+-    files.push(await preflightTarget(root, target, input.force === true))
++    files.push(await preflightTarget(repositoryRoot, target, input.force === true))
+@@ -285 +337 @@ export async function initializeDshTestkitProject(
+-    await writeTarget(root, target, files[index]!.status)
++    await writeTarget(repositoryRoot, target, files[index]!.status)
+@@ -287 +339,4 @@ export async function initializeDshTestkitProject(
+-  return { root, files, nextCommand: 'pnpm dsh-test' }
++  const nextCommand = pluginRelative === ''
++    ? 'pnpm dsh-test'
++    : `pnpm dsh-test --config ${shellQuote(scenarioPath)}`
++  return { root, repositoryRoot, files, nextCommand }
+diff --git a/tests/contracts/documentation.test.ts b/tests/contracts/documentation.test.ts
+index ee368bf..18fd896 100644
+--- a/tests/contracts/documentation.test.ts
++++ b/tests/contracts/documentation.test.ts
+@@ -20,0 +21 @@ describe('bilingual project entrypoints', () => {
++      expect(contents).toContain('--repo-root')
+@@ -26,0 +28,2 @@ describe('bilingual project entrypoints', () => {
++    expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
++    expect(chinese).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 4aae665..22abce9 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -288,0 +289,34 @@ describe('CLI integration', () => {
++  it('initializes a nested bundle from its repository root', async () => {
++    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-cli-init-nested-'))
++    await mkdir(join(repositoryRoot, '.git'))
++    const pluginRoot = join(repositoryRoot, 'plugin')
++    await mkdir(pluginRoot)
++    await writeFile(join(pluginRoot, 'package.json'), `${JSON.stringify({
++      name: 'cli-nested-fixture',
++      version: '1.0.0',
++      dsh: { bundle: { patch: './cordis.patch.yml' } },
++    }, null, 2)}\n`)
++    await writeFile(join(pluginRoot, 'cordis.patch.yml'), [
++      '- insert:',
++      '    - id: tool-cli-nested',
++      '      name: ./index.js',
++      '',
++    ].join('\n'))
++    const stdout: string[] = []
++
++    const exitCode = await runCli(['init', 'plugin', '--repo-root', '.'], {
++      stdout: value => stdout.push(value),
++      stderr: value => stdout.push(value),
++      cwd: repositoryRoot,
++      env: {},
++    })
++
++    expect(exitCode).toBe(0)
++    expect(stdout.join('')).toContain('created  plugin/dsh-testkit.yaml')
++    expect(stdout.join('')).toContain('Next: pnpm dsh-test --config plugin/dsh-testkit.yaml')
++    await expect(readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
++      .resolves.toContain('plugin: ./plugin')
++    await expect(readFile(join(pluginRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
++      .rejects.toThrow()
++  })
++
+diff --git a/tests/unit/scaffold.test.ts b/tests/unit/scaffold.test.ts
+index 4a65fca..7dd614e 100644
+--- a/tests/unit/scaffold.test.ts
++++ b/tests/unit/scaffold.test.ts
+@@ -37,0 +38,5 @@ async function createBundleFixture(): Promise<string> {
++  await writeBundleFixture(root)
++  return root
++}
++
++async function writeBundleFixture(root: string): Promise<void> {
+@@ -51 +55,0 @@ async function createBundleFixture(): Promise<string> {
+-  return root
+@@ -59,0 +64 @@ describe('one-command project scaffold', () => {
++    expect(result.repositoryRoot).toBe(await realpath(root))
+@@ -90,0 +96,92 @@ describe('one-command project scaffold', () => {
++  it('keeps the scenario with a nested plugin and repository integrations at the nearest Git root', async () => {
++    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-repo-'))
++    await mkdir(join(repositoryRoot, '.git'))
++    const pluginRoot = join(repositoryRoot, 'plugin')
++    await mkdir(pluginRoot)
++    await writeBundleFixture(pluginRoot)
++
++    const result = await initializeDshTestkitProject({ directory: pluginRoot })
++
++    expect(result.root).toBe(await realpath(pluginRoot))
++    expect(result.repositoryRoot).toBe(await realpath(repositoryRoot))
++    expect(result.files).toEqual([
++      { path: 'plugin/dsh-testkit.yaml', status: 'created' },
++      { path: '.github/workflows/dsh-lifecycle.yml', status: 'created' },
++      { path: '.agents/skills/dsh-testkit/SKILL.md', status: 'created' },
++    ])
++    expect(result.nextCommand).toBe('pnpm dsh-test --config plugin/dsh-testkit.yaml')
++
++    const scenario = parseScenario(parseYaml(await readFile(join(pluginRoot, 'dsh-testkit.yaml'), 'utf8')))
++    expect(scenario.subject.source).toBe('.')
++    const workflow = await readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8')
++    expect(workflow).toContain('plugin: ./plugin')
++    expect(workflow).toContain('config: plugin/dsh-testkit.yaml')
++    await expect(readFile(join(repositoryRoot, '.agents/skills/dsh-testkit/SKILL.md'), 'utf8'))
++      .resolves.toBe(renderDshTestkitSkillFile())
++    expect(await exists(join(pluginRoot, '.github'))).toBe(false)
++    expect(await exists(join(pluginRoot, '.agents'))).toBe(false)
++  })
++
++  it('supports an explicit repository root when Git metadata is unavailable', async () => {
++    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-export-'))
++    const pluginRoot = join(repositoryRoot, 'packages/plugin')
++    await mkdir(pluginRoot, { recursive: true })
++    await writeBundleFixture(pluginRoot)
++
++    const result = await initializeDshTestkitProject({
++      directory: pluginRoot,
++      repositoryRoot,
++    })
++
++    expect(result.repositoryRoot).toBe(await realpath(repositoryRoot))
++    expect(result.files[0]).toEqual({ path: 'packages/plugin/dsh-testkit.yaml', status: 'created' })
++    await expect(readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
++      .resolves.toContain('plugin: ./packages/plugin')
++  })
++
++  it('rejects a symbolic-link Git marker instead of widening the repository boundary', async () => {
++    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-marker-'))
++    const markerTarget = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-marker-target-'))
++    await symlink(markerTarget, join(repositoryRoot, '.git'))
++    const pluginRoot = join(repositoryRoot, 'plugin')
++    await mkdir(pluginRoot)
++    await writeBundleFixture(pluginRoot)
++
++    await expect(initializeDshTestkitProject({ directory: pluginRoot }))
++      .rejects.toThrow(/repository marker.*symbolic link/i)
++    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
++    expect(await exists(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'))).toBe(false)
++  })
++
++  it('rejects an unrelated explicit repository root before writing', async () => {
++    const pluginRoot = await createBundleFixture()
++    const unrelatedRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-unrelated-'))
++
++    await expect(initializeDshTestkitProject({
++      directory: pluginRoot,
++      repositoryRoot: unrelatedRoot,
++    })).rejects.toThrow(/repository root must contain the plugin root/i)
++
++    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
++    expect(await exists(join(unrelatedRoot, '.github/workflows/dsh-lifecycle.yml'))).toBe(false)
++    expect(await exists(join(unrelatedRoot, '.agents/skills/dsh-testkit/SKILL.md'))).toBe(false)
++  })
++
++  it('preflights repository and plugin targets before any write', async () => {
++    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-atomic-'))
++    await mkdir(join(repositoryRoot, '.git'))
++    const pluginRoot = join(repositoryRoot, 'plugin')
++    await mkdir(pluginRoot)
++    await writeBundleFixture(pluginRoot)
++    await mkdir(join(repositoryRoot, '.github/workflows'), { recursive: true })
++    const conflict = join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml')
++    await writeFile(conflict, 'maintainer-owned\n')
++
++    await expect(initializeDshTestkitProject({ directory: pluginRoot }))
++      .rejects.toThrow(/conflict.*--force/i)
++
++    await expect(readFile(conflict, 'utf8')).resolves.toBe('maintainer-owned\n')
++    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
++    expect(await exists(join(repositoryRoot, '.agents/skills/dsh-testkit/SKILL.md'))).toBe(false)
++  })
++

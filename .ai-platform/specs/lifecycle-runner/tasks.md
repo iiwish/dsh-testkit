@@ -1,6 +1,6 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.3.0
+Version: v0.3.2
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
@@ -54,6 +54,7 @@ Tasks:
 - [x] T006 [US-006] Publish the same engine as a safe native DSH bundle and release v0.2.0.
 - [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
 - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
+- [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
 
 ## Task Details
 
@@ -687,6 +688,75 @@ Evidence required:
 - Commit/PR/CI/tag/GitHub/npm/provenance identities.
 - Official Ideas and template PR identities, maintainer feedback and residual risks.
 
+### T009: Nested Plugin Root And Design-Partner Pilot
+
+Status: Needs_Review
+Priority: P1
+Depends on: T008
+Blocks: First design-partner adoption evidence
+Story / Requirement: US-009, FR-037 through FR-039, NFR-019 through NFR-020, SC-021
+Parallel: No
+Conflicts with: None
+
+Goal:
+Make one-command initialization correct when a single DSH bundle lives below its Git repository root, then use the exact public Doctor and Subscribe releases as bounded technical pilot inputs.
+
+Allowed files:
+- `.ai-platform/**`
+- `src/scaffold/init.ts`
+- `src/cli.ts`
+- `tests/unit/scaffold.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/contracts/documentation.test.ts`
+- `README.md`
+- `README.zh-CN.md`
+- `CHANGELOG.md`
+- `docs/**`
+
+Test targets:
+- `tests/unit/scaffold.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/contracts/documentation.test.ts`
+
+Deliverables:
+- Automatic nearest Git worktree detection and explicit `--repo-root` override.
+- Scenario at plugin root; workflow and Agent Skill at repository root with correct repo-relative references.
+- Atomic preflight across both roots, containment/symlink rejection and root-layout backward compatibility.
+- Reciprocal Doctor documentation link and a partner pilot evidence record using exact immutable tags.
+
+Acceptance criteria:
+- Root-layout scaffold bytes and command behavior remain compatible.
+- `dsh-test init plugin/` writes no nested `.github` or `.agents` directory and generates `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`.
+- Explicit repository root works without Git metadata; a repository root outside the plugin ancestry is rejected before writing.
+- A conflict in either root leaves all not-yet-existing targets absent.
+- Doctor and Subscribe inputs are pinned to `v1.14.0` and `v0.3.1`; named failure evidence is not published before maintainer confirmation.
+
+Definition of Done:
+- Focused tests demonstrate RED before implementation and GREEN afterward.
+- `pnpm validate` and packed consumer validation pass.
+- Exact partner repositories complete scaffold validation; lifecycle results and limitations are recorded without market-validation claims.
+- Diff review has no blocking correctness, safety or documentation finding.
+
+Validation commands:
+- `pnpm vitest run tests/unit/scaffold.test.ts tests/integration/cli.test.ts tests/contracts/documentation.test.ts`
+- `pnpm validate`
+- `pnpm test:pack`
+- `python3 /Users/iiwish/.codex/skills/ai-delivery-governor/scripts/validate_delivery_artifacts.py --root . --feature-id lifecycle-runner --task-id T009`
+
+TDD plan:
+- RED: add nested Git-root, explicit-root, cross-root atomicity and CLI output tests against the root-only scaffold.
+- GREEN: add the smallest root-resolution and repo-relative rendering behavior that satisfies the tests.
+- REFACTOR: consolidate containment/display paths and run exact partner-tag scaffold/lifecycle checks.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
+
+Evidence required:
+- RED/GREEN results and full validation.
+- Exact partner tag/commit identities and generated path checks.
+- Lifecycle result classification, disclosure boundary and residual risks.
+- Changed files and reviewed diff summary.
+
 ## Gate
 
 - User explicitly authorized continuation on 2026-08-15.
@@ -696,3 +766,4 @@ Evidence required:
 - The user explicitly approved the native DSH bundle direction and v0.2.0 release on 2026-08-15.
 - The user explicitly approved v0.2.1 and optimization items 1 through 5 on 2026-08-15.
 - The user explicitly approved Show & Tell, v0.3.0 one-command onboarding, the Agent Skill and upstream/template integration on 2026-08-16.
+- The user explicitly approved the bounded first design-partner pilot and nested plugin-root correction on 2026-08-16; package publication remains out of scope.

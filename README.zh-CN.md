@@ -30,13 +30,20 @@ pnpm dsh-test init
 pnpm dsh-test
 ```
 
-`init` 会离线读取 bundle 声明的 patch，并且只生成三个可审核文件：
+如果 DSH bundle 位于仓库子目录，请把插件目录传给 `init`：
 
-- `dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
-- `.github/workflows/dsh-lifecycle.yml`：采用最小权限的生命周期检查
-- `.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
+```bash
+pnpm dsh-test init plugin/
+pnpm dsh-test --config plugin/dsh-testkit.yaml
+```
 
-请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任何冲突文件都会让命令在写入全部目标前停止。
+`init` 会离线识别最近的 Git worktree。导出的源码树没有 `.git` 元数据时，请显式传入 `--repo-root .`。它会读取 bundle 声明的 patch，并且只生成三个可审核文件：
+
+- `<plugin-root>/dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
+- `<repository-root>/.github/workflows/dsh-lifecycle.yml`：采用最小权限，并引用正确的插件与场景路径
+- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
+
+根目录插件的 plugin root 与 repository root 相同，现有路径保持不变。请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任一根目录中的冲突文件都会让命令在写入全部目标前停止。
 
 Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `report.json`、`junit.xml`、`report.md`、脱敏命令日志和各阶段证据。
 
@@ -61,12 +68,14 @@ Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `r
 
 | 需求 | 合适的工具 |
 |---|---|
-| 快速静态检查、manifest 诊断、依赖建议 | `dsh-plugin-doctor` 或 plugin preflight check |
+| 快速静态检查、manifest 诊断、依赖建议 | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) 或 plugin preflight check |
 | 多个 bundle 在 assemble 前后发生冲突 | `dsh-composition-check` |
 | 插件自身的单元逻辑 | 你的测试框架 |
 | 在真实宿主验证安装、启动、执行、卸载、重启、恢复、残留与重复性 | **DSH Testkit** |
 
 DSH Testkit 当前刻意让每个隔离生命周期只包含一个被测插件。只有真实案例证明“单插件生命周期测试 + composition check”无法复现某类故障时，才会扩展多插件状态归属和更新顺序的场景契约。
+
+实用的发布门禁可以在每次提交运行 Doctor 做低成本预检，并在发布 PR 或 tag 上运行 DSH Testkit 验证打包产物的真实宿主生命周期。两者都不是安全认证。
 
 ## 场景即代码
 
@@ -110,6 +119,8 @@ observers:
 ```
 
 Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check 名称、输出路径和保留时间均可配置；artifact ID、URL 和 digest 可作为输出使用。由于 `actions/upload-artifact@v4+` 不支持 GHES，GitHub Enterprise Server 和其他 CI 可直接调用 CLI 并保留相同证据。
+
+对于嵌套 bundle，生成的 workflow 仍位于仓库根目录，并使用 `plugin: ./plugin` 与 `config: plugin/dsh-testkit.yaml`；GitHub 不需要发现插件目录内部的 workflow。
 
 稳定退出码为：`0` 通过、`1` 生命周期失败、`2` 输入无效、`3` 基础设施错误、`4` 能力不支持、`5` 结果不稳定。JSON Schema 发布在 `dsh-testkit/schemas/report-v1.json` 和 `dsh-testkit/schemas/scenario-v1.json`。
 

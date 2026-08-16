@@ -18,12 +18,15 @@ describe('bilingual project entrypoints', () => {
     for (const contents of [english, chinese]) {
       expect(contents).toContain('dsh-testkit@0.3.1')
       expect(contents).toContain('dsh-test init')
+      expect(contents).toContain('--repo-root')
       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
       expect(contents).toContain('0.1.0-rc.6')
       expect(contents).toContain('dsh-composition-check')
       expect(contents).toContain('dsh-plugin-doctor')
       expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
     }
+    expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
+    expect(chinese).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
     expect(english).toContain('not a hardened malware sandbox')
     expect(chinese).toContain('不是经过强化的恶意代码沙箱')
   })

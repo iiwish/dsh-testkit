@@ -35,6 +35,11 @@ async function exists(path: string): Promise<boolean> {
 
 async function createBundleFixture(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-'))
+  await writeBundleFixture(root)
+  return root
+}
+
+async function writeBundleFixture(root: string): Promise<void> {
   await writeFile(join(root, 'package.json'), `${JSON.stringify({
     name: '@fixture/example-plugin',
     version: '1.0.0',
@@ -48,7 +53,6 @@ async function createBundleFixture(): Promise<string> {
     '      name: ./dist/service.js',
     '',
   ].join('\n'))
-  return root
 }
 
 describe('one-command project scaffold', () => {
@@ -57,6 +61,7 @@ describe('one-command project scaffold', () => {
     const result = await initializeDshTestkitProject({ directory: root })
 
     expect(result.root).toBe(await realpath(root))
+    expect(result.repositoryRoot).toBe(await realpath(root))
     expect(result.files).toEqual(expectedPaths.map(path => ({ path, status: 'created' })))
     expect(result.nextCommand).toBe('pnpm dsh-test')
 
@@ -86,6 +91,98 @@ describe('one-command project scaffold', () => {
       join(root, '.agents/skills/dsh-testkit/SKILL.md'),
       'utf8',
     )).resolves.toBe(renderDshTestkitSkillFile())
+  })
+
+  it('keeps the scenario with a nested plugin and repository integrations at the nearest Git root', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-repo-'))
+    await mkdir(join(repositoryRoot, '.git'))
+    const pluginRoot = join(repositoryRoot, 'plugin')
+    await mkdir(pluginRoot)
+    await writeBundleFixture(pluginRoot)
+
+    const result = await initializeDshTestkitProject({ directory: pluginRoot })
+
+    expect(result.root).toBe(await realpath(pluginRoot))
+    expect(result.repositoryRoot).toBe(await realpath(repositoryRoot))
+    expect(result.files).toEqual([
+      { path: 'plugin/dsh-testkit.yaml', status: 'created' },
+      { path: '.github/workflows/dsh-lifecycle.yml', status: 'created' },
+      { path: '.agents/skills/dsh-testkit/SKILL.md', status: 'created' },
+    ])
+    expect(result.nextCommand).toBe('pnpm dsh-test --config plugin/dsh-testkit.yaml')
+
+    const scenario = parseScenario(parseYaml(await readFile(join(pluginRoot, 'dsh-testkit.yaml'), 'utf8')))
+    expect(scenario.subject.source).toBe('.')
+    const workflow = await readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8')
+    expect(workflow).toContain('plugin: ./plugin')
+    expect(workflow).toContain('config: plugin/dsh-testkit.yaml')
+    await expect(readFile(join(repositoryRoot, '.agents/skills/dsh-testkit/SKILL.md'), 'utf8'))
+      .resolves.toBe(renderDshTestkitSkillFile())
+    expect(await exists(join(pluginRoot, '.github'))).toBe(false)
+    expect(await exists(join(pluginRoot, '.agents'))).toBe(false)
+  })
+
+  it('supports an explicit repository root when Git metadata is unavailable', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-export-'))
+    const pluginRoot = join(repositoryRoot, 'packages/plugin')
+    await mkdir(pluginRoot, { recursive: true })
+    await writeBundleFixture(pluginRoot)
+
+    const result = await initializeDshTestkitProject({
+      directory: pluginRoot,
+      repositoryRoot,
+    })
+
+    expect(result.repositoryRoot).toBe(await realpath(repositoryRoot))
+    expect(result.files[0]).toEqual({ path: 'packages/plugin/dsh-testkit.yaml', status: 'created' })
+    await expect(readFile(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
+      .resolves.toContain('plugin: ./packages/plugin')
+  })
+
+  it('rejects a symbolic-link Git marker instead of widening the repository boundary', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-marker-'))
+    const markerTarget = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-marker-target-'))
+    await symlink(markerTarget, join(repositoryRoot, '.git'))
+    const pluginRoot = join(repositoryRoot, 'plugin')
+    await mkdir(pluginRoot)
+    await writeBundleFixture(pluginRoot)
+
+    await expect(initializeDshTestkitProject({ directory: pluginRoot }))
+      .rejects.toThrow(/repository marker.*symbolic link/i)
+    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
+    expect(await exists(join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml'))).toBe(false)
+  })
+
+  it('rejects an unrelated explicit repository root before writing', async () => {
+    const pluginRoot = await createBundleFixture()
+    const unrelatedRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-unrelated-'))
+
+    await expect(initializeDshTestkitProject({
+      directory: pluginRoot,
+      repositoryRoot: unrelatedRoot,
+    })).rejects.toThrow(/repository root must contain the plugin root/i)
+
+    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
+    expect(await exists(join(unrelatedRoot, '.github/workflows/dsh-lifecycle.yml'))).toBe(false)
+    expect(await exists(join(unrelatedRoot, '.agents/skills/dsh-testkit/SKILL.md'))).toBe(false)
+  })
+
+  it('preflights repository and plugin targets before any write', async () => {
+    const repositoryRoot = await mkdtemp(join(tmpdir(), 'dsh-testkit-init-atomic-'))
+    await mkdir(join(repositoryRoot, '.git'))
+    const pluginRoot = join(repositoryRoot, 'plugin')
+    await mkdir(pluginRoot)
+    await writeBundleFixture(pluginRoot)
+    await mkdir(join(repositoryRoot, '.github/workflows'), { recursive: true })
+    const conflict = join(repositoryRoot, '.github/workflows/dsh-lifecycle.yml')
+    await writeFile(conflict, 'maintainer-owned\n')
+
+    await expect(initializeDshTestkitProject({ directory: pluginRoot }))
+      .rejects.toThrow(/conflict.*--force/i)
+
+    await expect(readFile(conflict, 'utf8')).resolves.toBe('maintainer-owned\n')
+    expect(await exists(join(pluginRoot, 'dsh-testkit.yaml'))).toBe(false)
+    expect(await exists(join(repositoryRoot, '.agents/skills/dsh-testkit/SKILL.md'))).toBe(false)
   })
 
   it('is byte-idempotent and reports existing generated files as unchanged', async () => {

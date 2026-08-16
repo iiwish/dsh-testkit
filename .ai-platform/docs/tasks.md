@@ -1,6 +1,6 @@
 # DSH Testkit Delivery Index
 
-Version: v0.3.0
+Version: v0.3.2
 Status: Confirmed
 Last updated: 2026-08-16
 
@@ -109,3 +109,9 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T007.yaml`
 Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t008-v030-one-command-adoption-and-agent-skill`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
+
+#### Work Item T009: Nested Plugin Root And Design-Partner Pilot
+
+Status: Needs_Review
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t009-nested-plugin-root-and-design-partner-pilot`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
