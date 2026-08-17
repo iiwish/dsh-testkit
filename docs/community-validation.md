@@ -38,3 +38,7 @@ The cohort therefore supports three current product decisions:
 3. Keep static dependency guidance and cross-bundle composition analysis in doctor/preflight and composition-check tools.
 
 Observer limitations remain material: filesystem, process, port, and output-canary coverage were available; network tracing was not. Absence of observed egress is not proof that no egress occurred.
+
+## Exact-host-state cross-reference (informational)
+
+A Testkit result is only meaningful for the exact recorded environment — DSH version, runner image/state, subject version, scenario, and evidence fields. This is the same principle as a check entry's `certifiedOn` in the cross-tool diagnostics contract (`installed_bundle` / offline checks, #1719): a certification is valid only for the exact host state it was recorded on, including host patches. This cross-reference is prose only — the Testkit report schema is not interchangeable with that of an offline check, and this cohort is environment-bound evidence, not a certification standard.
