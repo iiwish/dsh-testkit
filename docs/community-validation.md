@@ -38,3 +38,7 @@ The cohort therefore supports three current product decisions:
 3. Keep static dependency guidance and cross-bundle composition analysis in doctor/preflight and composition-check tools.
 
 Observer limitations remain material: filesystem, process, port, and output-canary coverage were available; network tracing was not. Absence of observed egress is not proof that no egress occurred.
+
+## Exact-host-state cross-reference (informational)
+
+A Testkit result is only meaningful for the exact recorded environment — DSH version, runner image/state, subject version, scenario, and evidence fields. This follows the same exact-environment scoping principle expressed by `certifiedOn` in the proposed check-lifecycle contract ([#1846](https://github.com/deepseek-ai/deepseek-harness/discussions/1846), worked examples in [#1739](https://github.com/deepseek-ai/deepseek-harness/discussions/1739)): an offline check record applies only to the host state it records, including host patches. This cross-reference is prose only — the Testkit report schema is not interchangeable with that of an offline check, and this cohort is environment-bound evidence, not a certification standard.
