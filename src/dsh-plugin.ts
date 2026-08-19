@@ -4,7 +4,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path'
 
 import { z } from 'zod'
 
-import { SUPPORTED_DSH_NPM_VERSIONS } from './adapters/dsh/support.js'
+import { DEFAULT_DSH_NPM_VERSION } from './adapters/dsh/support.js'
 import { DSH_TESTKIT_SKILL } from './agent-skill.js'
 import { runCli } from './cli.js'
 import type { CliDependencies } from './cli.js'
@@ -222,7 +222,7 @@ export async function executeDshTest(
   let stderr = ''
   const argv = [
     source,
-    '--dsh', args.dshVersion ?? SUPPORTED_DSH_NPM_VERSIONS[0],
+    '--dsh', args.dshVersion ?? DEFAULT_DSH_NPM_VERSION,
     '--runner', 'docker',
     '--suite', args.suite ?? 'quick',
     ...(args.lifecycleCase === undefined ? [] : ['--case', args.lifecycleCase]),
@@ -303,7 +303,7 @@ export function createDshTestTool(): DshToolDefinition {
         },
         dshVersion: {
           type: 'string',
-          description: `Exact supported DSH version. Defaults to ${SUPPORTED_DSH_NPM_VERSIONS[0]}.`,
+          description: `Exact supported DSH version. Defaults to ${DEFAULT_DSH_NPM_VERSION}.`,
         },
         suite: {
           type: 'string',

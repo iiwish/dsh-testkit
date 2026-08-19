@@ -12,6 +12,17 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - Kept nested-plugin scenarios beside the bundle while generating GitHub Actions and the project Agent Skill at repository root with correct relative paths and one atomic preflight.
 
+## [0.3.2] - 2026-08-19
+
+### Added
+
+- Added DSH `0.1.0-rc.7` support as the default native bundle and retained `0.1.0-rc.6` replay compatibility.
+- Added CI and real-host lifecycle coverage across both supported DSH release candidates.
+
+### Fixed
+
+- Updated the published examples, scaffolding, and compatibility contracts to the current DSH release candidate.
+
 ## [0.3.1] - 2026-08-16
 
 ### Fixed
@@ -101,7 +112,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/iiwish/dsh-testkit/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/iiwish/dsh-testkit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/iiwish/dsh-testkit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/iiwish/dsh-testkit/compare/v0.2.0...v0.2.1

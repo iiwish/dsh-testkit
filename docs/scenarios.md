@@ -8,7 +8,7 @@ subject:
   source: .
   updateFrom: ../plugin-v0
 dsh:
-  version: 0.1.0-rc.6
+  version: 0.1.0-rc.7
 profile: dsh-testkit
 expect:
   boot: success
@@ -47,4 +47,4 @@ Observer values are `required`, `preferred`, or `off`. Missing required coverage
 
 The resolved scenario is retained in the run evidence and bound to the report by SHA-256. Do not place real credentials in exercise arguments; use deterministic non-secret fixture values.
 
-The current adapter supports the exact DSH npm version `0.1.0-rc.6`. Exact but unsupported versions return exit code `4` before plugin execution.
+The current adapter supports the exact DSH npm versions `0.1.0-rc.7` (default) and `0.1.0-rc.6` (compatibility replay). Exact but unsupported versions return exit code `4` before plugin execution.

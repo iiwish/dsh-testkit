@@ -47,7 +47,7 @@ For a root-level bundle, plugin root and repository root are the same and the ex
 
 Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
 
-The current adapter supports exactly `@deepseek-ai/dsh@0.1.0-rc.6`. Unknown versions stop before runner creation with exit code `4`, so host drift is not misreported as a plugin failure.
+The current adapter supports the exact `@deepseek-ai/dsh` versions `0.1.0-rc.7` (default) and `0.1.0-rc.6` (compatibility replay). Unknown versions stop before runner creation with exit code `4`, so host drift is not misreported as a plugin failure.
 
 ## What It Proves
 
@@ -88,7 +88,7 @@ name: my-plugin-quick
 subject:
   source: .
 dsh:
-  version: 0.1.0-rc.6
+  version: 0.1.0-rc.7
 expect:
   boot: success
   rows: [tool-my-plugin]
@@ -116,7 +116,7 @@ The [Scenario Reference](docs/scenarios.md) covers update targets, expected fail
 - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
   with:
     plugin: .
-    dsh-version: 0.1.0-rc.6
+    dsh-version: 0.1.0-rc.7
 ```
 
 The Action publishes JUnit and uploads the complete run directory. `artifact-name`, `check-name`, `output`, and retention are configurable; artifact ID, URL, and digest are outputs. GitHub Enterprise Server and other CI systems can invoke the CLI directly because `actions/upload-artifact@v4+` is not available on GHES.
@@ -136,7 +136,7 @@ The canonical file also ships in npm at the exported subpath `dsh-testkit/skills
 DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.3.1
+dsh plugin --profile web add dsh-testkit@0.3.2
 dsh --profile web --dump-config
 ```
 
@@ -151,7 +151,7 @@ Maintainers can run an exact-version public cohort with an explicit trust acknow
 ```bash
 pnpm exec dsh-test-community \
   --acknowledge-untrusted-code \
-  --dsh 0.1.0-rc.6 \
+  --dsh 0.1.0-rc.7 \
   --plugin example-plugin@1.2.3 \
   --output /tmp/dsh-testkit-cohort
 ```

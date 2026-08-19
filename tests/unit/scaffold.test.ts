@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
-import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+import { DEFAULT_DSH_NPM_VERSION } from '../../src/adapters/dsh/support.js'
 import { renderDshTestkitSkillFile } from '../../src/agent-skill.js'
 import { parseScenario } from '../../src/config/scenario.js'
 import { initializeDshTestkitProject } from '../../src/scaffold/init.js'
@@ -70,7 +70,7 @@ describe('one-command project scaffold', () => {
       schemaVersion: 1,
       name: 'fixture-example-plugin-quick',
       subject: { source: '.' },
-      dsh: { version: SUPPORTED_DSH_NPM_VERSIONS.at(-1) },
+      dsh: { version: DEFAULT_DSH_NPM_VERSION },
       expect: {
         boot: 'success',
         rows: ['service-example', 'tool-example'],

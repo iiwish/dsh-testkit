@@ -126,6 +126,7 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(4)
     expect(factoryCalled).toBe(false)
+    expect(stderr.join('')).toContain('0.1.0-rc.7')
     expect(stderr.join('')).toContain('0.1.0-rc.6')
   })
 
@@ -249,7 +250,7 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(0)
     expect(factoryCalled).toBe(false)
-    expect(stdout.join('')).toBe('0.3.1\n')
+    expect(stdout.join('')).toBe('0.3.2\n')
   })
 
   it('initializes a DSH bundle without constructing a lifecycle runner', async () => {

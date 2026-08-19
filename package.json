@@ -1,6 +1,6 @@
 {
   "name": "dsh-testkit",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
   "keywords": [
     "deepseek",
@@ -109,8 +109,8 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
-    "@deepseek-ai/dsh-invariants": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-invariants": "0.1.0-rc.7",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.7",
     "@types/node": "24.13.3",
     "@vitest/coverage-v8": "3.2.7",
     "ajv": "8.20.0",

@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
-import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+import { DEFAULT_DSH_NPM_VERSION } from '../../src/adapters/dsh/support.js'
 import { RunReportSchema } from '../../src/domain/report.js'
 import { runCommand } from '../../src/process/command.js'
 
@@ -25,7 +25,7 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
     const packDirectory = join(temporary, 'pack')
     const logs = join(temporary, 'logs')
     const profile = 'testkit-bundle-e2e'
-    const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? SUPPORTED_DSH_NPM_VERSIONS[0]
+    const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? DEFAULT_DSH_NPM_VERSION
 
     try {
       await Promise.all([

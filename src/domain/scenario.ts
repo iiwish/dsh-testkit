@@ -27,7 +27,7 @@ export const ScenarioSchema = z.object({
   }).strict(),
   dsh: z.object({
     version: z.string().refine(value => EXACT_NPM_VERSION.test(value), {
-      message: 'DSH target must be an exact npm version such as 0.1.0-rc.6',
+      message: 'DSH target must be an exact npm version such as 0.1.0-rc.7',
     }),
   }).strict(),
   profile: z.string().regex(/^[A-Za-z0-9_-]+$/).default('dsh-testkit'),
