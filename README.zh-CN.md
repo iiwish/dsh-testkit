@@ -68,7 +68,8 @@ Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `r
 
 | 需求 | 合适的工具 |
 |---|---|
-| 快速静态检查、manifest 诊断、依赖建议 | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) 或 plugin preflight check |
+| 作者侧静态预检（manifest/patch/build/pack） | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
+| 用户侧离线诊断（profile/session/env，启动/安装前） | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
 | 多个 bundle 在 assemble 前后发生冲突 | `dsh-composition-check` |
 | 插件自身的单元逻辑 | 你的测试框架 |
 | 在真实宿主验证安装、启动、执行、卸载、重启、恢复、残留与重复性 | **DSH Testkit** |

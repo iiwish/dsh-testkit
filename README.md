@@ -68,7 +68,8 @@ These tools are complementary, not competing replacements.
 
 | Need | Best fit |
 |---|---|
-| Fast static checks, manifest diagnostics, dependency guidance | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) or a plugin preflight check |
+| Author-side static preflight (manifest/patch/build/pack) | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
+| User-side offline diagnostic (profile/session/env, before boot/install) | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
 | Conflicts among several bundles before or during assembly | `dsh-composition-check` |
 | Plugin-owned unit logic | Your test framework |
 | Install, boot, exercise, uninstall, reboot, recovery, residue, and repeatability on a real host | **DSH Testkit** |
