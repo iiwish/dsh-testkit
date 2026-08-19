@@ -126,6 +126,17 @@ describe('native DSH tool adapter', () => {
     })
   })
 
+  it('defaults the native tool to the newest supported DSH version', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-tool-default-version-'))
+    const workspace = await realpath(root)
+    const runCli = vi.fn(async (_argv: string[]) => 0)
+
+    await executeDshTest({ confirm: true }, { cwd: root, runCli, makeRunId: () => 'default-version' })
+
+    const argv = runCli.mock.calls[0]?.[0] as string[]
+    expect(argv.slice(0, 3)).toEqual([workspace, '--dsh', '0.1.0-rc.7'])
+  })
+
   it('rejects local paths and symlinks that escape the active workspace', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-tool-workspace-'))
     const outside = await mkdtemp(join(tmpdir(), 'dsh-tool-outside-'))

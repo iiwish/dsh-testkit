@@ -15,7 +15,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
 import {
   assertSupportedDshVersion,
-  SUPPORTED_DSH_NPM_VERSIONS,
+  DEFAULT_DSH_NPM_VERSION,
 } from '../adapters/dsh/support.js'
 import { renderDshTestkitSkillFile } from '../agent-skill.js'
 import { TESTKIT_VERSION } from '../version.js'
@@ -310,8 +310,7 @@ export async function initializeDshTestkitProject(
   const pluginRelative = portablePath(relative(repositoryRoot, root))
   const pluginPath = pluginRelative === '' ? '.' : `./${pluginRelative}`
   const scenarioPath = pluginRelative === '' ? 'dsh-testkit.yaml' : `${pluginRelative}/dsh-testkit.yaml`
-  const dshVersion = input.dshVersion ?? SUPPORTED_DSH_NPM_VERSIONS.at(-1)
-  if (dshVersion === undefined) throw new Error('DSH Testkit has no supported DSH version')
+  const dshVersion = input.dshVersion ?? DEFAULT_DSH_NPM_VERSION
   assertSupportedDshVersion(dshVersion)
   const bundle = await readBundle(root)
   const targets: ScaffoldTarget[] = [
