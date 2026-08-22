@@ -134,7 +134,7 @@ describe('native DSH tool adapter', () => {
     await executeDshTest({ confirm: true }, { cwd: root, runCli, makeRunId: () => 'default-version' })
 
     const argv = runCli.mock.calls[0]?.[0] as string[]
-    expect(argv.slice(0, 3)).toEqual([workspace, '--dsh', '0.1.0-rc.7'])
+    expect(argv.slice(0, 3)).toEqual([workspace, '--dsh', '0.1.1-rc.2'])
   })
 
   it('rejects local paths and symlinks that escape the active workspace', async () => {

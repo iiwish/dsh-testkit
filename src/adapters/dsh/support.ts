@@ -1,4 +1,9 @@
-export const SUPPORTED_DSH_NPM_VERSIONS = ['0.1.0-rc.7', '0.1.0-rc.6'] as const
+export const SUPPORTED_DSH_NPM_VERSIONS = [
+  '0.1.1-rc.2',
+  '0.1.0-rc.8',
+  '0.1.0-rc.7',
+  '0.1.0-rc.6',
+] as const
 
 export const DEFAULT_DSH_NPM_VERSION = SUPPORTED_DSH_NPM_VERSIONS[0]
 

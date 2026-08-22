@@ -47,7 +47,7 @@ pnpm dsh-test --config plugin/dsh-testkit.yaml
 
 Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `report.json`、`junit.xml`、`report.md`、脱敏命令日志和各阶段证据。
 
-当前 adapter 支持精确的 `@deepseek-ai/dsh` 版本：`0.1.0-rc.7`（默认）和 `0.1.0-rc.6`（兼容性回放）。未知版本会在创建 runner 之前以退出码 `4` 停止，避免把宿主版本漂移误报成插件故障。
+当前 adapter 支持精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`（兼容性回放）。未知版本会在创建 runner 之前以退出码 `4` 停止，避免把宿主版本漂移误报成插件故障。
 
 ## 它能证明什么
 
@@ -88,7 +88,7 @@ name: my-plugin-quick
 subject:
   source: .
 dsh:
-  version: 0.1.0-rc.7
+  version: 0.1.1-rc.2
 expect:
   boot: success
   rows: [tool-my-plugin]
@@ -116,7 +116,7 @@ observers:
 - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
   with:
     plugin: .
-    dsh-version: 0.1.0-rc.7
+    dsh-version: 0.1.1-rc.2
 ```
 
 Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check 名称、输出路径和保留时间均可配置；artifact ID、URL 和 digest 可作为输出使用。由于 `actions/upload-artifact@v4+` 不支持 GHES，GitHub Enterprise Server 和其他 CI 可直接调用 CLI 并保留相同证据。
@@ -136,7 +136,7 @@ Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check �
 DSH Testkit 还提供一个可选的、由社区维护的 DSH-native Profile Bundle：
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.3.2
+dsh plugin --profile web add dsh-testkit@0.3.3
 dsh --profile web --dump-config
 ```
 
@@ -151,7 +151,7 @@ dsh --profile web --dump-config
 ```bash
 pnpm exec dsh-test-community \
   --acknowledge-untrusted-code \
-  --dsh 0.1.0-rc.7 \
+  --dsh 0.1.1-rc.2 \
   --plugin example-plugin@1.2.3 \
   --output /tmp/dsh-testkit-cohort
 ```

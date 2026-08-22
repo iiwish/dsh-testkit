@@ -16,9 +16,9 @@ describe('DSH release-train discovery', () => {
   it('reports no canary when latest and next are supported', async () => {
     const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-current.json'), 'utf8'))
 
-    expect(discoverDshReleaseTrain(metadata, ['0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
-      taggedVersions: ['0.1.0-rc.7'],
-      supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7'],
+    expect(discoverDshReleaseTrain(metadata, ['0.1.1-rc.2', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
+      taggedVersions: ['0.1.1-rc.2'],
+      supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
       canaryVersions: [],
     })
   })
@@ -26,10 +26,10 @@ describe('DSH release-train discovery', () => {
   it('deduplicates dist-tags and exposes unseen exact candidates', async () => {
     const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-candidate.json'), 'utf8'))
 
-    expect(discoverDshReleaseTrain(metadata, ['0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
-      taggedVersions: ['0.1.0-rc.7', '0.1.0-rc.8'],
-      supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7'],
-      canaryVersions: ['0.1.0-rc.8'],
+    expect(discoverDshReleaseTrain(metadata, ['0.1.1-rc.2', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
+      taggedVersions: ['0.1.1-rc.2', '0.1.1-rc.3'],
+      supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
+      canaryVersions: ['0.1.1-rc.3'],
     })
   })
 
@@ -42,6 +42,7 @@ describe('DSH release-train discovery', () => {
   it('enables a candidate only in the requested disposable source file', async () => {
     const temporary = await mkdtemp(resolve(tmpdir(), 'dsh-testkit-canary-'))
     const support = resolve(temporary, 'support.ts')
+    const rootSupport = await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')
     try {
       await writeFile(support, "export const SUPPORTED_DSH_NPM_VERSIONS = ['0.1.0-rc.7', '0.1.0-rc.6'] as const\n")
 
@@ -52,7 +53,7 @@ describe('DSH release-train discovery', () => {
       ], { cwd: root })
 
       expect(await readFile(support, 'utf8')).toContain("['0.1.0-rc.7', '0.1.0-rc.6', '0.1.0-rc.8']")
-      expect(await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')).not.toContain('0.1.0-rc.8')
+      expect(await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')).toBe(rootSupport)
     } finally {
       await rm(temporary, { recursive: true, force: true })
     }
