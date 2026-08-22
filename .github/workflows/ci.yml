@@ -58,7 +58,7 @@ jobs:
     needs: [changes, validate]
     runs-on: ubuntu-latest
     env:
-      DSH_TESTKIT_DSH_VERSION: 0.1.0-rc.7
+      DSH_TESTKIT_DSH_VERSION: 0.1.1-rc.2
     steps:
       - name: Preserve required check for documentation-only changes
         if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'
@@ -89,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dsh-version: [0.1.0-rc.6]
+        dsh-version: [0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
     env:
       DSH_TESTKIT_DSH_VERSION: ${{ matrix.dsh-version }}
     steps:
@@ -140,7 +140,7 @@ jobs:
         uses: ./.github/actions/dsh-test
         with:
           plugin: ${{ matrix.plugin }}
-          dsh-version: 0.1.0-rc.7
+          dsh-version: 0.1.1-rc.2
           config: ${{ matrix.config }}
           artifact-retention-days: '14'
 
@@ -155,9 +155,9 @@ jobs:
       matrix:
         include:
           - plugin: fixtures/healthy-plugin
-            dsh-version: 0.1.0-rc.6
+            dsh-version: 0.1.0-rc.8
           - plugin: fixtures/boot-failure-plugin
-            dsh-version: 0.1.0-rc.6
+            dsh-version: 0.1.0-rc.7
     steps:
       - name: Preserve compatibility check for documentation-only changes
         if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'
