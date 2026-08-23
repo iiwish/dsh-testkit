@@ -160,6 +160,8 @@ Runner 会从子进程中移除模型、npm、GitHub、云平台和 Docker regis
 
 [v0.2.1 社区验证报告](docs/community-validation.md)记录了样本选择方法、聚合证据、限制条件和由此形成的产品决策。
 
+[dsh-shelf 案例](docs/case-study-dsh-shelf.md)展示了一个已发布 bundle 安装和组装成功、但在真实宿主注册阶段暴露兼容性问题，随后由维护者修复并等待用新制品做精确复跑的过程。
+
 ## 安全边界
 
 插件是可执行代码：生命周期测试会运行 package script 和 runtime 代码。Docker 可以缩小默认影响范围，但它**不是经过强化的恶意代码沙箱**。测试未知代码时应使用一次性基础设施；绝不能对不受信任的插件使用 `--runner local --unsafe-local`。

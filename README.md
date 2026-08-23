@@ -160,6 +160,8 @@ The runner strips model, npm, GitHub, cloud, and Docker registry credentials fro
 
 See the [v0.2.1 community validation report](docs/community-validation.md) for the selection method, aggregate evidence, limitations, and the resulting product decision.
 
+The [dsh-shelf case study](docs/case-study-dsh-shelf.md) shows a released bundle that installed successfully but failed at host registration, followed by a maintainer fix and a pending exact-artifact rerun.
+
 ## Safety
 
 Plugins are executable code: package scripts and runtime code run during a lifecycle test. Docker narrows the default blast radius but is **not a hardened malware sandbox**. Use disposable infrastructure for unknown code and never use `--runner local --unsafe-local` for an untrusted plugin.
