@@ -1417,6 +1417,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
       'profiles/node_modules/',
       `${profile}/node_modules/`,
     ]
+    // The DSH web profile lazily materializes its workspace storage while the
+    // host is running. That state belongs to the profile runtime rather than
+    // to the plugin, so HTTP route scenarios must not report it as residue.
+    if (this.request.scenario.http !== undefined && this.profileName(this.request.scenario) === 'web') {
+      managedPrefixes.push('storages/')
+    }
     const exactPaths = new Set([
       'profiles/',
       `${profile}/`,
