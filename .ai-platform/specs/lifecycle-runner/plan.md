@@ -1,8 +1,8 @@
 # DSH Testkit Implementation Plan
 
-Version: v0.3.0
+Version: v0.4.0
 Status: Confirmed
-Last updated: 2026-08-16
+Last updated: 2026-08-26
 Source: confirmed Product Design and Technology Decision Record
 
 ## Goal
@@ -95,6 +95,15 @@ cordis.patch.yml
 - Prove root and nested scaffold transactions through RED/GREEN tests and exact generated paths.
 - Validate the released partner tags `dsh-plugin-doctor@v1.14.0` and `dsh-subscribe@v0.3.1` without treating their adoption as market validation.
 - Prepare reproducible evidence and a low-cost maintainer follow-up; npm publication remains a separate user-approved operation.
+
+### Slice 8: Deterministic Loopback HTTP Route Assertions
+
+Status: Completed; accepted after local validation and the required real-host Docker matrix.
+
+- Add an optional `http.routes` scenario contract with GET-only, path-safe expectations.
+- Start the real DSH web command on a runner-owned loopback port and check routes after boot, before uninstall.
+- Persist bounded status, selected JSON fields and response digest evidence with headers and complete bodies redacted.
+- Reject HTTP route scenarios in explicit unsafe-local mode and preserve the v1 report schema and lifecycle stage IDs.
 
 ## Validation Strategy
 

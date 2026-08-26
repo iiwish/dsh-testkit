@@ -12,9 +12,38 @@ const UniqueStringsSchema = z.array(z.string().min(1)).refine(
   { message: 'values must be unique' },
 )
 
+const HTTP_PATH = /^\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\/-]*)$/
+
+function validateHttpPath(value: string): boolean {
+  if (!HTTP_PATH.test(value)) return false
+  if (value.includes('//')) return false
+  return value.split('/').every(segment => segment !== '..')
+}
+
 export const ExerciseSchema = z.object({
   tool: z.string().min(1),
   arguments: z.record(z.string(), z.unknown()),
+}).strict()
+
+export const HttpRouteExpectationSchema = z.object({
+  status: z.number().int().min(100).max(599).default(200),
+  json: z.record(z.string().min(1), z.unknown()).default({}),
+}).strict().default({ status: 200, json: {} })
+
+export const HttpRouteSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/).max(128),
+  method: z.literal('GET').default('GET'),
+  path: z.string().refine(validateHttpPath, {
+    message: 'HTTP route path must be an absolute loopback path without query, fragment, traversal or control characters',
+  }),
+  expect: HttpRouteExpectationSchema,
+}).strict()
+
+export const HttpRoutesSchema = z.object({
+  routes: z.array(HttpRouteSchema).min(1).refine(
+    routes => new Set(routes.map(route => route.id)).size === routes.length,
+    { message: 'HTTP route identifiers must be unique' },
+  ),
 }).strict()
 
 export const ScenarioSchema = z.object({
@@ -37,6 +66,7 @@ export const ScenarioSchema = z.object({
     services: UniqueStringsSchema.default([]),
     tools: UniqueStringsSchema.default([]),
   }).strict().default({ boot: 'success', rows: [], services: [], tools: [] }),
+  http: HttpRoutesSchema.optional(),
   exercise: z.array(ExerciseSchema).default([]),
   recovery: z.object({
     onBootFailure: z.enum(['remove-plugin', 'none']).default('remove-plugin'),
@@ -63,6 +93,9 @@ export const ScenarioSchema = z.object({
 
 export type ObserverRequirement = z.infer<typeof ObserverRequirementSchema>
 export type Exercise = z.infer<typeof ExerciseSchema>
+export type HttpRouteExpectation = z.infer<typeof HttpRouteExpectationSchema>
+export type HttpRoute = z.infer<typeof HttpRouteSchema>
+export type HttpRoutes = z.infer<typeof HttpRoutesSchema>
 export type Scenario = z.infer<typeof ScenarioSchema>
 
 export function renderScenarioSnapshot(scenario: Scenario): string {
@@ -78,6 +111,7 @@ export interface BuildScenarioInput {
   dshVersion: string
   name?: string | undefined
   suite?: 'quick' | 'full' | undefined
+  profile?: string | undefined
   updateFrom?: string | undefined
   rows?: string[] | undefined
   services?: string[] | undefined

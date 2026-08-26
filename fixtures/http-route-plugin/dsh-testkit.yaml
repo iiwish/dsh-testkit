@@ -1,0 +1,20 @@
+schemaVersion: 1
+name: http-route-plugin
+subject:
+  source: .
+dsh:
+  version: 0.1.0-rc.6
+profile: web
+expect:
+  boot: success
+  rows: [fixture-http-route]
+http:
+  routes:
+    - id: health
+      method: GET
+      path: /dsh-testkit/health
+      expect:
+        status: 200
+        json:
+          status: ok
+          version: $subject.packageVersion

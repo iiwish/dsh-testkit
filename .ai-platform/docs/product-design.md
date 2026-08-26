@@ -1,9 +1,9 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.3.2
+Version: v0.4.0
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
-Last updated: 2026-08-16
+Last updated: 2026-08-26
 Review: User authorized continuation after SSOT review on 2026-08-15
 
 ## 1. 产品定位
@@ -108,6 +108,15 @@ Scenario:
 3. 场景写入插件根目录，workflow 与项目 Skill 写入仓库根目录，workflow 使用正确的 repo-relative plugin/config 路径。
 4. 两个根目录下的全部目标在写入前统一 preflight；preflight 发现的任一冲突、symlink 或路径越界都保持零写入。
 
+### US-010: 插件作者验证宿主 HTTP 路由
+
+As a DSH plugin maintainer, I want to assert a small set of deterministic HTTP routes while the real DSH host is running, so that a published plugin's web surface is covered by the same install, boot and uninstall evidence.
+
+Scenario:
+1. 作者在 Docker runner 中声明由 runner 分配的 loopback route、HTTP method、status 和少量 JSON 字段。
+2. Testkit 只向 `127.0.0.1` 的 disposable DSH web process 发起 `GET` 请求，并在 boot 成功后、uninstall 前完成检查。
+3. 报告保留路径、状态、选定字段和 response digest，不落盘 headers 或完整 body；失败仍归因于 register 阶段并保留机器可读证据。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -160,6 +169,9 @@ Scenario:
 - FR-037: `init` 必须区分 plugin root 与 repository root。repository root 由显式 `--repo-root` 或 plugin root 最近的非 symlink `.git` 祖先确定；plugin root 必须位于 repository root 内，无 Git 元数据时默认两者相同。
 - FR-038: 嵌套插件的 `dsh-testkit.yaml` 必须位于 plugin root，`.github/workflows/dsh-lifecycle.yml` 与 `.agents/skills/dsh-testkit/SKILL.md` 必须位于 repository root；生成 workflow 必须使用 repository-relative 的 plugin 与 config 路径。
 - FR-039: 跨 plugin/repository root 的 scaffold 必须在任何写入前完成统一 preflight，结果路径和下一条验证命令必须从 repository root 可直接使用；preflight 发现的任一冲突、symlink 或 containment 失败不得留下部分写入。
+- FR-040: 场景可以声明可选的 `http.routes`，必须使用 `profile: web`，每个 route 只能使用 `GET`、绝对路径和期望的 HTTP status；runner 必须为真实 DSH web host 分配 disposable loopback port。
+- FR-041: HTTP route 检查只允许 Docker runner，必须发生在成功 boot 之后、uninstall 之前；boot failure、crash 或 timeout 不得发起 route 请求。
+- FR-042: route 结果必须记录 request path、method、status、期望值、选定 JSON 字段和 response digest；headers 与完整 body 默认不进入证据，敏感字段必须脱敏。
 
 ## 6. Non-Functional Requirements
 
@@ -183,6 +195,7 @@ Scenario:
 - NFR-018 Compatibility: v0.3.0 不改变现有 root CLI、v1 scenario/report schema、退出码、Action 输入或生命周期 verdict 语义。
 - NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
 - NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
+- NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
 
 ## 7. 功能范围
 
@@ -219,6 +232,7 @@ Scenario:
 - 多 DSH 版本矩阵与首个失败版本定位。
 - Catalog compatibility feed 和徽章数据源。
 - 更强的网络、文件和系统调用 observer。
+- 更丰富的 HTTP route 方法、headers 和响应 body 断言（当前只支持安全的 loopback `GET` 最小字段集合）。
 - 与现有静态扫描、故障注入和 MCP Conformance 工具组合。
 - 基于真实采用证据改进 prerequisite profile 生成与模板生态集成。
 

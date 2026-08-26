@@ -572,6 +572,34 @@ Risks and mitigations:
 Task impact:
 - T009 adds nested-root scaffold contracts, generated repo-relative paths, backward compatibility tests and a bounded design-partner pilot.
 
+## TDR-025: Deterministic Loopback HTTP Route Assertions
+
+Decision:
+Add an optional `http.routes` scenario section for deterministic host-route assertions. Route scenarios must set `profile: web`; the Docker adapter starts DSH through its public `web` command on a runner-owned loopback port, issues only `GET` requests to `http://127.0.0.1:<port>/<path>`, and performs checks after a successful boot probe and before uninstall. Local/unsafe-local runs reject scenarios containing HTTP routes.
+
+Route evidence is bounded and machine-readable: method, path, status, expected status, selected JSON fields and a SHA-256 response digest are retained. Complete response bodies and headers are never persisted. Expected `$subject.packageVersion` values resolve from the packed immutable subject. Route assertions are attached to the existing registration stage so report schema, verdict semantics and stable exit codes remain unchanged.
+
+Requirement mapping:
+- US-010, FR-040 through FR-042, NFR-021
+
+Rationale:
+- A plugin's HTTP surface is part of its real host lifecycle and cannot be proven by static package inspection alone.
+- Loopback-only requests and runner-owned ports provide a narrow deterministic contract without creating an arbitrary network client.
+- Reusing the registration stage avoids a report schema fork and preserves existing lifecycle case selection.
+
+Alternatives considered:
+- Add an independent HTTP stage: rejected because it would change stage selection, report consumers and cleanup semantics for a small assertion surface.
+- Allow arbitrary base URLs or headers: rejected because credentials, remote state and non-deterministic dependencies would enter the baseline lifecycle.
+- Validate only with a test fixture server: rejected because it would not prove the route is registered by the real DSH host.
+
+Risks and mitigations:
+- DSH web command or route APIs may drift across release candidates. Keep the command in the DSH adapter and require a real-host fixture before claiming support.
+- A route can respond before the host is ready. Use bounded connection retries and record a route-specific failure rather than treating a missing listener as boot failure.
+- JSON fields can contain secrets. Redact sensitive keys and never retain raw bodies or headers.
+
+Task impact:
+- T010 adds the scenario contract, Docker adapter route probe, fixture and focused evidence tests without changing v1 report schema.
+
 ## User Review Gate
 
 - Approval: Approved on 2026-08-16

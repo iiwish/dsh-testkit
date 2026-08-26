@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-http-route
+      name: '@dsh-testkit/fixture-http-route'

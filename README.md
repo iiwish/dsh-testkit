@@ -106,7 +106,23 @@ observers:
   canary: preferred
 ```
 
-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, and stage reruns.
+For a live DSH web surface, add an optional Docker-only route assertion:
+
+```yaml
+http:
+  routes:
+    - id: health
+      path: /health
+      expect:
+        status: 200
+        json:
+          status: ok
+          version: $subject.packageVersion
+```
+
+Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
+
+The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, stage reruns, and the loopback HTTP route contract. HTTP checks are deliberately narrow: GET only, runner-owned `127.0.0.1`, selected JSON fields and digest evidence without headers or full response bodies.
 
 ## CI Evidence
 

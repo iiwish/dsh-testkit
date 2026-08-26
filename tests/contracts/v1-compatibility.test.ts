@@ -34,4 +34,28 @@ describe('published v1 contract compatibility', () => {
     expect(runtime.safeParse(fixtureValue).success).toBe(true)
     expect(ajv.validate(schemaValue as object, fixtureValue), ajv.errorsText()).toBe(true)
   })
+
+  it('accepts the optional loopback HTTP route contract in both schemas', async () => {
+    const schemaValue = await readJson('schemas/scenario-v1.json')
+    const scenario = {
+      schemaVersion: 1,
+      name: 'http-route-contract',
+      subject: { source: '.' },
+      dsh: { version: '0.1.0-rc.6' },
+      profile: 'web',
+      http: {
+        routes: [{
+          id: 'health',
+          method: 'GET',
+          path: '/health',
+          expect: { status: 200, json: { version: '$subject.packageVersion' } },
+        }],
+      },
+    }
+    const ajv = new Ajv2020({ allErrors: true, strict: true })
+    addFormatsModule.default(ajv)
+
+    expect(ScenarioSchema.safeParse(scenario).success).toBe(true)
+    expect(ajv.validate(schemaValue as object, scenario), ajv.errorsText()).toBe(true)
+  })
 })
