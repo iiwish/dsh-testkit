@@ -1,10 +1,10 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.3.2
+Version: v0.4.0
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-16
+Last updated: 2026-08-26
 
 ## 状态定义
 
@@ -55,6 +55,81 @@ Tasks:
 - [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
 - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
 - [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
+- [ ] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
+
+### T010: Deterministic Loopback HTTP Route Assertions
+
+Status: Needs_Review
+Priority: P1
+Depends on: T009
+Blocks: None
+Story / Requirement: US-010, FR-040 through FR-042, NFR-021
+Parallel: No
+Conflicts with: None
+
+Goal:
+Let a scenario assert a small, redacted HTTP surface of the live DSH web host while preserving the existing lifecycle stages, report schema and stable exit codes.
+
+Allowed files:
+- `.ai-platform/**`
+- `src/domain/scenario.ts`
+- `src/config/scenario.ts`
+- `src/cli.ts`
+- `src/worker/adapter.ts`
+- `src/adapters/dsh/**`
+- `src/probe/**`
+- `tests/unit/**`
+- `tests/integration/**`
+- `tests/e2e/**`
+- `fixtures/http-route-plugin/**`
+- `docs/**`
+- `README.md`
+- `README.zh-CN.md`
+
+Test targets:
+- `tests/unit/scenario.test.ts`
+- `tests/unit/http-routes.test.ts`
+- `tests/integration/cli.test.ts`
+- `tests/integration/worker.test.ts`
+- `tests/e2e/real-dsh.test.ts`
+
+Deliverables:
+- Optional `http.routes` scenario contract with GET/loopback-safe constraints.
+- Docker adapter web boot, bounded route requests, selected JSON/digest evidence and redaction.
+- Local runner rejection and register-stage assertion semantics.
+- HTTP fixture and documentation in both README languages.
+
+Acceptance criteria:
+- Existing v1 scenario/report consumers remain valid and stable.
+- Route checks run only after successful boot and before uninstall; boot failure skips them.
+- Evidence never stores response headers or complete bodies and route failures identify path/status/field.
+- Unit, integration and real-host Docker fixture coverage passes.
+
+Definition of Done:
+- RED evidence captured before implementation.
+- Focused tests, typecheck, build and full validation pass.
+- T010 evidence and review have no blocking finding.
+
+Validation commands:
+- `pnpm vitest run tests/unit/scenario.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts tests/integration/worker.test.ts`
+- `pnpm typecheck`
+- `pnpm build`
+- `pnpm validate`
+
+TDD plan:
+- RED: add route schema, helper and CLI compatibility tests before implementation.
+- GREEN: implement the smallest loopback route checker and attach its assertions to register.
+- REFACTOR: isolate HTTP evidence/redaction from the DSH process adapter and preserve existing probe contracts.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`
+
+Evidence required:
+- Changed files.
+- RED/GREEN/REFACTOR results.
+- Validation results.
+- Diff summary.
+- Residual risks.
 
 ## Task Details
 

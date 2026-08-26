@@ -82,6 +82,31 @@ describe('CLI integration', () => {
     expect(stderr.join('')).toContain('--unsafe-local')
   })
 
+  it('rejects a configured HTTP route scenario before constructing a local runner', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-cli-http-local-'))
+    await writeFile(join(root, 'dsh-testkit.yaml'), `${JSON.stringify({
+      schemaVersion: 1,
+      name: 'http-local',
+      subject: { source: '.' },
+      dsh: { version: '0.1.0-rc.6' },
+      profile: 'web',
+      http: { routes: [{ id: 'status', path: '/status' }] },
+    }, null, 2)}\n`)
+    const stderr: string[] = []
+    let factoryCalled = false
+    const exitCode = await runCli(['--runner', 'local', '--unsafe-local'], {
+      stdout: () => undefined,
+      stderr: value => stderr.push(value),
+      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
+      cwd: root,
+      env: {},
+    })
+
+    expect(exitCode).toBe(2)
+    expect(factoryCalled).toBe(false)
+    expect(stderr.join('')).toContain('Docker')
+  })
+
   it('reruns one lifecycle case with its identity in the report and reproduction command', async () => {
     const output = await mkdtemp(join(tmpdir(), 'dsh-cli-case-'))
     let captured: WorkerRequest | undefined

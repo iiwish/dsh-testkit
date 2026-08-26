@@ -1,8 +1,8 @@
 # DSH Lifecycle Runner Feature Specification
 
-Version: v0.3.2
+Version: v0.4.0
 Status: Confirmed
-Last updated: 2026-08-15
+Last updated: 2026-08-26
 Product contract: `.ai-platform/docs/product-design.md`
 
 ## Feature Purpose
@@ -11,9 +11,9 @@ The lifecycle runner is the first DSH Testkit release slice. It turns a plugin s
 
 ## Requirement Authority
 
-- User stories: `US-001` through `US-009` in Product Design.
-- Functional requirements: `FR-001` through `FR-039` in Product Design.
-- Non-functional requirements: `NFR-001` through `NFR-020` in Product Design.
+- User stories: `US-001` through `US-010` in Product Design.
+- Functional requirements: `FR-001` through `FR-042` in Product Design.
+- Non-functional requirements: `NFR-001` through `NFR-021` in Product Design.
 - Success criteria: `SC-001` through `SC-021` in Product Design.
 - Acceptance criteria: Product Design section 13.
 
@@ -32,6 +32,7 @@ This feature specification does not redefine those requirements. The Product Des
 - English and Simplified Chinese project entrypoints with explicit doctor/composition boundaries.
 - Credential-free community cohort validation and DSH release-train canary automation.
 - One-command root and nested-plugin onboarding with repository-discoverable CI and Agent Skill targets.
+- Optional Docker-only loopback HTTP route assertions with bounded redacted evidence.
 
 ## Feature Non-Goals
 

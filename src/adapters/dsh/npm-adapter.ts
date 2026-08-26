@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { createServer } from 'node:net'
 import {
   access,
   cp,
@@ -25,6 +26,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
 import { AssertionSchema } from '../../domain/report.js'
 import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
 import { renderScenarioSnapshot } from '../../domain/scenario.js'
+import { checkLoopbackHttpRoutes } from './http-routes.js'
 import {
   captureSystemSnapshot,
   diffSnapshots,
@@ -86,6 +88,7 @@ const ProbeDocumentSchema = z.object({
   schemaVersion: z.literal(1),
   assertions: z.array(AssertionSchema),
   exercises: z.array(AssertionSchema),
+  routes: z.array(AssertionSchema).default([]),
 }).passthrough()
 
 const EXACT_VERSION = /@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
@@ -281,6 +284,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
   private evidenceDir = ''
   private profileDir = ''
   private dshExecutable = ''
+  private webPort: number | null = null
   private probePatch = ''
   private canary = ''
   private primaryResolved!: ResolvedSource
@@ -312,7 +316,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
     this.corepackHome = process.env.DSH_TESTKIT_COREPACK_HOME ?? join(this.runRoot, 'corepack')
     this.logsDir = join(request.outputDir, 'logs')
     this.evidenceDir = join(request.outputDir, 'evidence')
-    this.profileDir = join(this.dshHome, 'profiles', request.scenario.profile)
+    this.profileDir = join(this.dshHome, 'profiles', this.profileName(request.scenario))
     this.canary = `dsh-testkit-canary-${request.runId}-${randomUUID()}`
     await Promise.all([
       mkdir(this.harnessDir, { recursive: true }),
@@ -537,17 +541,23 @@ export class DshNpmAdapter implements LifecycleAdapter {
     if (observation.probe === null) {
       throw new StageFailure('Runtime probe was not produced', { failureKind: 'assertion' })
     }
-    const failures = failedAssertions(observation.probe.assertions)
+    const assertions = [
+      ...observation.probe.assertions,
+      ...(observation.probe.routes ?? []),
+    ]
+    const failures = failedAssertions(assertions)
     if (failures.length > 0) {
       throw new StageFailure(`${failures.length} runtime registration assertion(s) failed`, {
         failureKind: 'assertion',
-        assertions: observation.probe.assertions,
+        assertions,
+        artifacts: this.routeArtifacts('boot'),
       })
     }
     return {
       value: undefined,
-      summary: `${observation.probe.assertions.length} runtime registration assertion(s) passed`,
-      assertions: observation.probe.assertions,
+      summary: `${assertions.length} runtime registration assertion(s) passed`,
+      assertions,
+      artifacts: this.routeArtifacts('boot'),
     }
   }
 
@@ -599,6 +609,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       }),
       ...(configured.assertions ?? []),
       ...boot.value.probe.assertions,
+      ...(boot.value.probe.routes ?? []),
       ...boot.value.probe.exercises,
     ]
     if (failedAssertions(assertions).length > 0) {
@@ -1049,7 +1060,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
     return await this.command(
       logName,
       this.dshExecutable,
-      ['plugin', '--profile', this.request.scenario.profile, ...args],
+      ['plugin', '--profile', this.profileName(this.request.scenario), ...args],
       this.workspaceDir,
       this.request.scenario.timeouts.installMs,
       this.dshEnvironment(),
@@ -1092,6 +1103,15 @@ export class DshNpmAdapter implements LifecycleAdapter {
     mode: 'present' | 'absent',
   ): Promise<AdapterCompletion<AdapterBootObservation>> {
     await this.ensureProbePatch()
+    if (mode === 'present' && this.request.scenario.http !== undefined) {
+      if (this.request.runner !== 'docker') {
+        throw new StageFailure('HTTP route assertions require the Docker runner', { failureKind: 'subject' })
+      }
+      if (this.request.scenario.profile !== 'web') {
+        throw new StageFailure('HTTP route assertions require scenario.profile: web', { failureKind: 'subject' })
+      }
+      this.webPort = await this.allocateLoopbackPort()
+    }
     const probePath = join(this.evidenceDir, `probe-${label}.json`)
     await rm(probePath, { force: true })
     const config = {
@@ -1103,9 +1123,15 @@ export class DshNpmAdapter implements LifecycleAdapter {
       exercise: mode === 'present' ? this.request.scenario.exercise : [],
       settleMs: 500,
     }
+    const webMode = this.request.scenario.http !== undefined
     const result = await runCommand({
       executable: this.dshExecutable,
-      args: ['--profile', this.request.scenario.profile, '--patch', this.probePatch],
+      args: webMode
+        // Keep the launcher-owned patch flag before web-app pass-through flags.
+        // Commander stops parsing the alias after an unknown app flag such as
+        // --port; placing --patch first prevents it from reaching the web app.
+        ? ['--profile', 'web', '--patch', this.probePatch, ...(this.webPort === null ? [] : ['--port', String(this.webPort)])]
+        : ['--profile', this.profileName(this.request.scenario), '--patch', this.probePatch],
       cwd: this.workspaceDir,
       timeoutMs: this.request.scenario.timeouts.bootMs,
       logDir: this.logsDir,
@@ -1114,7 +1140,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
       inheritEnv: false,
       redactions: [this.canary, ...environmentRedactions()],
       completionFile: probePath,
-      beforeCompletionStop: async () => { await this.captureSystem(label) },
+      beforeCompletionStop: async () => {
+        await this.captureSystem(label)
+        if (mode === 'present' && this.request.scenario.http !== undefined && this.webPort !== null) {
+          await this.captureHttpRoutes(label)
+        }
+      },
     })
     for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
     if (result.redactionMatches.includes(0)) this.canaryHits.add(label)
@@ -1158,13 +1189,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
         command: result.command,
         exitCode: result.exitCode,
         signal: result.signal,
-        artifacts: [...commandArtifacts(result), ...probeArtifacts],
+        artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
       }
     }
     const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
     const probe: ProbeArtifact = {
       assertions: document.assertions,
       exercises: document.exercises,
+      routes: this.routeAssertions(label),
     }
     return {
       value: { outcome: 'success', probe },
@@ -1172,8 +1204,75 @@ export class DshNpmAdapter implements LifecycleAdapter {
       command: result.command,
       exitCode: result.exitCode,
       signal: result.signal,
-      artifacts: [...commandArtifacts(result), ...probeArtifacts],
+      artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
     }
+  }
+
+  private readonly routeResults = new Map<string, { assertions: Assertion[], artifact: string }>()
+
+  private routeAssertions(label: string): Assertion[] {
+    return this.routeResults.get(label)?.assertions ?? []
+  }
+
+  private routeArtifacts(label: string): string[] {
+    const artifact = this.routeResults.get(label)?.artifact
+    return artifact === undefined ? [] : [artifact]
+  }
+
+  private async captureHttpRoutes(label: string): Promise<void> {
+    const routes = this.request.scenario.http?.routes
+    if (routes === undefined || this.webPort === null) return
+    const artifact = `evidence/http-${label}.json`
+    const artifactPath = join(this.evidenceDir, `http-${label}.json`)
+    try {
+      const result = await checkLoopbackHttpRoutes(routes, {
+        port: this.webPort,
+        subjectVersion: this.primaryPacked?.packageVersion ?? null,
+      })
+      await writeFile(artifactPath, `${JSON.stringify(result.evidence, null, 2)}\n`)
+      this.addArtifact(artifactPath)
+      this.routeResults.set(label, {
+        artifact,
+        assertions: result.assertions.map(assertion => ({ ...assertion, evidence: [artifact] })),
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      const assertions: Assertion[] = routes.map(route => ({
+        id: `http.${route.id}.request`,
+        status: 'failed',
+        message: `HTTP ${route.path} could not be checked`,
+        actual: message,
+        evidence: [artifact],
+      }))
+      await writeFile(artifactPath, `${JSON.stringify({
+        schemaVersion: 1,
+        host: '127.0.0.1',
+        port: this.webPort,
+        requests: [],
+        error: message,
+      }, null, 2)}\n`)
+      this.addArtifact(artifactPath)
+      this.routeResults.set(label, { artifact, assertions })
+    }
+  }
+
+  private async allocateLoopbackPort(): Promise<number> {
+    const server = createServer()
+    return await new Promise<number>((resolve, reject) => {
+      const fail = (error: Error) => {
+        server.close()
+        reject(error)
+      }
+      server.once('error', fail)
+      server.listen(0, '127.0.0.1', () => {
+        const address = server.address()
+        if (address === null || typeof address === 'string') {
+          fail(new Error('Unable to allocate a loopback port'))
+          return
+        }
+        server.close(error => error ? reject(error) : resolve(address.port))
+      })
+    })
   }
 
   private requireCleanBoot(
@@ -1214,7 +1313,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
     const result = await this.command(
       logName,
       this.dshExecutable,
-      ['--profile', this.request.scenario.profile, '--dump-config'],
+      ['--profile', this.profileName(this.request.scenario), '--dump-config'],
       this.workspaceDir,
       this.request.scenario.timeouts.bootMs,
       this.dshEnvironment(),
@@ -1266,6 +1365,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
     }
   }
 
+  private profileName(scenario: WorkerRequest['scenario']): string {
+    return scenario.profile
+  }
+
   private async readInstalledVersion(packageName: string): Promise<string | null> {
     try {
       const path = join(this.profileDir, 'node_modules', ...packageName.split('/'), 'package.json')
@@ -1309,7 +1412,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
 
   private isKnownPackageManagerChange(path: string): boolean {
     const normalized = path.replaceAll('\\', '/')
-    const profile = `profiles/${this.request.scenario.profile}`
+    const profile = `profiles/${this.profileName(this.request.scenario)}`
     const managedPrefixes = [
       'profiles/node_modules/',
       `${profile}/node_modules/`,

@@ -1,9 +1,9 @@
 # DSH Testkit Spec Consistency Analysis
 
-Version: v0.3.2
+Version: v0.4.0
 Status: Completed
-Scope: lifecycle-runner, native DSH bundle and adoption workflow
-Last updated: 2026-08-16
+Scope: lifecycle-runner, native DSH bundle, adoption workflow and loopback route assertions
+Last updated: 2026-08-26
 
 ## Inputs
 
@@ -12,11 +12,11 @@ Last updated: 2026-08-16
 - Requirements checklist: `.ai-platform/specs/lifecycle-runner/checklists/requirements.md`
 - Plan/TDR: `.ai-platform/docs/technology-decision-record.md`, `.ai-platform/specs/lifecycle-runner/plan.md`
 - Work graph: `.ai-platform/specs/lifecycle-runner/tasks.md`
-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T009.yaml`
+- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T010.yaml`
 
 ## Coverage
 
-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008; FR-037 through FR-039, NFR-019 through NFR-020 and SC-021 map to T009.
+- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008; FR-037 through FR-039, NFR-019 through NFR-020 and SC-021 map to T009; FR-040 through FR-042 and NFR-021 map to T010.
 - Requirements without task coverage: None.
 - Tasks without requirement/plan mapping: None.
 - Ready tasks without packet: None.

@@ -1,0 +1,1196 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 4862d98..848a482 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -1,9 +1,9 @@
+ # DSH Testkit Product Design Contract
+
+-Version: v0.3.2
++Version: v0.4.0
+ Status: Confirmed
+ Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
+-Last updated: 2026-08-16
++Last updated: 2026-08-26
+ Review: User authorized continuation after SSOT review on 2026-08-15
+
+ ## 1. 产品定位
+@@ -108,6 +108,15 @@ Scenario:
+ 3. 场景写入插件根目录，workflow 与项目 Skill 写入仓库根目录，workflow 使用正确的 repo-relative plugin/config 路径。
+ 4. 两个根目录下的全部目标在写入前统一 preflight；preflight 发现的任一冲突、symlink 或路径越界都保持零写入。
+
++### US-010: 插件作者验证宿主 HTTP 路由
++
++As a DSH plugin maintainer, I want to assert a small set of deterministic HTTP routes while the real DSH host is running, so that a published plugin's web surface is covered by the same install, boot and uninstall evidence.
++
++Scenario:
++1. 作者在 Docker runner 中声明由 runner 分配的 loopback route、HTTP method、status 和少量 JSON 字段。
++2. Testkit 只向 `127.0.0.1` 的 disposable DSH web process 发起 `GET` 请求，并在 boot 成功后、uninstall 前完成检查。
++3. 报告保留路径、状态、选定字段和 response digest，不落盘 headers 或完整 body；失败仍归因于 register 阶段并保留机器可读证据。
++
+ ## 4. 核心用户旅程
+
+ 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
+@@ -160,6 +169,9 @@ Scenario:
+ - FR-037: `init` 必须区分 plugin root 与 repository root。repository root 由显式 `--repo-root` 或 plugin root 最近的非 symlink `.git` 祖先确定；plugin root 必须位于 repository root 内，无 Git 元数据时默认两者相同。
+ - FR-038: 嵌套插件的 `dsh-testkit.yaml` 必须位于 plugin root，`.github/workflows/dsh-lifecycle.yml` 与 `.agents/skills/dsh-testkit/SKILL.md` 必须位于 repository root；生成 workflow 必须使用 repository-relative 的 plugin 与 config 路径。
+ - FR-039: 跨 plugin/repository root 的 scaffold 必须在任何写入前完成统一 preflight，结果路径和下一条验证命令必须从 repository root 可直接使用；preflight 发现的任一冲突、symlink 或 containment 失败不得留下部分写入。
++- FR-040: 场景可以声明可选的 `http.routes`，必须使用 `profile: web`，每个 route 只能使用 `GET`、绝对路径和期望的 HTTP status；runner 必须为真实 DSH web host 分配 disposable loopback port。
++- FR-041: HTTP route 检查只允许 Docker runner，必须发生在成功 boot 之后、uninstall 之前；boot failure、crash 或 timeout 不得发起 route 请求。
++- FR-042: route 结果必须记录 request path、method、status、期望值、选定 JSON 字段和 response digest；headers 与完整 body 默认不进入证据，敏感字段必须脱敏。
+
+ ## 6. Non-Functional Requirements
+
+@@ -183,6 +195,7 @@ Scenario:
+ - NFR-018 Compatibility: v0.3.0 不改变现有 root CLI、v1 scenario/report schema、退出码、Action 输入或生命周期 verdict 语义。
+ - NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
+ - NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
++- NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
+
+ ## 7. 功能范围
+
+@@ -219,6 +232,7 @@ Scenario:
+ - 多 DSH 版本矩阵与首个失败版本定位。
+ - Catalog compatibility feed 和徽章数据源。
+ - 更强的网络、文件和系统调用 observer。
++- 更丰富的 HTTP route 方法、headers 和响应 body 断言（当前只支持安全的 loopback `GET` 最小字段集合）。
+ - 与现有静态扫描、故障注入和 MCP Conformance 工具组合。
+ - 基于真实采用证据改进 prerequisite profile 生成与模板生态集成。
+
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index d1fe2e9..ca06002 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -1,8 +1,8 @@
+ # DSH Testkit Delivery Index
+
+-Version: v0.3.2
++Version: v0.4.0
+ Status: Confirmed
+-Last updated: 2026-08-16
++Last updated: 2026-08-26
+
+ ## Active Release
+
+@@ -115,3 +115,9 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
+ Status: Needs_Review
+ Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t009-nested-plugin-root-and-design-partner-pilot`
+ Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
++
++#### Work Item T010: Deterministic Loopback HTTP Route Assertions
++
++Status: Running
++Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t010-deterministic-loopback-http-route-assertions`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index 22f9e20..2a2d9b7 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -572,6 +572,34 @@ Risks and mitigations:
+ Task impact:
+ - T009 adds nested-root scaffold contracts, generated repo-relative paths, backward compatibility tests and a bounded design-partner pilot.
+
++## TDR-025: Deterministic Loopback HTTP Route Assertions
++
++Decision:
++Add an optional `http.routes` scenario section for deterministic host-route assertions. Route scenarios must set `profile: web`; the Docker adapter starts DSH through its public `web` command on a runner-owned loopback port, issues only `GET` requests to `http://127.0.0.1:<port>/<path>`, and performs checks after a successful boot probe and before uninstall. Local/unsafe-local runs reject scenarios containing HTTP routes.
++
++Route evidence is bounded and machine-readable: method, path, status, expected status, selected JSON fields and a SHA-256 response digest are retained. Complete response bodies and headers are never persisted. Expected `$subject.packageVersion` values resolve from the packed immutable subject. Route assertions are attached to the existing registration stage so report schema, verdict semantics and stable exit codes remain unchanged.
++
++Requirement mapping:
++- US-010, FR-040 through FR-042, NFR-021
++
++Rationale:
++- A plugin's HTTP surface is part of its real host lifecycle and cannot be proven by static package inspection alone.
++- Loopback-only requests and runner-owned ports provide a narrow deterministic contract without creating an arbitrary network client.
++- Reusing the registration stage avoids a report schema fork and preserves existing lifecycle case selection.
++
++Alternatives considered:
++- Add an independent HTTP stage: rejected because it would change stage selection, report consumers and cleanup semantics for a small assertion surface.
++- Allow arbitrary base URLs or headers: rejected because credentials, remote state and non-deterministic dependencies would enter the baseline lifecycle.
++- Validate only with a test fixture server: rejected because it would not prove the route is registered by the real DSH host.
++
++Risks and mitigations:
++- DSH web command or route APIs may drift across release candidates. Keep the command in the DSH adapter and require a real-host fixture before claiming support.
++- A route can respond before the host is ready. Use bounded connection retries and record a route-specific failure rather than treating a missing listener as boot failure.
++- JSON fields can contain secrets. Redact sensitive keys and never retain raw bodies or headers.
++
++Task impact:
++- T010 adds the scenario contract, Docker adapter route probe, fixture and focused evidence tests without changing v1 report schema.
++
+ ## User Review Gate
+
+ - Approval: Approved on 2026-08-16
+diff --git a/.ai-platform/specs/lifecycle-runner/analysis.md b/.ai-platform/specs/lifecycle-runner/analysis.md
+index 7018998..816403b 100644
+--- a/.ai-platform/specs/lifecycle-runner/analysis.md
++++ b/.ai-platform/specs/lifecycle-runner/analysis.md
+@@ -1,9 +1,9 @@
+ # DSH Testkit Spec Consistency Analysis
+
+-Version: v0.3.2
++Version: v0.4.0
+ Status: Completed
+-Scope: lifecycle-runner, native DSH bundle and adoption workflow
+-Last updated: 2026-08-16
++Scope: lifecycle-runner, native DSH bundle, adoption workflow and loopback route assertions
++Last updated: 2026-08-26
+
+ ## Inputs
+
+@@ -12,11 +12,11 @@ Last updated: 2026-08-16
+ - Requirements checklist: `.ai-platform/specs/lifecycle-runner/checklists/requirements.md`
+ - Plan/TDR: `.ai-platform/docs/technology-decision-record.md`, `.ai-platform/specs/lifecycle-runner/plan.md`
+ - Work graph: `.ai-platform/specs/lifecycle-runner/tasks.md`
+-- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T009.yaml`
++- Packets: `.ai-platform/specs/lifecycle-runner/packets/T001.yaml` through `T010.yaml`
+
+ ## Coverage
+
+-- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008; FR-037 through FR-039, NFR-019 through NFR-020 and SC-021 map to T009.
++- Requirements covered by tasks: FR-001 through FR-018 and NFR-001 through NFR-012 map to T001 through T005; FR-019 through FR-022 and SC-011 through SC-012 map to T006; FR-023 through FR-028, NFR-013 through NFR-014 and SC-013 through SC-016 map to T007; FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-020 map to T008; FR-037 through FR-039, NFR-019 through NFR-020 and SC-021 map to T009; FR-040 through FR-042 and NFR-021 map to T010.
+ - Requirements without task coverage: None.
+ - Tasks without requirement/plan mapping: None.
+ - Ready tasks without packet: None.
+diff --git a/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json b/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+index 859d5d3..56ebf2c 100644
+--- a/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
++++ b/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+@@ -37,6 +37,9 @@
+         "tools": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+       }
+     },
++    "http": {
++      "$ref": "#/$defs/httpRoutes"
++    },
+     "exercise": {
+       "type": "array",
+       "items": {
+@@ -78,6 +81,41 @@
+     }
+   },
+   "$defs": {
+-    "observerRequirement": { "enum": ["required", "preferred", "off"] }
++    "observerRequirement": { "enum": ["required", "preferred", "off"] },
++    "httpRoutes": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["routes"],
++      "properties": {
++        "routes": {
++          "type": "array",
++          "minItems": 1,
++          "items": { "$ref": "#/$defs/httpRoute" },
++          "uniqueItems": true
++        }
++      }
++    },
++    "httpRoute": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "path"],
++      "properties": {
++        "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$", "maxLength": 128 },
++        "method": { "const": "GET", "default": "GET" },
++        "path": {
++          "type": "string",
++          "pattern": "^\\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\\/-]*)$"
++        },
++        "expect": { "$ref": "#/$defs/httpRouteExpectation" }
++      }
++    },
++    "httpRouteExpectation": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "status": { "type": "integer", "minimum": 100, "maximum": 599, "default": 200 },
++        "json": { "type": "object", "additionalProperties": true, "default": {} }
++      }
++    }
+   }
+ }
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index 47cee2b..773b53d 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -1,8 +1,8 @@
+ # DSH Testkit Implementation Plan
+
+-Version: v0.3.0
++Version: v0.4.0
+ Status: Confirmed
+-Last updated: 2026-08-16
++Last updated: 2026-08-26
+ Source: confirmed Product Design and Technology Decision Record
+
+ ## Goal
+@@ -96,6 +96,13 @@ cordis.patch.yml
+ - Validate the released partner tags `dsh-plugin-doctor@v1.14.0` and `dsh-subscribe@v0.3.1` without treating their adoption as market validation.
+ - Prepare reproducible evidence and a low-cost maintainer follow-up; npm publication remains a separate user-approved operation.
+
++### Slice 8: Deterministic Loopback HTTP Route Assertions
++
++- Add an optional `http.routes` scenario contract with GET-only, path-safe expectations.
++- Start the real DSH web command on a runner-owned loopback port and check routes after boot, before uninstall.
++- Persist bounded status, selected JSON fields and response digest evidence with headers and complete bodies redacted.
++- Reject HTTP route scenarios in explicit unsafe-local mode and preserve the v1 report schema and lifecycle stage IDs.
++
+ ## Validation Strategy
+
+ - RED/GREEN Vitest tests per task.
+diff --git a/.ai-platform/specs/lifecycle-runner/spec.md b/.ai-platform/specs/lifecycle-runner/spec.md
+index dd5fe8b..89afe3e 100644
+--- a/.ai-platform/specs/lifecycle-runner/spec.md
++++ b/.ai-platform/specs/lifecycle-runner/spec.md
+@@ -1,8 +1,8 @@
+ # DSH Lifecycle Runner Feature Specification
+
+-Version: v0.3.2
++Version: v0.4.0
+ Status: Confirmed
+-Last updated: 2026-08-15
++Last updated: 2026-08-26
+ Product contract: `.ai-platform/docs/product-design.md`
+
+ ## Feature Purpose
+@@ -11,9 +11,9 @@ The lifecycle runner is the first DSH Testkit release slice. It turns a plugin s
+
+ ## Requirement Authority
+
+-- User stories: `US-001` through `US-009` in Product Design.
+-- Functional requirements: `FR-001` through `FR-039` in Product Design.
+-- Non-functional requirements: `NFR-001` through `NFR-020` in Product Design.
++- User stories: `US-001` through `US-010` in Product Design.
++- Functional requirements: `FR-001` through `FR-042` in Product Design.
++- Non-functional requirements: `NFR-001` through `NFR-021` in Product Design.
+ - Success criteria: `SC-001` through `SC-021` in Product Design.
+ - Acceptance criteria: Product Design section 13.
+
+@@ -32,6 +32,7 @@ This feature specification does not redefine those requirements. The Product Des
+ - English and Simplified Chinese project entrypoints with explicit doctor/composition boundaries.
+ - Credential-free community cohort validation and DSH release-train canary automation.
+ - One-command root and nested-plugin onboarding with repository-discoverable CI and Agent Skill targets.
++- Optional Docker-only loopback HTTP route assertions with bounded redacted evidence.
+
+ ## Feature Non-Goals
+
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index a18135b..a54a7e3 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -1,10 +1,10 @@
+ # DSH Testkit Post-Spec Work Graph
+
+-Version: v0.3.2
++Version: v0.4.0
+ Status: Confirmed
+ Feature: lifecycle-runner
+ Source spec: `.ai-platform/docs/product-design.md`
+-Last updated: 2026-08-16
++Last updated: 2026-08-26
+
+ ## 状态定义
+
+@@ -55,6 +55,81 @@ Tasks:
+ - [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
+ - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
+ - [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
++- [ ] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
++
++### T010: Deterministic Loopback HTTP Route Assertions
++
++Status: Needs_Review
++Priority: P1
++Depends on: T009
++Blocks: None
++Story / Requirement: US-010, FR-040 through FR-042, NFR-021
++Parallel: No
++Conflicts with: None
++
++Goal:
++Let a scenario assert a small, redacted HTTP surface of the live DSH web host while preserving the existing lifecycle stages, report schema and stable exit codes.
++
++Allowed files:
++- `.ai-platform/**`
++- `src/domain/scenario.ts`
++- `src/config/scenario.ts`
++- `src/cli.ts`
++- `src/worker/adapter.ts`
++- `src/adapters/dsh/**`
++- `src/probe/**`
++- `tests/unit/**`
++- `tests/integration/**`
++- `tests/e2e/**`
++- `fixtures/http-route-plugin/**`
++- `docs/**`
++- `README.md`
++- `README.zh-CN.md`
++
++Test targets:
++- `tests/unit/scenario.test.ts`
++- `tests/unit/http-routes.test.ts`
++- `tests/integration/cli.test.ts`
++- `tests/integration/worker.test.ts`
++- `tests/e2e/real-dsh.test.ts`
++
++Deliverables:
++- Optional `http.routes` scenario contract with GET/loopback-safe constraints.
++- Docker adapter web boot, bounded route requests, selected JSON/digest evidence and redaction.
++- Local runner rejection and register-stage assertion semantics.
++- HTTP fixture and documentation in both README languages.
++
++Acceptance criteria:
++- Existing v1 scenario/report consumers remain valid and stable.
++- Route checks run only after successful boot and before uninstall; boot failure skips them.
++- Evidence never stores response headers or complete bodies and route failures identify path/status/field.
++- Unit, integration and real-host Docker fixture coverage passes.
++
++Definition of Done:
++- RED evidence captured before implementation.
++- Focused tests, typecheck, build and full validation pass.
++- T010 evidence and review have no blocking finding.
++
++Validation commands:
++- `pnpm vitest run tests/unit/scenario.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts tests/integration/worker.test.ts`
++- `pnpm typecheck`
++- `pnpm build`
++- `pnpm validate`
++
++TDD plan:
++- RED: add route schema, helper and CLI compatibility tests before implementation.
++- GREEN: implement the smallest loopback route checker and attach its assertions to register.
++- REFACTOR: isolate HTTP evidence/redaction from the DSH process adapter and preserve existing probe contracts.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`
++
++Evidence required:
++- Changed files.
++- RED/GREEN/REFACTOR results.
++- Validation results.
++- Diff summary.
++- Residual risks.
+
+ ## Task Details
+
+diff --git a/README.md b/README.md
+index b976cb5..7ca20e7 100644
+--- a/README.md
++++ b/README.md
+@@ -106,7 +106,23 @@ observers:
+   canary: preferred
+ ```
+
+-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, and stage reruns.
++For a live DSH web surface, add an optional Docker-only route assertion:
++
++```yaml
++http:
++  routes:
++    - id: health
++      path: /health
++      expect:
++        status: 200
++        json:
++          status: ok
++          version: $subject.packageVersion
++```
++
++Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
++
++The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, stage reruns, and the loopback HTTP route contract. HTTP checks are deliberately narrow: GET only, runner-owned `127.0.0.1`, selected JSON fields and digest evidence without headers or full response bodies.
+
+ ## CI Evidence
+
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index f6c461e..08100bd 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -106,7 +106,23 @@ observers:
+   canary: preferred
+ ```
+
+-[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略和单阶段重跑说明。
++如果要检查真实 DSH web surface，可以增加仅 Docker 可用的 route 断言：
++
++```yaml
++http:
++  routes:
++    - id: health
++      path: /health
++      expect:
++        status: 200
++        json:
++          status: ok
++          version: $subject.packageVersion
++```
++
++使用 `http.routes` 时请在场景中设置 `profile: web`；route probe 会针对 DSH 的公开 web profile。
++
++[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略、单阶段重跑和 loopback HTTP route 契约。HTTP 检查保持窄范围：只允许 GET 和 runner 自己分配的 `127.0.0.1`，只记录选定 JSON 字段与 digest，不保存 headers 或完整响应 body。
+
+ ## CI 证据
+
+diff --git a/docs/scenarios.md b/docs/scenarios.md
+index b222109..0bf47a7 100644
+--- a/docs/scenarios.md
++++ b/docs/scenarios.md
+@@ -9,7 +9,7 @@ subject:
+   updateFrom: ../plugin-v0
+ dsh:
+   version: 0.1.1-rc.2
+-profile: dsh-testkit
++profile: web
+ expect:
+   boot: success
+   rows: [tool-my-plugin]
+@@ -27,6 +27,15 @@ observers:
+   ports: preferred
+   network: off
+   canary: preferred
++http:
++  routes:
++    - id: health
++      path: /health
++      expect:
++        status: 200
++        json:
++          status: ok
++          version: $subject.packageVersion
+ timeouts:
+   installMs: 300000
+   bootMs: 30000
+@@ -41,6 +50,10 @@ Every lifecycle stage is a case identifier. `--case boot` executes resolve throu
+
+ `expect.rows` is checked against `dsh --dump-config`. Services and tools are checked in the live Cordis context. The baseline runtime-probe exercise always proves the loaded context is callable. Additional tool exercises are explicit because a generic test runner cannot safely invent required arguments.
+
++`http.routes` is an optional Docker-only assertion surface for the real DSH web host. The adapter allocates a disposable `127.0.0.1` port and issues only `GET` requests after a successful boot probe and before uninstall. Paths cannot contain a query, fragment, traversal segment or remote host. A JSON expectation selects dotted fields from the response; `$subject.packageVersion` resolves to the packed subject version. Route evidence records the path, status, selected fields and SHA-256 response digest under `evidence/http-<stage>.json`; complete bodies and headers are redacted. A route failure is reported in the existing `register` stage, so v1 report consumers and stable exit codes remain unchanged. Scenarios with HTTP routes are rejected by `--runner local`, even with `--unsafe-local`.
++
++Route scenarios must set `profile: web`; this selects DSH's public web profile for both installation and boot. Other profile names remain valid for non-HTTP lifecycle scenarios.
++
+ An expected boot failure is a negative test: the boot assertion passes only when DSH fails, then recovery removes the plugin and proves that the same profile boots again.
+
+ Observer values are `required`, `preferred`, or `off`. Missing required coverage makes the run `unsupported`; preferred coverage records its limitation without changing an otherwise valid lifecycle result.
+diff --git a/schemas/scenario-v1.json b/schemas/scenario-v1.json
+index 859d5d3..56ebf2c 100644
+--- a/schemas/scenario-v1.json
++++ b/schemas/scenario-v1.json
+@@ -37,6 +37,9 @@
+         "tools": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+       }
+     },
++    "http": {
++      "$ref": "#/$defs/httpRoutes"
++    },
+     "exercise": {
+       "type": "array",
+       "items": {
+@@ -78,6 +81,41 @@
+     }
+   },
+   "$defs": {
+-    "observerRequirement": { "enum": ["required", "preferred", "off"] }
++    "observerRequirement": { "enum": ["required", "preferred", "off"] },
++    "httpRoutes": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["routes"],
++      "properties": {
++        "routes": {
++          "type": "array",
++          "minItems": 1,
++          "items": { "$ref": "#/$defs/httpRoute" },
++          "uniqueItems": true
++        }
++      }
++    },
++    "httpRoute": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "path"],
++      "properties": {
++        "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$", "maxLength": 128 },
++        "method": { "const": "GET", "default": "GET" },
++        "path": {
++          "type": "string",
++          "pattern": "^\\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\\/-]*)$"
++        },
++        "expect": { "$ref": "#/$defs/httpRouteExpectation" }
++      }
++    },
++    "httpRouteExpectation": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "status": { "type": "integer", "minimum": 100, "maximum": 599, "default": 200 },
++        "json": { "type": "object", "additionalProperties": true, "default": {} }
++      }
++    }
+   }
+ }
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+index 6c532e7..dbc36d9 100644
+--- a/src/adapters/dsh/npm-adapter.ts
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -1,4 +1,5 @@
+ import { createHash, randomUUID } from 'node:crypto'
++import { createServer } from 'node:net'
+ import {
+   access,
+   cp,
+@@ -25,6 +26,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
+ import { AssertionSchema } from '../../domain/report.js'
+ import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
+ import { renderScenarioSnapshot } from '../../domain/scenario.js'
++import { checkLoopbackHttpRoutes } from './http-routes.js'
+ import {
+   captureSystemSnapshot,
+   diffSnapshots,
+@@ -86,6 +88,7 @@ const ProbeDocumentSchema = z.object({
+   schemaVersion: z.literal(1),
+   assertions: z.array(AssertionSchema),
+   exercises: z.array(AssertionSchema),
++  routes: z.array(AssertionSchema).default([]),
+ }).passthrough()
+
+ const EXACT_VERSION = /@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+@@ -281,6 +284,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+   private evidenceDir = ''
+   private profileDir = ''
+   private dshExecutable = ''
++  private webPort: number | null = null
+   private probePatch = ''
+   private canary = ''
+   private primaryResolved!: ResolvedSource
+@@ -312,7 +316,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     this.corepackHome = process.env.DSH_TESTKIT_COREPACK_HOME ?? join(this.runRoot, 'corepack')
+     this.logsDir = join(request.outputDir, 'logs')
+     this.evidenceDir = join(request.outputDir, 'evidence')
+-    this.profileDir = join(this.dshHome, 'profiles', request.scenario.profile)
++    this.profileDir = join(this.dshHome, 'profiles', this.profileName(request.scenario))
+     this.canary = `dsh-testkit-canary-${request.runId}-${randomUUID()}`
+     await Promise.all([
+       mkdir(this.harnessDir, { recursive: true }),
+@@ -537,17 +541,23 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     if (observation.probe === null) {
+       throw new StageFailure('Runtime probe was not produced', { failureKind: 'assertion' })
+     }
+-    const failures = failedAssertions(observation.probe.assertions)
++    const assertions = [
++      ...observation.probe.assertions,
++      ...(observation.probe.routes ?? []),
++    ]
++    const failures = failedAssertions(assertions)
+     if (failures.length > 0) {
+       throw new StageFailure(`${failures.length} runtime registration assertion(s) failed`, {
+         failureKind: 'assertion',
+-        assertions: observation.probe.assertions,
++        assertions,
++        artifacts: this.routeArtifacts('boot'),
+       })
+     }
+     return {
+       value: undefined,
+-      summary: `${observation.probe.assertions.length} runtime registration assertion(s) passed`,
+-      assertions: observation.probe.assertions,
++      summary: `${assertions.length} runtime registration assertion(s) passed`,
++      assertions,
++      artifacts: this.routeArtifacts('boot'),
+     }
+   }
+
+@@ -599,6 +609,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       }),
+       ...(configured.assertions ?? []),
+       ...boot.value.probe.assertions,
++      ...(boot.value.probe.routes ?? []),
+       ...boot.value.probe.exercises,
+     ]
+     if (failedAssertions(assertions).length > 0) {
+@@ -1049,7 +1060,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     return await this.command(
+       logName,
+       this.dshExecutable,
+-      ['plugin', '--profile', this.request.scenario.profile, ...args],
++      ['plugin', '--profile', this.profileName(this.request.scenario), ...args],
+       this.workspaceDir,
+       this.request.scenario.timeouts.installMs,
+       this.dshEnvironment(),
+@@ -1092,6 +1103,15 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     mode: 'present' | 'absent',
+   ): Promise<AdapterCompletion<AdapterBootObservation>> {
+     await this.ensureProbePatch()
++    if (mode === 'present' && this.request.scenario.http !== undefined) {
++      if (this.request.runner !== 'docker') {
++        throw new StageFailure('HTTP route assertions require the Docker runner', { failureKind: 'subject' })
++      }
++      if (this.request.scenario.profile !== 'web') {
++        throw new StageFailure('HTTP route assertions require scenario.profile: web', { failureKind: 'subject' })
++      }
++      this.webPort = await this.allocateLoopbackPort()
++    }
+     const probePath = join(this.evidenceDir, `probe-${label}.json`)
+     await rm(probePath, { force: true })
+     const config = {
+@@ -1103,9 +1123,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       exercise: mode === 'present' ? this.request.scenario.exercise : [],
+       settleMs: 500,
+     }
++    const webMode = this.request.scenario.http !== undefined
+     const result = await runCommand({
+       executable: this.dshExecutable,
+-      args: ['--profile', this.request.scenario.profile, '--patch', this.probePatch],
++      args: webMode
++        ? ['web', ...(this.webPort === null ? [] : ['--port', String(this.webPort)]), '--patch', this.probePatch]
++        : ['--profile', this.profileName(this.request.scenario), '--patch', this.probePatch],
+       cwd: this.workspaceDir,
+       timeoutMs: this.request.scenario.timeouts.bootMs,
+       logDir: this.logsDir,
+@@ -1114,7 +1137,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       inheritEnv: false,
+       redactions: [this.canary, ...environmentRedactions()],
+       completionFile: probePath,
+-      beforeCompletionStop: async () => { await this.captureSystem(label) },
++      beforeCompletionStop: async () => {
++        await this.captureSystem(label)
++        if (mode === 'present' && this.request.scenario.http !== undefined && this.webPort !== null) {
++          await this.captureHttpRoutes(label)
++        }
++      },
+     })
+     for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
+     if (result.redactionMatches.includes(0)) this.canaryHits.add(label)
+@@ -1158,13 +1186,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         command: result.command,
+         exitCode: result.exitCode,
+         signal: result.signal,
+-        artifacts: [...commandArtifacts(result), ...probeArtifacts],
++        artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
+       }
+     }
+     const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
+     const probe: ProbeArtifact = {
+       assertions: document.assertions,
+       exercises: document.exercises,
++      routes: this.routeAssertions(label),
+     }
+     return {
+       value: { outcome: 'success', probe },
+@@ -1172,10 +1201,77 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       command: result.command,
+       exitCode: result.exitCode,
+       signal: result.signal,
+-      artifacts: [...commandArtifacts(result), ...probeArtifacts],
++      artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
++    }
++  }
++
++  private readonly routeResults = new Map<string, { assertions: Assertion[], artifact: string }>()
++
++  private routeAssertions(label: string): Assertion[] {
++    return this.routeResults.get(label)?.assertions ?? []
++  }
++
++  private routeArtifacts(label: string): string[] {
++    const artifact = this.routeResults.get(label)?.artifact
++    return artifact === undefined ? [] : [artifact]
++  }
++
++  private async captureHttpRoutes(label: string): Promise<void> {
++    const routes = this.request.scenario.http?.routes
++    if (routes === undefined || this.webPort === null) return
++    const artifact = `evidence/http-${label}.json`
++    const artifactPath = join(this.evidenceDir, `http-${label}.json`)
++    try {
++      const result = await checkLoopbackHttpRoutes(routes, {
++        port: this.webPort,
++        subjectVersion: this.primaryPacked?.packageVersion ?? null,
++      })
++      await writeFile(artifactPath, `${JSON.stringify(result.evidence, null, 2)}\n`)
++      this.addArtifact(artifactPath)
++      this.routeResults.set(label, {
++        artifact,
++        assertions: result.assertions.map(assertion => ({ ...assertion, evidence: [artifact] })),
++      })
++    } catch (error) {
++      const message = error instanceof Error ? error.message : String(error)
++      const assertions: Assertion[] = routes.map(route => ({
++        id: `http.${route.id}.request`,
++        status: 'failed',
++        message: `HTTP ${route.path} could not be checked`,
++        actual: message,
++        evidence: [artifact],
++      }))
++      await writeFile(artifactPath, `${JSON.stringify({
++        schemaVersion: 1,
++        host: '127.0.0.1',
++        port: this.webPort,
++        requests: [],
++        error: message,
++      }, null, 2)}\n`)
++      this.addArtifact(artifactPath)
++      this.routeResults.set(label, { artifact, assertions })
+     }
+   }
+
++  private async allocateLoopbackPort(): Promise<number> {
++    const server = createServer()
++    return await new Promise<number>((resolve, reject) => {
++      const fail = (error: Error) => {
++        server.close()
++        reject(error)
++      }
++      server.once('error', fail)
++      server.listen(0, '127.0.0.1', () => {
++        const address = server.address()
++        if (address === null || typeof address === 'string') {
++          fail(new Error('Unable to allocate a loopback port'))
++          return
++        }
++        server.close(error => error ? reject(error) : resolve(address.port))
++      })
++    })
++  }
++
+   private requireCleanBoot(
+     completion: AdapterCompletion<AdapterBootObservation>,
+     summary: string,
+@@ -1214,7 +1310,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     const result = await this.command(
+       logName,
+       this.dshExecutable,
+-      ['--profile', this.request.scenario.profile, '--dump-config'],
++      ['--profile', this.profileName(this.request.scenario), '--dump-config'],
+       this.workspaceDir,
+       this.request.scenario.timeouts.bootMs,
+       this.dshEnvironment(),
+@@ -1266,6 +1362,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     }
+   }
+
++  private profileName(scenario: WorkerRequest['scenario']): string {
++    return scenario.profile
++  }
++
+   private async readInstalledVersion(packageName: string): Promise<string | null> {
+     try {
+       const path = join(this.profileDir, 'node_modules', ...packageName.split('/'), 'package.json')
+@@ -1309,7 +1409,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+
+   private isKnownPackageManagerChange(path: string): boolean {
+     const normalized = path.replaceAll('\\', '/')
+-    const profile = `profiles/${this.request.scenario.profile}`
++    const profile = `profiles/${this.profileName(this.request.scenario)}`
+     const managedPrefixes = [
+       'profiles/node_modules/',
+       `${profile}/node_modules/`,
+diff --git a/src/cli.ts b/src/cli.ts
+index fb5b745..2b4f210 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -291,6 +291,11 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
+       timeouts: configured.timeouts,
+     })
+     assertSupportedDshVersion(mergedScenario.dsh.version)
++    validateRunnerSelection({
++      runner: options.runner,
++      unsafeLocal: options.unsafeLocal,
++      scenario: mergedScenario,
++    })
+     if (options.case !== undefined) validateLifecycleCase(mergedScenario, options.case)
+
+     const runId = makeRunId()
+diff --git a/src/config/scenario.ts b/src/config/scenario.ts
+index aad9e89..915e693 100644
+--- a/src/config/scenario.ts
++++ b/src/config/scenario.ts
+@@ -27,11 +27,18 @@ export function buildScenario(input: BuildScenarioInput): Scenario {
+ export interface RunnerSelection {
+   runner: 'docker' | 'local'
+   unsafeLocal: boolean
++  scenario?: Scenario
+ }
+
+ export function validateRunnerSelection(selection: RunnerSelection): RunnerSelection {
+   if (selection.runner === 'local' && !selection.unsafeLocal) {
+     throw new Error('Local runner requires explicit --unsafe-local consent')
+   }
++  if (selection.runner === 'local' && selection.scenario?.http !== undefined) {
++    throw new Error('HTTP route assertions require the Docker runner')
++  }
++  if (selection.scenario?.http !== undefined && selection.scenario.profile !== 'web') {
++    throw new Error('HTTP route assertions require scenario.profile: web')
++  }
+   return selection
+ }
+diff --git a/src/domain/scenario.ts b/src/domain/scenario.ts
+index 21e7ab9..532c768 100644
+--- a/src/domain/scenario.ts
++++ b/src/domain/scenario.ts
+@@ -12,11 +12,40 @@ const UniqueStringsSchema = z.array(z.string().min(1)).refine(
+   { message: 'values must be unique' },
+ )
+
++const HTTP_PATH = /^\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\/-]*)$/
++
++function validateHttpPath(value: string): boolean {
++  if (!HTTP_PATH.test(value)) return false
++  if (value.includes('//')) return false
++  return value.split('/').every(segment => segment !== '..')
++}
++
+ export const ExerciseSchema = z.object({
+   tool: z.string().min(1),
+   arguments: z.record(z.string(), z.unknown()),
+ }).strict()
+
++export const HttpRouteExpectationSchema = z.object({
++  status: z.number().int().min(100).max(599).default(200),
++  json: z.record(z.string().min(1), z.unknown()).default({}),
++}).strict().default({ status: 200, json: {} })
++
++export const HttpRouteSchema = z.object({
++  id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/).max(128),
++  method: z.literal('GET').default('GET'),
++  path: z.string().refine(validateHttpPath, {
++    message: 'HTTP route path must be an absolute loopback path without query, fragment, traversal or control characters',
++  }),
++  expect: HttpRouteExpectationSchema,
++}).strict()
++
++export const HttpRoutesSchema = z.object({
++  routes: z.array(HttpRouteSchema).min(1).refine(
++    routes => new Set(routes.map(route => route.id)).size === routes.length,
++    { message: 'HTTP route identifiers must be unique' },
++  ),
++}).strict()
++
+ export const ScenarioSchema = z.object({
+   schemaVersion: z.literal(SCENARIO_SCHEMA_VERSION),
+   name: z.string().min(1),
+@@ -37,6 +66,7 @@ export const ScenarioSchema = z.object({
+     services: UniqueStringsSchema.default([]),
+     tools: UniqueStringsSchema.default([]),
+   }).strict().default({ boot: 'success', rows: [], services: [], tools: [] }),
++  http: HttpRoutesSchema.optional(),
+   exercise: z.array(ExerciseSchema).default([]),
+   recovery: z.object({
+     onBootFailure: z.enum(['remove-plugin', 'none']).default('remove-plugin'),
+@@ -63,6 +93,9 @@ export const ScenarioSchema = z.object({
+
+ export type ObserverRequirement = z.infer<typeof ObserverRequirementSchema>
+ export type Exercise = z.infer<typeof ExerciseSchema>
++export type HttpRouteExpectation = z.infer<typeof HttpRouteExpectationSchema>
++export type HttpRoute = z.infer<typeof HttpRouteSchema>
++export type HttpRoutes = z.infer<typeof HttpRoutesSchema>
+ export type Scenario = z.infer<typeof ScenarioSchema>
+
+ export function renderScenarioSnapshot(scenario: Scenario): string {
+diff --git a/src/worker/adapter.ts b/src/worker/adapter.ts
+index a884a8d..9026ccc 100644
+--- a/src/worker/adapter.ts
++++ b/src/worker/adapter.ts
+@@ -9,6 +9,7 @@ import type { WorkerRequest } from './protocol.js'
+ export interface ProbeArtifact {
+   assertions: Assertion[]
+   exercises: Assertion[]
++  routes?: Assertion[]
+ }
+
+ export interface AdapterBootObservation {
+diff --git a/tests/contracts/documentation.test.ts b/tests/contracts/documentation.test.ts
+index 60c6e11..d1bb497 100644
+--- a/tests/contracts/documentation.test.ts
++++ b/tests/contracts/documentation.test.ts
+@@ -26,6 +26,9 @@ describe('bilingual project entrypoints', () => {
+       expect(contents).toContain('0.1.0-rc.6')
+       expect(contents).toContain('dsh-composition-check')
+       expect(contents).toContain('dsh-plugin-doctor')
++      expect(contents).toContain('http.routes')
++      expect(contents).toContain('127.0.0.1')
++      expect(contents).toContain('profile: web')
+       expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
+     }
+     expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
+diff --git a/tests/contracts/v1-compatibility.test.ts b/tests/contracts/v1-compatibility.test.ts
+index 82e435a..3cecc10 100644
+--- a/tests/contracts/v1-compatibility.test.ts
++++ b/tests/contracts/v1-compatibility.test.ts
+@@ -34,4 +34,28 @@ describe('published v1 contract compatibility', () => {
+     expect(runtime.safeParse(fixtureValue).success).toBe(true)
+     expect(ajv.validate(schemaValue as object, fixtureValue), ajv.errorsText()).toBe(true)
+   })
++
++  it('accepts the optional loopback HTTP route contract in both schemas', async () => {
++    const schemaValue = await readJson('schemas/scenario-v1.json')
++    const scenario = {
++      schemaVersion: 1,
++      name: 'http-route-contract',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      profile: 'web',
++      http: {
++        routes: [{
++          id: 'health',
++          method: 'GET',
++          path: '/health',
++          expect: { status: 200, json: { version: '$subject.packageVersion' } },
++        }],
++      },
++    }
++    const ajv = new Ajv2020({ allErrors: true, strict: true })
++    addFormatsModule.default(ajv)
++
++    expect(ScenarioSchema.safeParse(scenario).success).toBe(true)
++    expect(ajv.validate(schemaValue as object, scenario), ajv.errorsText()).toBe(true)
++  })
+ })
+diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
+index 417528a..d474171 100644
+--- a/tests/e2e/real-dsh.test.ts
++++ b/tests/e2e/real-dsh.test.ts
+@@ -141,4 +141,16 @@ describe.sequential('real DSH lifecycle fixtures', () => {
+     expect(result.report.artifacts.some(path => path.includes('process-boot'))).toBe(true)
+     expect(result.report.artifacts.some(path => path.includes('ports-boot'))).toBe(true)
+   }, 900_000)
++
++  it.skipIf(process.env.DSH_TESTKIT_HTTP_E2E !== '1')('asserts a deterministic route on the live Docker web host', async () => {
++    const result = await runFixture('http-route-plugin', [], 'docker')
++    expect(result.code).toBe(0)
++    expect(result.report.verdict).toBe('passed')
++    const register = result.report.stages.find(stage => stage.id === 'register')
++    expect(register?.assertions).toEqual(expect.arrayContaining([
++      expect.objectContaining({ id: 'http.health.status', status: 'passed' }),
++      expect.objectContaining({ id: 'http.health.json.version', status: 'passed', actual: '1.0.0' }),
++    ]))
++    expect(register?.artifacts).toContain('evidence/http-boot.json')
++  }, 900_000)
+ })
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 99f6fe1..24179ec 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -82,6 +82,31 @@ describe('CLI integration', () => {
+     expect(stderr.join('')).toContain('--unsafe-local')
+   })
+
++  it('rejects a configured HTTP route scenario before constructing a local runner', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-cli-http-local-'))
++    await writeFile(join(root, 'dsh-testkit.yaml'), `${JSON.stringify({
++      schemaVersion: 1,
++      name: 'http-local',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      profile: 'web',
++      http: { routes: [{ id: 'status', path: '/status' }] },
++    }, null, 2)}\n`)
++    const stderr: string[] = []
++    let factoryCalled = false
++    const exitCode = await runCli(['--runner', 'local', '--unsafe-local'], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => { factoryCalled = true; throw new Error('must not run') },
++      cwd: root,
++      env: {},
++    })
++
++    expect(exitCode).toBe(2)
++    expect(factoryCalled).toBe(false)
++    expect(stderr.join('')).toContain('Docker')
++  })
++
+   it('reruns one lifecycle case with its identity in the report and reproduction command', async () => {
+     const output = await mkdtemp(join(tmpdir(), 'dsh-cli-case-'))
+     let captured: WorkerRequest | undefined
+diff --git a/tests/integration/worker.test.ts b/tests/integration/worker.test.ts
+index 0a157c9..fa94ab3 100644
+--- a/tests/integration/worker.test.ts
++++ b/tests/integration/worker.test.ts
+@@ -50,6 +50,7 @@ class FakeAdapter implements LifecycleAdapter {
+   calls: string[] = []
+   bootOutcome: AdapterBootObservation['outcome'] = 'success'
+   registerFailure = false
++  routeFailure = false
+   failAt: StageId | null = null
+
+   private record(stage: StageId, call: string): void {
+@@ -66,11 +67,40 @@ class FakeAdapter implements LifecycleAdapter {
+   async assemble() { this.record('assemble', 'assemble'); return completion(undefined, 'assembled') }
+   async boot(): Promise<AdapterCompletion<AdapterBootObservation>> {
+     this.record('boot', 'boot')
+-    return completion({ outcome: this.bootOutcome, probe: this.bootOutcome === 'success' ? { assertions: [], exercises: [] } : null }, 'boot observed')
++    return completion({
++      outcome: this.bootOutcome,
++      probe: this.bootOutcome === 'success'
++        ? {
++            assertions: [],
++            exercises: [],
++            routes: this.routeFailure ? [{
++              id: 'http.health.status',
++              status: 'failed',
++              message: 'route failed',
++              expected: 200,
++              actual: 503,
++              evidence: ['evidence/http-boot.json'],
++            }]
++              : [],
++          }
++        : null,
++    }, 'boot observed')
+   }
+   async register() {
+     this.record('register', 'register')
+     if (this.registerFailure) throw new StageFailure('missing echo tool', { failureKind: 'assertion' })
++    if (this.routeFailure) throw new StageFailure('route failed', {
++      failureKind: 'assertion',
++      assertions: [{
++        id: 'http.health.status',
++        status: 'failed',
++        message: 'route failed',
++        expected: 200,
++        actual: 503,
++        evidence: ['evidence/http-boot.json'],
++      }],
++      artifacts: ['evidence/http-boot.json'],
++    })
+     return completion(undefined, 'registered')
+   }
+   async exercise() { this.record('exercise', 'exercise'); return completion(undefined, 'exercised') }
+@@ -161,6 +191,42 @@ describe('LifecycleWorker', () => {
+     expect(adapter.calls.at(-1)).toBe('cleanup')
+   })
+
++  it('attributes a failed live HTTP route to registration and retains route evidence', async () => {
++    const adapter = new FakeAdapter()
++    adapter.routeFailure = true
++    const httpScenario: Scenario = {
++      ...scenario,
++      name: 'http-route-failure',
++      profile: 'web',
++      http: { routes: [{ id: 'health', method: 'GET', path: '/health', expect: { status: 200, json: {} } }] },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: httpScenario, runner: 'docker', unsafeLocal: false }))
++
++    expect(report.verdict).toBe('failed')
++    expect(report.stages.find(stage => stage.id === 'register')).toMatchObject({ status: 'failed' })
++    expect(report.stages.find(stage => stage.id === 'register')?.artifacts)
++      .toContain('evidence/http-boot.json')
++    expect(adapter.calls).toContain('uninstall')
++  })
++
++  it('does not run route assertions when the declared boot outcome is a failure', async () => {
++    const adapter = new FakeAdapter()
++    adapter.routeFailure = true
++    adapter.bootOutcome = 'failure'
++    const httpScenario: Scenario = {
++      ...scenario,
++      name: 'http-route-negative-boot',
++      profile: 'web',
++      expect: { ...scenario.expect, boot: 'failure' },
++      http: { routes: [{ id: 'health', method: 'GET', path: '/health', expect: { status: 200, json: {} } }] },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({ scenario: httpScenario, runner: 'docker', unsafeLocal: false }))
++
++    expect(report.verdict).toBe('passed')
++    expect(report.stages.find(stage => stage.id === 'register')?.status).toBe('skipped')
++    expect(report.stages.flatMap(stage => stage.assertions).some(assertion => assertion.id.startsWith('http.'))).toBe(false)
++  })
++
+   it('treats an expected boot failure as a negative-case pass and proves recovery', async () => {
+     const adapter = new FakeAdapter()
+     adapter.bootOutcome = 'failure'
+diff --git a/tests/unit/scenario.test.ts b/tests/unit/scenario.test.ts
+index 395af40..5bb0fa7 100644
+--- a/tests/unit/scenario.test.ts
++++ b/tests/unit/scenario.test.ts
+@@ -55,6 +55,68 @@ describe('scenario contract', () => {
+     expect(scenario.observers).toMatchObject({ filesystem: 'required', network: 'off' })
+   })
+
++  it('parses a Docker-only loopback HTTP route contract', () => {
++    const scenario = parseScenario({
++      schemaVersion: 1,
++      name: 'http-smoke',
++      subject: { source: './plugin' },
++      dsh: { version: '0.1.0-rc.6' },
++      profile: 'web',
++      http: {
++        routes: [{
++          id: 'dsh-market.status',
++          path: '/dsh-market/status',
++          expect: {
++            status: 200,
++            json: { version: '$subject.packageVersion', status: 'ok' },
++          },
++        }],
++      },
++    })
++
++    expect(scenario.http?.routes[0]).toMatchObject({
++      method: 'GET',
++      path: '/dsh-market/status',
++      expect: { status: 200 },
++    })
++  })
++
++  it.each([
++    'https://example.test/status',
++    '/status?token=secret',
++    '/status#fragment',
++    '/status/../admin',
++    '/status\\admin',
++  ])('rejects unsafe HTTP route paths: %s', (path) => {
++    expect(() => parseScenario({
++      schemaVersion: 1,
++      name: 'unsafe-http',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      http: { routes: [{ id: 'unsafe', path, expect: { status: 200, json: {} } }] },
++    })).toThrow()
++  })
++
++  it('rejects non-GET HTTP methods and duplicate route identifiers', () => {
++    expect(() => parseScenario({
++      schemaVersion: 1,
++      name: 'post-http',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      http: { routes: [{ id: 'post', method: 'POST', path: '/status' }] },
++    })).toThrow()
++    expect(() => parseScenario({
++      schemaVersion: 1,
++      name: 'duplicate-http',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      http: { routes: [
++        { id: 'status', path: '/status' },
++        { id: 'status', path: '/other' },
++      ] },
++    })).toThrow(/unique/i)
++  })
++
+   it('rejects local execution without explicit unsafe consent', () => {
+     expect(() => validateRunnerSelection({ runner: 'local', unsafeLocal: false }))
+       .toThrow(/unsafe-local/i)
+@@ -62,6 +124,22 @@ describe('scenario contract', () => {
+       .toEqual({ runner: 'local', unsafeLocal: true })
+   })
+
++  it('rejects HTTP route scenarios on the unsafe-local runner', () => {
++    const httpScenario = parseScenario({
++      schemaVersion: 1,
++      name: 'http-local',
++      subject: { source: '.' },
++      dsh: { version: '0.1.0-rc.6' },
++      profile: 'web',
++      http: { routes: [{ id: 'status', path: '/status' }] },
++    })
++    expect(() => validateRunnerSelection({
++      runner: 'local',
++      unsafeLocal: true,
++      scenario: httpScenario,
++    })).toThrow(/Docker/i)
++  })
++
+   it('rejects duplicate expected capability identifiers', () => {
+     expect(() => parseScenario({
+       schemaVersion: 1,

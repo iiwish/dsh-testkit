@@ -1,8 +1,8 @@
 # DSH Testkit Delivery Index
 
-Version: v0.3.2
+Version: v0.4.0
 Status: Confirmed
-Last updated: 2026-08-16
+Last updated: 2026-08-26
 
 ## Active Release
 
@@ -115,3 +115,9 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T008.yaml`
 Status: Needs_Review
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t009-nested-plugin-root-and-design-partner-pilot`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
+
+#### Work Item T010: Deterministic Loopback HTTP Route Assertions
+
+Status: Running
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t010-deterministic-loopback-http-route-assertions`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`

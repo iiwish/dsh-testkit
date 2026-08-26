@@ -106,7 +106,23 @@ observers:
   canary: preferred
 ```
 
-[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略和单阶段重跑说明。
+如果要检查真实 DSH web surface，可以增加仅 Docker 可用的 route 断言：
+
+```yaml
+http:
+  routes:
+    - id: health
+      path: /health
+      expect:
+        status: 200
+        json:
+          status: ok
+          version: $subject.packageVersion
+```
+
+使用 `http.routes` 时请在场景中设置 `profile: web`；route probe 会针对 DSH 的公开 web profile。
+
+[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略、单阶段重跑和 loopback HTTP route 契约。HTTP 检查保持窄范围：只允许 GET 和 runner 自己分配的 `127.0.0.1`，只记录选定 JSON 字段与 digest，不保存 headers 或完整响应 body。
 
 ## CI 证据
 

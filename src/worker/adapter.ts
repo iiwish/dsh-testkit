@@ -9,6 +9,7 @@ import type { WorkerRequest } from './protocol.js'
 export interface ProbeArtifact {
   assertions: Assertion[]
   exercises: Assertion[]
+  routes?: Assertion[]
 }
 
 export interface AdapterBootObservation {

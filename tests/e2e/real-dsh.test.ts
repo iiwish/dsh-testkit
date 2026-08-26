@@ -17,6 +17,7 @@ const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? DEFAULT_DSH_NPM_VERSIO
 interface FixtureRun {
   code: number
   report: ReturnType<typeof RunReportSchema.parse>
+  outputDir: string
 }
 
 async function runFixture(
@@ -27,6 +28,7 @@ async function runFixture(
   const cwd = join(root, 'fixtures', name)
   const output = await mkdtemp(join(tmpdir(), `dsh-testkit-e2e-${name}-`))
   let code = 0
+  let failure: unknown
   try {
     await executeFile(process.execPath, [
       cli,
@@ -38,10 +40,18 @@ async function runFixture(
       ...args,
     ], { cwd, timeout: 900_000, maxBuffer: 16 * 1024 * 1024 })
   } catch (error) {
+    failure = error
     code = (error as { code?: number }).code ?? 1
   }
-  const report = RunReportSchema.parse(JSON.parse(await readFile(join(output, 'report.json'), 'utf8')))
-  return { code, report }
+  let reportBytes: string
+  try {
+    reportBytes = await readFile(join(output, 'report.json'), 'utf8')
+  } catch (error) {
+    const details = failure as { stderr?: string, stdout?: string }
+    throw new Error(`Lifecycle command produced no report: ${details.stderr ?? details.stdout ?? (error instanceof Error ? error.message : String(error))}`)
+  }
+  const report = RunReportSchema.parse(JSON.parse(reportBytes))
+  return { code, report, outputDir: output }
 }
 
 describe.sequential('real DSH lifecycle fixtures', () => {
@@ -140,5 +150,23 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     expect(result.report.observerCoverage.ports.available).toBe(true)
     expect(result.report.artifacts.some(path => path.includes('process-boot'))).toBe(true)
     expect(result.report.artifacts.some(path => path.includes('ports-boot'))).toBe(true)
+  }, 900_000)
+
+  it('asserts a deterministic route on the live Docker web host', async () => {
+    const result = await runFixture('http-route-plugin', [], 'docker')
+    if (result.code !== 0) {
+      const [stdout, stderr] = await Promise.all([
+        readFile(join(result.outputDir, 'logs/boot.stdout.log'), 'utf8').catch(() => ''),
+        readFile(join(result.outputDir, 'logs/boot.stderr.log'), 'utf8').catch(() => ''),
+      ])
+      throw new Error(`HTTP route fixture boot failed\nstdout:\n${stdout}\nstderr:\n${stderr}\nstages:\n${JSON.stringify(result.report.stages, null, 2)}`)
+    }
+    expect(result.report.verdict).toBe('passed')
+    const register = result.report.stages.find(stage => stage.id === 'register')
+    expect(register?.assertions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'http.health.status', status: 'passed' }),
+      expect.objectContaining({ id: 'http.health.json.version', status: 'passed', actual: '1.0.0' }),
+    ]))
+    expect(register?.artifacts).toContain('evidence/http-boot.json')
   }, 900_000)
 })

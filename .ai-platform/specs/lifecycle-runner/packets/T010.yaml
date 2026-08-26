@@ -1,0 +1,121 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T010
+task_id: T010
+feature_id: lifecycle-runner
+mode: execute_one_task
+adapter: codex
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_contract: .ai-platform/docs/product-design.md
+  feature_spec: .ai-platform/specs/lifecycle-runner/spec.md
+  requirements_checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  technical_decisions: .ai-platform/docs/technology-decision-record.md
+  feature_plan: .ai-platform/specs/lifecycle-runner/plan.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  approval_gates:
+    constitution: Confirmed
+    product_or_spec: Confirmed
+    technical_plan_and_work_graph: Confirmed
+    issue: User approved completion of GitHub issue #18 on 2026-08-26
+work_unit:
+  title: Deterministic loopback HTTP route assertions
+  goal: Add a narrow Docker-only route assertion surface to real DSH lifecycle runs while preserving v1 report and stage contracts.
+  epic: E001
+  story: US-010
+  requirements: [FR-040, FR-041, FR-042, NFR-021]
+  priority: P1
+  depends_on: [T009]
+  blocks: []
+  parallel: false
+  conflicts_with: []
+codebase_context:
+  local_instructions: [AGENTS.md]
+  relevant_files:
+    - src/domain/scenario.ts
+    - src/config/scenario.ts
+    - src/cli.ts
+    - src/worker/adapter.ts
+    - src/adapters/dsh/npm-adapter.ts
+    - tests/unit/scenario.test.ts
+    - tests/integration/cli.test.ts
+    - tests/integration/worker.test.ts
+    - tests/e2e/real-dsh.test.ts
+    - docs/scenarios.md
+    - README.md
+    - README.zh-CN.md
+  existing_patterns:
+    - ScenarioSchema is strict and optional fields preserve v1 compatibility.
+    - DSH probe completion stops the live host before the adapter records register assertions.
+    - Stage artifacts are relative to the run output and validated before report persistence.
+    - Docker is the default execution boundary; local requires explicit unsafe consent.
+  interfaces_or_contracts:
+    - optional scenario.http.routes with profile web, GET, path and status/json expectations
+    - route evidence under evidence/http-<label>.json
+    - route assertions attached to the existing register stage
+  forbidden_changes:
+    - Do not add arbitrary base URLs, custom headers, credentials, remote requests or non-GET methods.
+    - Do not change the v1 report schema, stage IDs, stable exit codes or local runner safety default.
+    - Do not publish a package or modify AGENTS.md in this task.
+execution_constraints:
+  branch_or_worktree: feat/http-route-assertions
+  allowed_files:
+    - .ai-platform/**
+    - src/domain/scenario.ts
+    - src/config/scenario.ts
+    - src/cli.ts
+    - src/worker/adapter.ts
+    - src/adapters/dsh/**
+    - tests/unit/**
+    - tests/integration/**
+    - tests/e2e/**
+    - fixtures/http-route-plugin/**
+    - docs/**
+    - README.md
+    - README.zh-CN.md
+  test_targets:
+    - tests/unit/scenario.test.ts
+    - tests/unit/http-routes.test.ts
+    - tests/integration/cli.test.ts
+    - tests/integration/worker.test.ts
+    - tests/e2e/real-dsh.test.ts
+  ownership_notes:
+    - Preserve the untracked AGENTS.md exactly as found.
+    - Route evidence is selected JSON only; headers and complete response bodies are never persisted.
+tdd_plan:
+  required: true
+  red:
+    command: pnpm vitest run tests/unit/scenario.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts tests/integration/worker.test.ts
+    expected_failure: The current scenario rejects http.routes, the CLI accepts unsafe-local route scenarios, and no adapter helper can produce route assertions or evidence.
+  green:
+    command: pnpm vitest run tests/unit/scenario.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts tests/integration/worker.test.ts
+    expected_signal: GET-only scenario parsing, loopback route checking, bounded redacted evidence, Docker-only selection and register-stage assertion behavior pass.
+  refactor:
+    command: pnpm validate
+    expected_signal: Existing lifecycle, report, package, scaffold and documentation contracts remain green.
+validation_loop:
+  commands:
+    - pnpm vitest run tests/unit/scenario.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts tests/integration/worker.test.ts
+    - pnpm typecheck
+    - pnpm build
+    - pnpm validate
+    - pnpm test:pack
+  retry_budget: 3
+  failure_policy:
+    first_failure: Fix the smallest schema, route matching, evidence or runner compatibility defect within scope.
+    second_failure: Recheck process timing, path containment, redaction and probe-stage ordering with focused tests.
+    third_failure: Preserve evidence and stop without weakening loopback or Docker-only safety rules.
+    beyond_budget: Stop and record blocked evidence.
+evidence_contract:
+  summary: .ai-platform/evidence/T010/summary.md
+  diff: .ai-platform/evidence/T010/diff.patch
+  test_results: .ai-platform/evidence/T010/test-results.md
+  required: [RED and GREEN results, full validation, route evidence shape, safety boundary, residual risks]
+review_contract:
+  required_passes: [spec_compliance, bug_code_quality, report_compatibility, route_redaction, docker_fixture]
+  acceptance_rule: Route assertions are deterministic, loopback-only, Docker-only and backward compatible with existing v1 scenarios and reports.
+handoff:
+  external_issue: https://github.com/iiwish/dsh-testkit/issues/18
+  pull_request: null
+  finish_options: [open reviewed pull request, merge after CI, defer package release]
+stop_conditions: [arbitrary network input becomes possible, raw headers/body are persisted, local runner bypasses the safety gate, existing report schema or stage semantics regress]

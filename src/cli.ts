@@ -268,6 +268,7 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
       dshVersion,
       suite: options.suite ?? configured?.suite,
       ...(configured?.name === undefined ? {} : { name: configured.name }),
+      ...(configured?.profile === undefined ? {} : { profile: configured.profile }),
       ...(normalizedUpdate === undefined
         ? {}
         : { updateFrom: normalizedUpdate }),
@@ -291,6 +292,11 @@ export async function runCli(argv: string[], overrides: Partial<CliDependencies>
       timeouts: configured.timeouts,
     })
     assertSupportedDshVersion(mergedScenario.dsh.version)
+    validateRunnerSelection({
+      runner: options.runner,
+      unsafeLocal: options.unsafeLocal,
+      scenario: mergedScenario,
+    })
     if (options.case !== undefined) validateLifecycleCase(mergedScenario, options.case)
 
     const runId = makeRunId()

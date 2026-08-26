@@ -50,6 +50,7 @@ class FakeAdapter implements LifecycleAdapter {
   calls: string[] = []
   bootOutcome: AdapterBootObservation['outcome'] = 'success'
   registerFailure = false
+  routeFailure = false
   failAt: StageId | null = null
 
   private record(stage: StageId, call: string): void {
@@ -66,11 +67,40 @@ class FakeAdapter implements LifecycleAdapter {
   async assemble() { this.record('assemble', 'assemble'); return completion(undefined, 'assembled') }
   async boot(): Promise<AdapterCompletion<AdapterBootObservation>> {
     this.record('boot', 'boot')
-    return completion({ outcome: this.bootOutcome, probe: this.bootOutcome === 'success' ? { assertions: [], exercises: [] } : null }, 'boot observed')
+    return completion({
+      outcome: this.bootOutcome,
+      probe: this.bootOutcome === 'success'
+        ? {
+            assertions: [],
+            exercises: [],
+            routes: this.routeFailure ? [{
+              id: 'http.health.status',
+              status: 'failed',
+              message: 'route failed',
+              expected: 200,
+              actual: 503,
+              evidence: ['evidence/http-boot.json'],
+            }]
+              : [],
+          }
+        : null,
+    }, 'boot observed')
   }
   async register() {
     this.record('register', 'register')
     if (this.registerFailure) throw new StageFailure('missing echo tool', { failureKind: 'assertion' })
+    if (this.routeFailure) throw new StageFailure('route failed', {
+      failureKind: 'assertion',
+      assertions: [{
+        id: 'http.health.status',
+        status: 'failed',
+        message: 'route failed',
+        expected: 200,
+        actual: 503,
+        evidence: ['evidence/http-boot.json'],
+      }],
+      artifacts: ['evidence/http-boot.json'],
+    })
     return completion(undefined, 'registered')
   }
   async exercise() { this.record('exercise', 'exercise'); return completion(undefined, 'exercised') }
@@ -159,6 +189,42 @@ describe('LifecycleWorker', () => {
     })
     expect(adapter.calls).toContain('uninstall')
     expect(adapter.calls.at(-1)).toBe('cleanup')
+  })
+
+  it('attributes a failed live HTTP route to registration and retains route evidence', async () => {
+    const adapter = new FakeAdapter()
+    adapter.routeFailure = true
+    const httpScenario: Scenario = {
+      ...scenario,
+      name: 'http-route-failure',
+      profile: 'web',
+      http: { routes: [{ id: 'health', method: 'GET', path: '/health', expect: { status: 200, json: {} } }] },
+    }
+    const report = await new LifecycleWorker(adapter).run(await request({ scenario: httpScenario, runner: 'docker', unsafeLocal: false }))
+
+    expect(report.verdict).toBe('failed')
+    expect(report.stages.find(stage => stage.id === 'register')).toMatchObject({ status: 'failed' })
+    expect(report.stages.find(stage => stage.id === 'register')?.artifacts)
+      .toContain('evidence/http-boot.json')
+    expect(adapter.calls).toContain('uninstall')
+  })
+
+  it('does not run route assertions when the declared boot outcome is a failure', async () => {
+    const adapter = new FakeAdapter()
+    adapter.routeFailure = true
+    adapter.bootOutcome = 'failure'
+    const httpScenario: Scenario = {
+      ...scenario,
+      name: 'http-route-negative-boot',
+      profile: 'web',
+      expect: { ...scenario.expect, boot: 'failure' },
+      http: { routes: [{ id: 'health', method: 'GET', path: '/health', expect: { status: 200, json: {} } }] },
+    }
+    const report = await new LifecycleWorker(adapter).run(await request({ scenario: httpScenario, runner: 'docker', unsafeLocal: false }))
+
+    expect(report.verdict).toBe('passed')
+    expect(report.stages.find(stage => stage.id === 'register')?.status).toBe('skipped')
+    expect(report.stages.flatMap(stage => stage.assertions).some(assertion => assertion.id.startsWith('http.'))).toBe(false)
   })
 
   it('treats an expected boot failure as a negative-case pass and proves recovery', async () => {

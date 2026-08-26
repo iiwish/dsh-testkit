@@ -26,6 +26,9 @@ describe('bilingual project entrypoints', () => {
       expect(contents).toContain('0.1.0-rc.6')
       expect(contents).toContain('dsh-composition-check')
       expect(contents).toContain('dsh-plugin-doctor')
+      expect(contents).toContain('http.routes')
+      expect(contents).toContain('127.0.0.1')
+      expect(contents).toContain('profile: web')
       expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
     }
     expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
