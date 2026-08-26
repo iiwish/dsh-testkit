@@ -28,4 +28,4 @@ Result: exit 0, 63 tests passed across six files. The tests cover GET-only parsi
 
 ## Refactor and validation
 
-`pnpm test:coverage` passed with 134 tests across 23 files before the final bounded-read assertion; the focused run is green after that assertion. `pnpm typecheck`, `pnpm build`, `pnpm check:contracts`, `pnpm check:actions` and `pnpm check:release` passed. A real Docker route E2E was attempted with `DSH_TESTKIT_DSH_VERSION=0.1.0-rc.6`; the runner image build did not complete in the available environment and was interrupted, so this remains an external validation gap rather than a claimed pass.
+`pnpm validate` passed with 134 tests across 23 files. `pnpm typecheck`, `pnpm build`, `pnpm check:contracts`, `pnpm check:actions` and `pnpm check:release` passed. The required GitHub Actions real-host matrix passed for DSH `0.1.0-rc.6`, `0.1.0-rc.7` and `0.1.0-rc.8`; the HTTP fixture registered and asserted status, selected JSON fields and subject version, then completed uninstall and reboot cleanup.

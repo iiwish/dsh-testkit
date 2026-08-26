@@ -98,6 +98,8 @@ cordis.patch.yml
 
 ### Slice 8: Deterministic Loopback HTTP Route Assertions
 
+Status: Completed; accepted after local validation and the required real-host Docker matrix.
+
 - Add an optional `http.routes` scenario contract with GET-only, path-safe expectations.
 - Start the real DSH web command on a runner-owned loopback port and check routes after boot, before uninstall.
 - Persist bounded status, selected JSON fields and response digest evidence with headers and complete bodies redacted.

@@ -59,7 +59,7 @@ Tasks:
 
 ### T010: Deterministic Loopback HTTP Route Assertions
 
-Status: Needs_Review
+Status: Accepted
 Priority: P1
 Depends on: T009
 Blocks: None

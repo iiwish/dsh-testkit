@@ -118,6 +118,6 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
 
 #### Work Item T010: Deterministic Loopback HTTP Route Assertions
 
-Status: Running
+Status: Accepted
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t010-deterministic-loopback-http-route-assertions`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`

@@ -116,6 +116,6 @@ review_contract:
   acceptance_rule: Route assertions are deterministic, loopback-only, Docker-only and backward compatible with existing v1 scenarios and reports.
 handoff:
   external_issue: https://github.com/iiwish/dsh-testkit/issues/18
-  pull_request: null
-  finish_options: [open reviewed pull request, merge after CI, defer package release]
+  pull_request: https://github.com/iiwish/dsh-testkit/pull/23
+  finish_options: [merge reviewed pull request, defer package release]
 stop_conditions: [arbitrary network input becomes possible, raw headers/body are persisted, local runner bypasses the safety gate, existing report schema or stage semantics regress]
