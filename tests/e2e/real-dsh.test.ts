@@ -169,4 +169,27 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     ]))
     expect(register?.artifacts).toContain('evidence/http-boot.json')
   }, 900_000)
+
+  it('asserts a deterministic TurnStatus transition in the real Docker web host', async () => {
+    const result = await runFixture('web-status-plugin', [], 'docker')
+    if (result.code !== 0) {
+      const [stdout, stderr] = await Promise.all([
+        readFile(join(result.outputDir, 'logs/boot.stdout.log'), 'utf8').catch(() => ''),
+        readFile(join(result.outputDir, 'logs/boot.stderr.log'), 'utf8').catch(() => ''),
+      ])
+      throw new Error(`Browser fixture failed\nstdout:\n${stdout}\nstderr:\n${stderr}\nstages:\n${JSON.stringify(result.report.stages, null, 2)}`)
+    }
+    expect(result.report.verdict).toBe('passed')
+    expect(result.report.environment.browser).toMatchObject({ name: 'chromium' })
+    const register = result.report.stages.find(stage => stage.id === 'register')
+    expect(register?.assertions).toContainEqual(expect.objectContaining({
+      id: 'browser.turn-status.text',
+      status: 'passed',
+      actual: 'Fixture status ready',
+    }))
+    expect(register?.artifacts).toEqual(expect.arrayContaining([
+      'evidence/browser-boot.json',
+      'evidence/browser-boot-turn-status.png',
+    ]))
+  }, 900_000)
 })

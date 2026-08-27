@@ -37,7 +37,7 @@ const scenario: Scenario = {
     network: 'off',
     canary: 'preferred',
   },
-  timeouts: { installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000 },
+  timeouts: { installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000, overallMs: 600_000 },
 }
 
 function completion<T>(value: T, summary: string): AdapterCompletion<T> {
@@ -51,6 +51,7 @@ class FakeAdapter implements LifecycleAdapter {
   bootOutcome: AdapterBootObservation['outcome'] = 'success'
   registerFailure = false
   routeFailure = false
+  browserUnsupported = false
   failAt: StageId | null = null
 
   private record(stage: StageId, call: string): void {
@@ -101,7 +102,14 @@ class FakeAdapter implements LifecycleAdapter {
       }],
       artifacts: ['evidence/http-boot.json'],
     })
-    return completion(undefined, 'registered')
+    return {
+      ...completion(undefined, 'registered'),
+      assertions: this.browserUnsupported ? [{
+        id: 'browser.turn-status.runner',
+        status: 'unsupported' as const,
+        message: 'Browser runner is unavailable',
+      }] : [],
+    }
   }
   async exercise() { this.record('exercise', 'exercise'); return completion(undefined, 'exercised') }
   async update() { this.record('update', 'update'); return completion(undefined, 'updated') }
@@ -254,6 +262,33 @@ describe('LifecycleWorker', () => {
     expect(report.verdict).toBe('unsupported')
     expect(report.stages.some(stage => stage.status === 'unsupported')).toBe(true)
     expect(adapter.calls.at(-1)).toBe('cleanup')
+  })
+
+  it('returns unsupported when an explicit web smoke has no browser runner', async () => {
+    const adapter = new FakeAdapter()
+    adapter.browserUnsupported = true
+    const browserScenario: Scenario = {
+      ...scenario,
+      name: 'browser-unavailable',
+      profile: 'web',
+      browser: {
+        smoke: {
+          kind: 'turn-status-text',
+          path: '/',
+          expectedText: 'Fixture status ready',
+          timeoutMs: 5_000,
+        },
+      },
+    }
+    const report = await new LifecycleWorker(adapter).run(await request({
+      scenario: browserScenario,
+      runner: 'docker',
+      unsafeLocal: false,
+    }))
+
+    expect(report.verdict).toBe('unsupported')
+    expect(report.stages.find(stage => stage.id === 'register')?.assertions)
+      .toContainEqual(expect.objectContaining({ id: 'browser.turn-status.runner', status: 'unsupported' }))
   })
 
   it('does not accept a host crash as the declared negative boot failure', async () => {

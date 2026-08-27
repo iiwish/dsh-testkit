@@ -1,0 +1,14 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T012
+task_id: T012
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User explicitly requested watchdog and host/infrastructure classification on 2026-08-27
+goal: Bound every attempt and classify an unresponsive DSH web host as infrastructure.
+allowed_files: [.ai-platform/**, src/domain/scenario.ts, src/domain/lifecycle.ts, src/runners/**, src/adapters/dsh/**, src/process/command.ts, tests/**, schemas/scenario-v1.json, docs/**]
+tdd:
+  red: pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts
+  green: pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts
+validation: [pnpm validate, pnpm test:pack]
+evidence: [.ai-platform/evidence/T012/summary.md, .ai-platform/evidence/T012/test-results.md, .ai-platform/evidence/T012/diff.patch]
+stop_conditions: [watchdog cannot terminate owned resources, completed plugin assertion is reclassified as infrastructure, exit-code contract changes]

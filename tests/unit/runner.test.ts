@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildDockerRunArgs,
+  buildDockerWatchdogRemoveArgs,
   dockerInputContainerPath,
   dockerRunName,
   runnerImageName,
 } from '../../src/runners/docker.js'
+import { runnerTimeoutMs } from '../../src/runners/types.js'
+import type { WorkerRequest } from '../../src/worker/protocol.js'
 
 describe('Docker runner command planning', () => {
   it('mounts output read-write, local input read-only and uses tmpfs work roots', () => {
@@ -45,5 +48,18 @@ describe('Docker runner command planning', () => {
   it('keys the runner image name by the immutable build-context digest', () => {
     const digest = `sha256:${'a'.repeat(64)}`
     expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.3.4-aaaaaaaaaaaa')
+  })
+
+  it('uses the explicit attempt-wide watchdog budget', () => {
+    const request = {
+      scenario: { timeouts: { overallMs: 123_456 } },
+    } as WorkerRequest
+    expect(runnerTimeoutMs(request)).toBe(123_456)
+  })
+
+  it('force-removes only the named owned container after watchdog expiry', () => {
+    expect(buildDockerWatchdogRemoveArgs('run:unsafe/name')).toEqual([
+      'rm', '--force', 'dsh-testkit-run-unsafe-name',
+    ])
   })
 })

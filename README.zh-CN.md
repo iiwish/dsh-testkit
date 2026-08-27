@@ -59,6 +59,7 @@ Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `r
 | 干净卸载 | 卸载后重启同一 profile，并检查 bundle、能力、进程、端口和归属路径残留。 |
 | 可重复性 | `--suite full` 运行五次隔离尝试；语义结果不一致时返回 `flaky`。 |
 | 观测边界 | 不可用的 observer 会明确披露；必需 observer 不可用时返回 `unsupported`，不会伪造通过。 |
+| Web smoke 与 watchdog | 显式 TurnStatus browser smoke 使用一次性 Chromium；缺少 browser runner 时返回 `unsupported`，DSH web 无响应或全局 watchdog 到期则归为基础设施错误。 |
 
 它**不能**证明任意可执行代码是安全的，也不能证明插件生成的模型结果质量足够高。
 
@@ -122,7 +123,7 @@ http:
 
 使用 `http.routes` 时请在场景中设置 `profile: web`；route probe 会针对 DSH 的公开 web profile。
 
-[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略、单阶段重跑和 loopback HTTP route 契约。HTTP 检查保持窄范围：只允许 GET 和 runner 自己分配的 `127.0.0.1`，只记录选定 JSON 字段与 digest，不保存 headers 或完整响应 body。
+[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、单次尝试全局 watchdog、observer 策略、单阶段重跑、loopback HTTP route 和显式 `dsh web` TurnStatus browser smoke。HTTP 与浏览器检查只访问 runner 自己分配的 `127.0.0.1`；浏览器证据仅包含身份、选定文本和 screenshot，缺少 Chromium 时返回 `unsupported`。
 
 ## CI 证据
 

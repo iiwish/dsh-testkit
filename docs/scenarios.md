@@ -36,10 +36,17 @@ http:
         json:
           status: ok
           version: $subject.packageVersion
+browser:
+  smoke:
+    kind: turn-status-text
+    path: /
+    expectedText: Fixture status ready
+    timeoutMs: 5000
 timeouts:
   installMs: 300000
   bootMs: 30000
   cleanupMs: 30000
+  overallMs: 600000
 ```
 
 `subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. `updateFrom` installs the old artifact first and enables the update stage.
@@ -53,6 +60,10 @@ Every lifecycle stage is a case identifier. `--case boot` executes resolve throu
 `http.routes` is an optional Docker-only assertion surface for the real DSH web host. The adapter allocates a disposable `127.0.0.1` port and issues only `GET` requests after a successful boot probe and before uninstall. Paths cannot contain a query, fragment, traversal segment or remote host. A JSON expectation selects dotted fields from the response; `$subject.packageVersion` resolves to the packed subject version. Route evidence records the path, status, selected fields and SHA-256 response digest under `evidence/http-<stage>.json`; complete bodies and headers are redacted. A route failure is reported in the existing `register` stage, so v1 report consumers and stable exit codes remain unchanged. Scenarios with HTTP routes are rejected by `--runner local`, even with `--unsafe-local`.
 
 Route scenarios must set `profile: web`; this selects DSH's public web profile for both installation and boot. Other profile names remain valid for non-HTTP lifecycle scenarios.
+
+`browser.smoke` is an explicit Docker-only `dsh web` lane for one bounded contract: a TurnStatus element beginning as `Deep diving...` must change to `expectedText`. Testkit opens only the runner-owned loopback origin, uses a disposable Chromium context, blocks non-loopback HTTP requests, and retains browser identity, the selected text and a screenshot without cookies, storage or a full DOM dump. A missing browser executable returns `unsupported`; a DSH web navigation timeout is `infrastructure_error`; a completed page whose text does not match remains a plugin assertion failure.
+
+`timeouts.overallMs` bounds each complete attempt, including install, boot, browser/HTTP checks, uninstall and cleanup. It defaults to 600000 ms. When the controller watchdog expires it terminates the owned worker/container, force-removes the named Docker container as a fallback, retains controller logs and exits with infrastructure code `3`.
 
 An expected boot failure is a negative test: the boot assertion passes only when DSH fails, then recovery removes the plugin and proves that the same profile boots again.
 

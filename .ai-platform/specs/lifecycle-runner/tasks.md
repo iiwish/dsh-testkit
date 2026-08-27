@@ -56,6 +56,8 @@ Tasks:
 - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
 - [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
 - [x] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
+- [x] T011 [US-011] Add an explicit `dsh web` fixture and narrow TurnStatus browser smoke with `unsupported` fallback.
+- [x] T012 [US-012] Add an attempt-wide watchdog and classify unresponsive DSH web hosts as infrastructure.
 
 ### T010: Deterministic Loopback HTTP Route Assertions
 
@@ -130,6 +132,89 @@ Evidence required:
 - Validation results.
 - Diff summary.
 - Residual risks.
+
+### T011: Explicit DSH Web Browser Smoke
+
+Status: Needs_Review
+Priority: P1
+Depends on: T010
+Blocks: T012
+Story / Requirement: US-011, FR-043 through FR-045, NFR-022
+Parallel: No
+Conflicts with: T012
+
+Goal:
+Exercise one deterministic TurnStatus text transition in a disposable browser against the real `dsh web` host without adding a general browser-testing surface.
+
+Allowed files:
+- `.ai-platform/**`
+- `src/domain/scenario.ts`
+- `src/config/scenario.ts`
+- `src/worker/adapter.ts`
+- `src/adapters/dsh/**`
+- `fixtures/web-status-plugin/**`
+- `tests/unit/**`
+- `tests/integration/**`
+- `tests/e2e/**`
+- `assets/runner.Dockerfile`
+- `package.json`
+- `pnpm-lock.yaml`
+- `schemas/scenario-v1.json`
+- `docs/**`
+- `README.md`
+- `README.zh-CN.md`
+
+Acceptance criteria:
+- The scenario accepts only the fixed TurnStatus smoke kind on `profile: web`.
+- A disposable browser context opens only the runner-owned loopback origin, injects the deterministic initial TurnStatus, and records the expected transition plus browser identity and screenshot.
+- Missing Playwright or browser executable yields `unsupported`; navigation timeout is DSH/infrastructure; completed DOM mismatch is an assertion failure.
+- Existing headless and HTTP route scenarios remain compatible.
+
+Validation commands:
+- `pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts`
+- `pnpm typecheck`
+- `pnpm build`
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T011.yaml`
+
+### T012: Attempt-Wide Watchdog And Host-Hang Classification
+
+Status: Needs_Review
+Priority: P0
+Depends on: T011
+Blocks: None
+Story / Requirement: US-012, FR-046 through FR-047, NFR-023
+Parallel: No
+Conflicts with: T011
+
+Goal:
+Bound the complete worker attempt and prevent an unresponsive DSH host from becoming either an infinite CI run or a plugin failure.
+
+Allowed files:
+- `.ai-platform/**`
+- `src/domain/scenario.ts`
+- `src/domain/lifecycle.ts`
+- `src/runners/**`
+- `src/adapters/dsh/**`
+- `src/process/command.ts`
+- `tests/unit/**`
+- `tests/integration/**`
+- `schemas/scenario-v1.json`
+- `docs/**`
+
+Acceptance criteria:
+- `timeouts.overallMs` defaults to 600000 and bounds each attempt in Docker and local runners.
+- Watchdog expiry returns exit code 3, force-removes the owned Docker container, and retains controller logs.
+- DSH web request/navigation timeouts produce infrastructure verdicts; completed plugin assertions remain ordinary failures.
+
+Validation commands:
+- `pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts`
+- `pnpm validate`
+- `pnpm test:pack`
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
 
 ## Task Details
 

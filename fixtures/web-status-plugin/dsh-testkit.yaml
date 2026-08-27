@@ -1,0 +1,16 @@
+schemaVersion: 1
+name: web-status-plugin
+subject:
+  source: .
+dsh:
+  version: 0.1.1-rc.2
+profile: web
+expect:
+  boot: success
+  rows: [fixture-web-status]
+browser:
+  smoke:
+    kind: turn-status-text
+    path: /
+    expectedText: Fixture status ready
+    timeoutMs: 5000

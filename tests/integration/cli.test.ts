@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { RunReport } from '../../src/domain/report.js'
 import { runCli } from '../../src/cli.js'
+import { RunnerError } from '../../src/runners/types.js'
 import type { Runner } from '../../src/runners/types.js'
 import type { WorkerRequest } from '../../src/worker/protocol.js'
 
@@ -261,6 +262,28 @@ describe('CLI integration', () => {
 
     expect(exitCode).toBe(3)
     expect(stderr.join('')).toContain('declared artifact is missing')
+  })
+
+  it('returns infrastructure exit code when the global watchdog expires', async () => {
+    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-watchdog-'))
+    const stderr: string[] = []
+    const runner: Runner = {
+      run: async () => {
+        throw new RunnerError('Global watchdog expired after 5000ms; classified as host/infrastructure', 3)
+      },
+    }
+    const exitCode = await runCli([
+      '.', '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
+    ], {
+      stdout: () => undefined,
+      stderr: value => stderr.push(value),
+      runnerFactory: () => runner,
+      cwd: process.cwd(),
+      env: {},
+    })
+
+    expect(exitCode).toBe(3)
+    expect(stderr.join('')).toContain('host/infrastructure')
   })
 
   it('prints the package version without constructing a runner', async () => {

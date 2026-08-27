@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-web-status
+      name: '@dsh-testkit/fixture-web-status'

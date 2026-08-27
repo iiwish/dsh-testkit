@@ -105,6 +105,13 @@ Status: Completed; accepted after local validation and the required real-host Do
 - Persist bounded status, selected JSON fields and response digest evidence with headers and complete bodies redacted.
 - Reject HTTP route scenarios in explicit unsafe-local mode and preserve the v1 report schema and lifecycle stage IDs.
 
+### Slice 9: Explicit Web Browser Smoke And Host Watchdog
+
+- Add an explicit `profile: web` TurnStatus browser smoke using a disposable Playwright context and a deterministic local fixture.
+- Return `unsupported` when the browser runner or executable is unavailable; retain only bounded DOM/browser identity and screenshot evidence.
+- Add a scenario-level attempt budget enforced by both Docker and local controllers, with owned-container removal after expiry.
+- Classify unresponsive DSH web HTTP/browser behavior as host/infrastructure while preserving assertion failure semantics for completed responses and DOM mismatches.
+
 ## Validation Strategy
 
 - RED/GREEN Vitest tests per task.

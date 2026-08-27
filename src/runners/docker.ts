@@ -91,8 +91,18 @@ export function buildDockerRunArgs(plan: DockerRunPlan): string[] {
   ]
 }
 
+export function buildDockerWatchdogRemoveArgs(runId: string): string[] {
+  return ['rm', '--force', dockerRunName(runId)]
+}
+
 export class DockerRunner implements Runner {
   async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
+    const watchdog = new AbortController()
+    const watchdogTimer = setTimeout(() => watchdog.abort(), runnerTimeoutMs(request))
+    watchdogTimer.unref()
+    const attemptSignal = signal === undefined
+      ? watchdog.signal
+      : AbortSignal.any([signal, watchdog.signal])
     try {
       await mkdir(request.outputDir, { recursive: true })
       const logsDir = join(request.outputDir, 'logs')
@@ -101,8 +111,8 @@ export class DockerRunner implements Runner {
       const contextDigest = await dockerContextDigest(root)
       const image = runnerImageName(contextDigest)
       try {
-        await this.ensureImage(image, contextDigest, root, controllerLogsDir, signal)
-        const imageId = await this.imageId(image, root, controllerLogsDir, signal)
+        await this.ensureImage(image, contextDigest, root, controllerLogsDir, attemptSignal)
+        const imageId = await this.imageId(image, root, controllerLogsDir, attemptSignal)
 
         const inputs: DockerInputMount[] = []
         const scenario = structuredClone(request.scenario)
@@ -145,12 +155,21 @@ export class DockerRunner implements Runner {
           }),
           cwd: root,
           timeoutMs: runnerTimeoutMs(request),
-          ...(signal === undefined ? {} : { signal }),
+          signal: attemptSignal,
           logDir: controllerLogsDir,
           logName: 'docker-runner',
         }).finally(async () => {
           await rm(join(request.outputDir, requestFilename), { force: true })
         })
+        if (result.timedOut || result.interruptedBy !== null) {
+          await this.forceRemoveContainer(request.runId, root, controllerLogsDir)
+        }
+        if (result.timedOut) {
+          throw new RunnerError(
+            `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
+            3,
+          )
+        }
         if (result.stdoutTruncated || result.stderrTruncated) {
           throw new RunnerError('Docker worker output exceeded the 8 MiB per-stream evidence limit', 3)
         }
@@ -178,10 +197,18 @@ export class DockerRunner implements Runner {
         await rm(controllerLogsDir, { recursive: true, force: true })
       }
     } catch (error) {
+      if (watchdog.signal.aborted) {
+        throw new RunnerError(
+          `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
+          3,
+        )
+      }
       if (error instanceof RunnerError) throw error
       const code = (error as NodeJS.ErrnoException).code
       if (code === 'ENOENT') throw new RunnerError('Docker is required by the default runner but was not found', 4)
       throw new RunnerError(error instanceof Error ? error.message : String(error), 3)
+    } finally {
+      clearTimeout(watchdogTimer)
     }
   }
 
@@ -240,6 +267,21 @@ export class DockerRunner implements Runner {
     })
     if (result.exitCode !== 0) throw new RunnerError(`Unable to inspect ${image} identity`, 3)
     return result.stdout.trim()
+  }
+
+  private async forceRemoveContainer(runId: string, root: string, logsDir: string): Promise<void> {
+    try {
+      await runCommand({
+        executable: 'docker',
+        args: buildDockerWatchdogRemoveArgs(runId),
+        cwd: root,
+        timeoutMs: 10_000,
+        logDir: logsDir,
+        logName: 'docker-watchdog-cleanup',
+      })
+    } catch {
+      // The primary RunnerError remains authoritative; controller logs retain cleanup evidence.
+    }
   }
 }
 

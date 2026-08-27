@@ -82,6 +82,7 @@
   },
   "dependencies": {
     "commander": "15.0.0",
+    "playwright-core": "1.62.1",
     "xmlbuilder2": "4.0.3",
     "yaml": "2.9.0",
     "zod": "4.4.3"

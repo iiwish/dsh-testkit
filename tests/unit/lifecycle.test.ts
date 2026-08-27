@@ -58,6 +58,8 @@ describe('lifecycle state', () => {
     }] })])).toBe('unsupported')
     expect(deriveVerdict([stage({ status: 'failed', failureKind: 'infrastructure' })]))
       .toBe('infrastructure_error')
+    expect(deriveVerdict([stage({ status: 'failed', failureKind: 'dsh' })]))
+      .toBe('infrastructure_error')
 
     expect(exitCodeForVerdict('passed')).toBe(0)
     expect(exitCodeForVerdict('failed')).toBe(1)
