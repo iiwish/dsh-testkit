@@ -1,7 +1,9 @@
 window.__ModuleLoader__.load({
   id: '@dsh-testkit/fixture-web-status',
-  factory: () => {
-    const module = { exports: {} }
+  factory: (_require) => {
+    var module = { exports: {} }
+    var exports = module.exports
+    Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
     const name = '@dsh-testkit/fixture-web-status'
     const inject = []
 
@@ -30,7 +32,9 @@ window.__ModuleLoader__.load({
       }, 'dsh-testkit fixture TurnStatus smoke')
     }
 
-    module.exports = { apply, inject, name }
+    exports.apply = apply
+    exports.inject = inject
+    exports.name = name
     return module.exports
   },
 })

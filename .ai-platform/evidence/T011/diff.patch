@@ -349,14 +349,16 @@ index 0bf47a7..f2b1904 100644
  Observer values are `required`, `preferred`, or `off`. Missing required coverage makes the run `unsupported`; preferred coverage records its limitation without changing an otherwise valid lifecycle result.
 diff --git a/fixtures/web-status-plugin/client.js b/fixtures/web-status-plugin/client.js
 new file mode 100644
-index 0000000..f39952d
+index 0000000..4cb2b0a
 --- /dev/null
 +++ b/fixtures/web-status-plugin/client.js
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,40 @@
 +window.__ModuleLoader__.load({
 +  id: '@dsh-testkit/fixture-web-status',
-+  factory: () => {
-+    const module = { exports: {} }
++  factory: (_require) => {
++    var module = { exports: {} }
++    var exports = module.exports
++    Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
 +    const name = '@dsh-testkit/fixture-web-status'
 +    const inject = []
 +
@@ -385,7 +387,9 @@ index 0000000..f39952d
 +      }, 'dsh-testkit fixture TurnStatus smoke')
 +    }
 +
-+    module.exports = { apply, inject, name }
++    exports.apply = apply
++    exports.inject = inject
++    exports.name = name
 +    return module.exports
 +  },
 +})
@@ -1398,10 +1402,10 @@ index fa94ab3..1d986a2 100644
      adapter.bootOutcome = 'crash'
 diff --git a/tests/unit/browser-smoke.test.ts b/tests/unit/browser-smoke.test.ts
 new file mode 100644
-index 0000000..de5c286
+index 0000000..ae6a7e1
 --- /dev/null
 +++ b/tests/unit/browser-smoke.test.ts
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,68 @@
 +import { readFile } from 'node:fs/promises'
 +import { join } from 'node:path'
 +
@@ -1430,6 +1434,7 @@ index 0000000..de5c286
 +    const packageName = (JSON.parse(manifest) as { name: string }).name
 +    expect(client).toContain(`id: '${packageName}'`)
 +    expect(client).toContain(`name = '${packageName}'`)
++    expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
 +  })
 +
 +  it('returns unsupported rather than a synthetic pass without a browser runner', () => {

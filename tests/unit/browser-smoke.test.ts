@@ -26,6 +26,7 @@ describe('TurnStatus browser smoke', () => {
     const packageName = (JSON.parse(manifest) as { name: string }).name
     expect(client).toContain(`id: '${packageName}'`)
     expect(client).toContain(`name = '${packageName}'`)
+    expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
   })
 
   it('returns unsupported rather than a synthetic pass without a browser runner', () => {
