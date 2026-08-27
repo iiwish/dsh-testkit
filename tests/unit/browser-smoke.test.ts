@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -14,6 +17,17 @@ const smoke: BrowserSmoke = {
 }
 
 describe('TurnStatus browser smoke', () => {
+  it('registers the fixture client with its exact scoped package identity', async () => {
+    const fixtureRoot = join(process.cwd(), 'fixtures/web-status-plugin')
+    const [manifest, client] = await Promise.all([
+      readFile(join(fixtureRoot, 'package.json'), 'utf8'),
+      readFile(join(fixtureRoot, 'client.js'), 'utf8'),
+    ])
+    const packageName = (JSON.parse(manifest) as { name: string }).name
+    expect(client).toContain(`id: '${packageName}'`)
+    expect(client).toContain(`name = '${packageName}'`)
+  })
+
   it('returns unsupported rather than a synthetic pass without a browser runner', () => {
     const result = unavailableBrowserSmoke(smoke, 'Chromium executable was not found')
     expect(result.assertions).toEqual([

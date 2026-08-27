@@ -15,7 +15,7 @@ Unit and integration coverage verifies the default/configured budget, Docker for
 ```text
 pnpm validate
 Test Files 24 passed (24)
-Tests 145 passed (145)
+Tests 146 passed (146)
 ```
 
 ## Watchdog reproduction

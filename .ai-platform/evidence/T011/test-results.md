@@ -10,12 +10,12 @@ pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tes
 
 ## GREEN
 
-Focused scenario, browser, runner and lifecycle tests passed. The broader local validation completed with 24 test files and 145 tests, including browser `unsupported`, selected-text pass/fail, Docker-only selection, host classification and existing HTTP/headless compatibility.
+Focused scenario, browser, runner and lifecycle tests passed. The broader local validation completed with 24 test files and 146 tests, including browser `unsupported`, selected-text pass/fail, exact scoped client identity, Docker-only selection, host classification and existing HTTP/headless compatibility.
 
 ```text
 pnpm validate
 Test Files 24 passed (24)
-Tests 145 passed (145)
+Tests 146 passed (146)
 ```
 
 ## Real-host attempt

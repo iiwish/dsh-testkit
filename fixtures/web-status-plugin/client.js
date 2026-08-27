@@ -1,8 +1,8 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-testkit-fixture-web-status',
+  id: '@dsh-testkit/fixture-web-status',
   factory: () => {
     const module = { exports: {} }
-    const name = 'dsh-testkit-fixture-web-status'
+    const name = '@dsh-testkit/fixture-web-status'
     const inject = []
 
     function apply(ctx) {
