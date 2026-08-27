@@ -23,7 +23,9 @@ describe('TurnStatus browser smoke', () => {
       readFile(join(fixtureRoot, 'package.json'), 'utf8'),
       readFile(join(fixtureRoot, 'client.js'), 'utf8'),
     ])
-    const packageName = (JSON.parse(manifest) as { name: string }).name
+    const parsed = JSON.parse(manifest) as { name: string, exports: Record<string, string> }
+    const packageName = parsed.name
+    expect(parsed.exports['./package.json']).toBe('./package.json')
     expect(client).toContain(`id: '${packageName}'`)
     expect(client).toContain(`name = '${packageName}'`)
     expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")

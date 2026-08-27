@@ -439,10 +439,10 @@ index 0000000..836940f
 +export function apply() {}
 diff --git a/fixtures/web-status-plugin/package.json b/fixtures/web-status-plugin/package.json
 new file mode 100644
-index 0000000..a3a6478
+index 0000000..071fe37
 --- /dev/null
 +++ b/fixtures/web-status-plugin/package.json
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,23 @@
 +{
 +  "name": "@dsh-testkit/fixture-web-status",
 +  "version": "1.0.0",
@@ -452,7 +452,8 @@ index 0000000..a3a6478
 +  "license": "MIT",
 +  "exports": {
 +    ".": "./index.js",
-+    "./client": "./client.js"
++    "./client": "./client.js",
++    "./package.json": "./package.json"
 +  },
 +  "dsh": {
 +    "bundle": {
@@ -1411,10 +1412,10 @@ index fa94ab3..1d986a2 100644
      adapter.bootOutcome = 'crash'
 diff --git a/tests/unit/browser-smoke.test.ts b/tests/unit/browser-smoke.test.ts
 new file mode 100644
-index 0000000..ad40d66
+index 0000000..3fc334c
 --- /dev/null
 +++ b/tests/unit/browser-smoke.test.ts
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,71 @@
 +import { readFile } from 'node:fs/promises'
 +import { join } from 'node:path'
 +
@@ -1440,7 +1441,9 @@ index 0000000..ad40d66
 +      readFile(join(fixtureRoot, 'package.json'), 'utf8'),
 +      readFile(join(fixtureRoot, 'client.js'), 'utf8'),
 +    ])
-+    const packageName = (JSON.parse(manifest) as { name: string }).name
++    const parsed = JSON.parse(manifest) as { name: string, exports: Record<string, string> }
++    const packageName = parsed.name
++    expect(parsed.exports['./package.json']).toBe('./package.json')
 +    expect(client).toContain(`id: '${packageName}'`)
 +    expect(client).toContain(`name = '${packageName}'`)
 +    expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
