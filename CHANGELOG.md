@@ -4,12 +4,16 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-08-27
+
 ### Added
 
+- Added deterministic Docker-only loopback HTTP route assertions for `GET` endpoints on explicit `web` profiles, with bounded JSON evidence and no stored headers or complete response bodies.
 - Added repository-root discovery and `--repo-root` for a single DSH bundle located below the Git worktree root.
 
 ### Fixed
 
+- Classified web-profile workspace storage as host runtime state for HTTP route scenarios while retaining strict plugin and profile residue checks.
 - Kept nested-plugin scenarios beside the bundle while generating GitHub Actions and the project Agent Skill at repository root with correct relative paths and one atomic preflight.
 
 ## [0.3.3] - 2026-08-22
@@ -123,7 +127,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/iiwish/dsh-testkit/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/iiwish/dsh-testkit/compare/v0.3.0...v0.3.1
