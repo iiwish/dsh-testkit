@@ -152,7 +152,7 @@ Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check �
 DSH Testkit 还提供一个可选的、由社区维护的 DSH-native Profile Bundle：
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.3.3
+dsh plugin --profile web add dsh-testkit@0.3.4
 dsh --profile web --dump-config
 ```
 

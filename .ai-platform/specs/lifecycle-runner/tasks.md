@@ -55,7 +55,7 @@ Tasks:
 - [x] T007 [US-007] Publish bilingual community proof and DSH release-train automation in v0.2.1.
 - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
 - [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
-- [ ] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
+- [x] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
 
 ### T010: Deterministic Loopback HTTP Route Assertions
 

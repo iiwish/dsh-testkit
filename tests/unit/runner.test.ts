@@ -44,6 +44,6 @@ describe('Docker runner command planning', () => {
 
   it('keys the runner image name by the immutable build-context digest', () => {
     const digest = `sha256:${'a'.repeat(64)}`
-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.3.3-aaaaaaaaaaaa')
+    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.3.4-aaaaaaaaaaaa')
   })
 })

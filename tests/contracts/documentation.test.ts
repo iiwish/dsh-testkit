@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
     const english = await readFile(resolve(root, 'README.md'), 'utf8')
     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
 
-    expect(manifest.version).toBe('0.3.3')
+    expect(manifest.version).toBe('0.3.4')
     expect(manifest.files).toContain('README.zh-CN.md')
     expect(english).toContain('[简体中文](README.zh-CN.md)')
     expect(chinese).toContain('[English](README.md)')
     for (const contents of [english, chinese]) {
-      expect(contents).toContain('dsh-testkit@0.3.3')
+      expect(contents).toContain('dsh-testkit@0.3.4')
       expect(contents).toContain('dsh-test init')
       expect(contents).toContain('--repo-root')
       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
@@ -41,8 +41,8 @@ describe('bilingual project entrypoints', () => {
     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
 
-    expect(changelog).toContain('## [0.3.3] - 2026-08-22')
-    expect(changelog).toContain('[0.3.3]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...v0.3.3')
+    expect(changelog).toContain('## [0.3.4] - 2026-08-27')
+    expect(changelog).toContain('[0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4')
     expect(security).toContain('| 0.3.x | Yes |')
   })
 })
