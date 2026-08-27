@@ -163,6 +163,11 @@ export async function checkTurnStatusBrowserSmoke(
       timeout: smoke.timeoutMs,
     })
     navigated = true
+    await page.waitForFunction(`
+      globalThis.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ === true
+        || (globalThis.__ModuleLoader__?.mode === 'live'
+          && !document.querySelector('[data-dsh-boot]'))
+    `, undefined, { timeout: smoke.timeoutMs }).catch(() => undefined)
     await page.evaluate(`(() => {
       const selector = ${JSON.stringify(TURN_STATUS_SELECTOR)};
       document.querySelector(selector)?.remove();

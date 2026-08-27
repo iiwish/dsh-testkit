@@ -349,10 +349,10 @@ index 0bf47a7..f2b1904 100644
  Observer values are `required`, `preferred`, or `off`. Missing required coverage makes the run `unsupported`; preferred coverage records its limitation without changing an otherwise valid lifecycle result.
 diff --git a/fixtures/web-status-plugin/client.js b/fixtures/web-status-plugin/client.js
 new file mode 100644
-index 0000000..4cb2b0a
+index 0000000..35bdf5f
 --- /dev/null
 +++ b/fixtures/web-status-plugin/client.js
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,44 @@
 +window.__ModuleLoader__.load({
 +  id: '@dsh-testkit/fixture-web-status',
 +  factory: (_require) => {
@@ -365,6 +365,7 @@ index 0000000..4cb2b0a
 +    function apply(ctx) {
 +      const expected = 'Fixture status ready'
 +      const selector = '[role="status"][aria-live="polite"]'
++      window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true
 +      const adopt = (root) => {
 +        const candidates = root instanceof Element
 +          ? [root, ...root.querySelectorAll(selector)]
@@ -383,7 +384,10 @@ index 0000000..4cb2b0a
 +      ctx.effect(() => {
 +        adopt(document)
 +        observer.observe(document.body, { childList: true, subtree: true })
-+        return () => observer.disconnect()
++        return () => {
++          observer.disconnect()
++          delete window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__
++        }
 +      }, 'dsh-testkit fixture TurnStatus smoke')
 +    }
 +
@@ -560,10 +564,10 @@ index 56ebf2c..175b6ed 100644
  }
 diff --git a/src/adapters/dsh/browser-smoke.ts b/src/adapters/dsh/browser-smoke.ts
 new file mode 100644
-index 0000000..437db49
+index 0000000..637a1b8
 --- /dev/null
 +++ b/src/adapters/dsh/browser-smoke.ts
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,231 @@
 +import { access } from 'node:fs/promises'
 +
 +import { chromium } from 'playwright-core'
@@ -729,6 +733,11 @@ index 0000000..437db49
 +      timeout: smoke.timeoutMs,
 +    })
 +    navigated = true
++    await page.waitForFunction(`
++      globalThis.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ === true
++        || (globalThis.__ModuleLoader__?.mode === 'live'
++          && !document.querySelector('[data-dsh-boot]'))
++    `, undefined, { timeout: smoke.timeoutMs }).catch(() => undefined)
 +    await page.evaluate(`(() => {
 +      const selector = ${JSON.stringify(TURN_STATUS_SELECTOR)};
 +      document.querySelector(selector)?.remove();
@@ -1402,10 +1411,10 @@ index fa94ab3..1d986a2 100644
      adapter.bootOutcome = 'crash'
 diff --git a/tests/unit/browser-smoke.test.ts b/tests/unit/browser-smoke.test.ts
 new file mode 100644
-index 0000000..ae6a7e1
+index 0000000..ad40d66
 --- /dev/null
 +++ b/tests/unit/browser-smoke.test.ts
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,69 @@
 +import { readFile } from 'node:fs/promises'
 +import { join } from 'node:path'
 +
@@ -1435,6 +1444,7 @@ index 0000000..ae6a7e1
 +    expect(client).toContain(`id: '${packageName}'`)
 +    expect(client).toContain(`name = '${packageName}'`)
 +    expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
++    expect(client).toContain('window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true')
 +  })
 +
 +  it('returns unsupported rather than a synthetic pass without a browser runner', () => {

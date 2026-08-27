@@ -27,6 +27,7 @@ describe('TurnStatus browser smoke', () => {
     expect(client).toContain(`id: '${packageName}'`)
     expect(client).toContain(`name = '${packageName}'`)
     expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
+    expect(client).toContain('window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true')
   })
 
   it('returns unsupported rather than a synthetic pass without a browser runner', () => {

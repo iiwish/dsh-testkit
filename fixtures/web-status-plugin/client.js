@@ -10,6 +10,7 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       const expected = 'Fixture status ready'
       const selector = '[role="status"][aria-live="polite"]'
+      window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true
       const adopt = (root) => {
         const candidates = root instanceof Element
           ? [root, ...root.querySelectorAll(selector)]
@@ -28,7 +29,10 @@ window.__ModuleLoader__.load({
       ctx.effect(() => {
         adopt(document)
         observer.observe(document.body, { childList: true, subtree: true })
-        return () => observer.disconnect()
+        return () => {
+          observer.disconnect()
+          delete window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__
+        }
       }, 'dsh-testkit fixture TurnStatus smoke')
     }
 
