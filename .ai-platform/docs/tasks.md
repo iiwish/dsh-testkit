@@ -2,7 +2,7 @@
 
 Version: v0.4.0
 Status: Confirmed
-Last updated: 2026-08-26
+Last updated: 2026-08-28
 
 ## Active Release
 
@@ -11,6 +11,8 @@ Last updated: 2026-08-26
 - Product contract: `.ai-platform/docs/product-design.md`
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
+
+The v0.4.0 release scope is T010 through T012. T010, T011 and T012 are accepted with task evidence. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
 
 ## Release Gate
 
@@ -121,3 +123,15 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T009.yaml`
 Status: Accepted
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t010-deterministic-loopback-http-route-assertions`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T010.yaml`
+
+#### Work Item T011: Explicit DSH Web Browser Smoke
+
+Status: Accepted
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t011-explicit-dsh-web-browser-smoke`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T011.yaml`
+
+#### Work Item T012: Attempt-Wide Watchdog And Host-Hang Classification
+
+Status: Accepted
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t012-attempt-wide-watchdog-and-host-hang-classification`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`

@@ -107,6 +107,8 @@ Status: Completed; accepted after local validation and the required real-host Do
 
 ### Slice 9: Explicit Web Browser Smoke And Host Watchdog
 
+Status: Completed; T011 and T012 were accepted after production-adapter review, the protected real-host compatibility matrix and the v0.4.0 trusted release.
+
 - Add an explicit `profile: web` TurnStatus browser smoke using a disposable Playwright context and a deterministic local fixture.
 - Return `unsupported` when the browser runner or executable is unavailable; retain only bounded DOM/browser identity and screenshot evidence.
 - Add a scenario-level attempt budget enforced by both Docker and local controllers, with owned-container removal after expiry.
