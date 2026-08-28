@@ -10,12 +10,22 @@ pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tes
 
 ## GREEN
 
-Focused scenario, browser, runner and lifecycle tests passed. The broader local validation completed with 24 test files and 146 tests, including browser `unsupported`, selected-text pass/fail, exact scoped client identity, Docker-only selection, host classification and existing HTTP/headless compatibility.
+Focused scenario, browser, runner and lifecycle tests passed. The broader local validation completed with 25 test files and 148 tests, including browser `unsupported`, selected-text pass/fail, exact scoped client identity, Docker-only selection, host classification and existing HTTP/headless compatibility.
 
 ```text
 pnpm validate
-Test Files 24 passed (24)
-Tests 146 passed (146)
+Test Files 25 passed (25)
+Tests 148 passed (148)
+```
+
+## Maintainer re-review regression
+
+The production-adapter regression initially rejected an unavailable browser runner with `StageFailure: 1 runtime registration assertion(s) failed instead of resolving`. After narrowing registration failures to assertions whose status is exactly `failed`, the real adapter preserves the browser assertion as `unsupported`.
+
+```text
+pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/unit/lifecycle.test.ts
+Test Files 4 passed (4)
+Tests 32 passed (32)
 ```
 
 ## Real-host evidence

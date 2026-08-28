@@ -14,9 +14,13 @@ Unit and integration coverage verifies the default/configured budget, Docker for
 
 ```text
 pnpm validate
-Test Files 24 passed (24)
-Tests 146 passed (146)
+Test Files 25 passed (25)
+Tests 148 passed (148)
 ```
+
+## Maintainer re-review regression
+
+The adapter contract verifies that a pre-probe timeout maps to `timeout`, while an unresponsive route or navigation after live loopback evidence maps to `dsh`. The focused re-review suite passed all 32 tests across the production adapter, browser smoke, worker integration and lifecycle coverage.
 
 ## Watchdog reproduction
 

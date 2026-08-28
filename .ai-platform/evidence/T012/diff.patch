@@ -801,7 +801,7 @@ index 0000000..637a1b8
 +  }
 +}
 diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
-index 0d3b9f8..03fcd07 100644
+index 0d3b9f8..b2ed6e5 100644
 --- a/src/adapters/dsh/npm-adapter.ts
 +++ b/src/adapters/dsh/npm-adapter.ts
 @@ -26,6 +26,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
@@ -812,7 +812,22 @@ index 0d3b9f8..03fcd07 100644
  import { checkLoopbackHttpRoutes } from './http-routes.js'
  import {
    captureSystemSnapshot,
-@@ -285,6 +286,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -195,7 +196,13 @@ function collectIds(value: unknown, ids = new Set<string>()): Set<string> {
+ }
+ 
+ function failedAssertions(assertions: readonly Assertion[]): Assertion[] {
+-  return assertions.filter(assertion => assertion.status !== 'passed')
++  return assertions.filter(assertion => assertion.status === 'failed')
++}
++
++export function classifyBootFailure(
++  evidence: 'pre-probe-timeout' | 'live-loopback-unresponsive',
++): FailureKind {
++  return evidence === 'live-loopback-unresponsive' ? 'dsh' : 'timeout'
+ }
+ 
+ function normalizedLines(value: string | null): string[] {
+@@ -285,6 +292,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
    private profileDir = ''
    private dshExecutable = ''
    private webPort: number | null = null
@@ -821,7 +836,7 @@ index 0d3b9f8..03fcd07 100644
    private probePatch = ''
    private canary = ''
    private primaryResolved!: ResolvedSource
-@@ -544,20 +547,21 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -544,20 +553,23 @@ export class DshNpmAdapter implements LifecycleAdapter {
      const assertions = [
        ...observation.probe.assertions,
        ...(observation.probe.routes ?? []),
@@ -838,14 +853,17 @@ index 0d3b9f8..03fcd07 100644
      }
      return {
        value: undefined,
-       summary: `${assertions.length} runtime registration assertion(s) passed`,
+-      summary: `${assertions.length} runtime registration assertion(s) passed`,
++      summary: assertions.some(assertion => assertion.status === 'unsupported')
++        ? `${assertions.length} runtime registration assertion(s) completed with unsupported coverage`
++        : `${assertions.length} runtime registration assertion(s) passed`,
        assertions,
 -      artifacts: this.routeArtifacts('boot'),
 +      artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
      }
    }
  
-@@ -610,6 +614,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -610,6 +622,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
        ...(configured.assertions ?? []),
        ...boot.value.probe.assertions,
        ...(boot.value.probe.routes ?? []),
@@ -853,7 +871,7 @@ index 0d3b9f8..03fcd07 100644
        ...boot.value.probe.exercises,
      ]
      if (failedAssertions(assertions).length > 0) {
-@@ -865,6 +870,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -865,6 +878,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
        pnpm: this.pnpmVersion,
        image: process.env.DSH_TESTKIT_IMAGE ?? null,
        imageId: process.env.DSH_TESTKIT_IMAGE_ID ?? null,
@@ -861,7 +879,7 @@ index 0d3b9f8..03fcd07 100644
      }
    }
  
-@@ -1103,12 +1109,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1103,12 +1117,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
      mode: 'present' | 'absent',
    ): Promise<AdapterCompletion<AdapterBootObservation>> {
      await this.ensureProbePatch()
@@ -879,7 +897,7 @@ index 0d3b9f8..03fcd07 100644
        }
        this.webPort = await this.allocateLoopbackPort()
      }
-@@ -1123,7 +1131,6 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1123,7 +1139,6 @@ export class DshNpmAdapter implements LifecycleAdapter {
        exercise: mode === 'present' ? this.request.scenario.exercise : [],
        settleMs: 500,
      }
@@ -887,7 +905,7 @@ index 0d3b9f8..03fcd07 100644
      const result = await runCommand({
        executable: this.dshExecutable,
        args: webMode
-@@ -1145,6 +1152,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1145,6 +1160,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
          if (mode === 'present' && this.request.scenario.http !== undefined && this.webPort !== null) {
            await this.captureHttpRoutes(label)
          }
@@ -897,14 +915,14 @@ index 0d3b9f8..03fcd07 100644
        },
      })
      for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
-@@ -1158,9 +1168,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1158,9 +1176,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
          signal: result.signal,
        })
      }
 +    const hostInfrastructureError = this.hostInfrastructureError as { message: string; artifacts: string[] } | null
 +    if (hostInfrastructureError !== null) {
 +      throw new StageFailure(hostInfrastructureError.message, {
-+        failureKind: 'dsh',
++        failureKind: classifyBootFailure('live-loopback-unresponsive'),
 +        artifacts: [...commandArtifacts(result), ...hostInfrastructureError.artifacts],
 +        command: result.command,
 +        exitCode: result.exitCode,
@@ -914,11 +932,11 @@ index 0d3b9f8..03fcd07 100644
      if (result.timedOut) {
        throw new StageFailure(`DSH boot timed out before the runtime probe completed`, {
 -        failureKind: 'timeout',
-+        failureKind: webMode ? 'dsh' : 'timeout',
++        failureKind: classifyBootFailure('pre-probe-timeout'),
          artifacts: commandArtifacts(result),
          command: result.command,
          exitCode: result.exitCode,
-@@ -1189,7 +1209,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1189,7 +1217,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
          command: result.command,
          exitCode: result.exitCode,
          signal: result.signal,
@@ -932,7 +950,7 @@ index 0d3b9f8..03fcd07 100644
        }
      }
      const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
-@@ -1197,6 +1222,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1197,6 +1230,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
        assertions: document.assertions,
        exercises: document.exercises,
        routes: this.routeAssertions(label),
@@ -940,7 +958,7 @@ index 0d3b9f8..03fcd07 100644
      }
      return {
        value: { outcome: 'success', probe },
-@@ -1204,11 +1230,17 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1204,11 +1238,17 @@ export class DshNpmAdapter implements LifecycleAdapter {
        command: result.command,
        exitCode: result.exitCode,
        signal: result.signal,
@@ -959,7 +977,7 @@ index 0d3b9f8..03fcd07 100644
  
    private routeAssertions(label: string): Assertion[] {
      return this.routeResults.get(label)?.assertions ?? []
-@@ -1219,6 +1251,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1219,6 +1259,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
      return artifact === undefined ? [] : [artifact]
    }
  
@@ -974,7 +992,7 @@ index 0d3b9f8..03fcd07 100644
    private async captureHttpRoutes(label: string): Promise<void> {
      const routes = this.request.scenario.http?.routes
      if (routes === undefined || this.webPort === null) return
-@@ -1235,6 +1275,13 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1235,6 +1283,13 @@ export class DshNpmAdapter implements LifecycleAdapter {
          artifact,
          assertions: result.assertions.map(assertion => ({ ...assertion, evidence: [artifact] })),
        })
@@ -988,7 +1006,7 @@ index 0d3b9f8..03fcd07 100644
      } catch (error) {
        const message = error instanceof Error ? error.message : String(error)
        const assertions: Assertion[] = routes.map(route => ({
-@@ -1256,6 +1303,41 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1256,6 +1311,41 @@ export class DshNpmAdapter implements LifecycleAdapter {
      }
    }
  
@@ -1030,7 +1048,7 @@ index 0d3b9f8..03fcd07 100644
    private async allocateLoopbackPort(): Promise<number> {
      const server = createServer()
      return await new Promise<number>((resolve, reject) => {
-@@ -1420,7 +1502,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
+@@ -1420,7 +1510,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
      // The DSH web profile lazily materializes its workspace storage while the
      // host is running. That state belongs to the profile runtime rather than
      // to the plugin, so HTTP route scenarios must not report it as residue.

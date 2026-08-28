@@ -196,7 +196,13 @@ function collectIds(value: unknown, ids = new Set<string>()): Set<string> {
 }
 
 function failedAssertions(assertions: readonly Assertion[]): Assertion[] {
-  return assertions.filter(assertion => assertion.status !== 'passed')
+  return assertions.filter(assertion => assertion.status === 'failed')
+}
+
+export function classifyBootFailure(
+  evidence: 'pre-probe-timeout' | 'live-loopback-unresponsive',
+): FailureKind {
+  return evidence === 'live-loopback-unresponsive' ? 'dsh' : 'timeout'
 }
 
 function normalizedLines(value: string | null): string[] {
@@ -559,7 +565,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
     }
     return {
       value: undefined,
-      summary: `${assertions.length} runtime registration assertion(s) passed`,
+      summary: assertions.some(assertion => assertion.status === 'unsupported')
+        ? `${assertions.length} runtime registration assertion(s) completed with unsupported coverage`
+        : `${assertions.length} runtime registration assertion(s) passed`,
       assertions,
       artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
     }
@@ -1171,7 +1179,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
     const hostInfrastructureError = this.hostInfrastructureError as { message: string; artifacts: string[] } | null
     if (hostInfrastructureError !== null) {
       throw new StageFailure(hostInfrastructureError.message, {
-        failureKind: 'dsh',
+        failureKind: classifyBootFailure('live-loopback-unresponsive'),
         artifacts: [...commandArtifacts(result), ...hostInfrastructureError.artifacts],
         command: result.command,
         exitCode: result.exitCode,
@@ -1180,7 +1188,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
     }
     if (result.timedOut) {
       throw new StageFailure(`DSH boot timed out before the runtime probe completed`, {
-        failureKind: webMode ? 'dsh' : 'timeout',
+        failureKind: classifyBootFailure('pre-probe-timeout'),
         artifacts: commandArtifacts(result),
         command: result.command,
         exitCode: result.exitCode,
