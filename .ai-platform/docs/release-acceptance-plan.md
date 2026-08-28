@@ -1,10 +1,10 @@
-# DSH Testkit v0.3 Release Acceptance Plan
+# DSH Testkit Release Acceptance Plan
 
-Version: v0.3.0
-Status: Active
+Version: v0.4.0
+Status: Current
 Release channel: Public preview
 Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
-Last updated: 2026-08-16
+Last updated: 2026-08-28
 
 ## 1. Acceptance Objective
 
@@ -40,7 +40,7 @@ Every real-host result records DSH version, Node version, OS, architecture, pack
 Requirements: Constitution 3 and 4, release policy.
 
 - `git diff --check` passes.
-- Delivery artifacts validate and contain no unfinished governed task state.
+- Delivery artifacts validate and contain no unfinished task in the current release scope. Historical task records retain their recorded review state and are not treated as current-release blockers.
 - The release candidate has an immutable Git commit and the reviewed tree matches that commit.
 - Version values agree across `package.json`, runtime constants, package contents and release report.
 - No generated evidence points only to an ephemeral file as its sole proof.
@@ -149,6 +149,17 @@ Requirements: US-008, FR-029 through FR-036, NFR-015 through NFR-018, SC-017 thr
 - A real DSH bundle registers `dsh_test` without the Skill service and additionally exposes `dsh-testkit` when the optional registry is present.
 - Publication updates the existing official Show & Tell; official guidance is pursued through an Ideas discussion rather than a prohibited external PR; the template PR references the released `v0` Action.
 
+### G12 Explicit Web Smoke And Attempt-Wide Watchdog
+
+Requirements: US-011, US-012, FR-043 through FR-047, NFR-022, NFR-023.
+
+- Browser assertions require Docker and an explicit `profile: web`; the existing headless and HTTP-only paths remain compatible.
+- The fixed TurnStatus smoke uses a disposable Chromium context, permits only the runner-owned loopback origin, blocks service workers and non-loopback HTTP/WebSocket traffic, and retains only bounded text, browser identity and screenshot evidence.
+- Missing Chromium or a launch failure produces `unsupported`; navigation failure against a live loopback host produces infrastructure; a completed DOM mismatch remains a plugin assertion failure.
+- `timeouts.overallMs` bounds each local and Docker attempt, terminates the owned process tree and force-removes the deterministic container after expiry.
+- Pre-probe boot timeout remains generic timeout evidence; host/infrastructure classification requires live-loopback evidence.
+- Scenario schema v1, report schema v1 and exit-code meanings remain unchanged.
+
 ## 5. Public-Preview Field Gates
 
 These measurements require publication or an external repository and do not block the first public preview:
@@ -157,6 +168,7 @@ These measurements require publication or an external repository and do not bloc
 - SC-002: three reproducible lifecycle findings not caught by ordinary static checks.
 - SC-003: one external CI adopter.
 - SC-009: one private enterprise Git proof without source upload or real secrets.
+- SC-020: five external plugin repositories run the lifecycle Action, three retain it as an ongoing check, and at least one upstream guide or template adopts the release-gate boundary.
 
 They block promotion from public preview to a stable ecosystem claim.
 

@@ -1,68 +1,72 @@
 # DSH Testkit Release Report
 
-Version: v0.3.1
+Version: v0.4.0
 Status: Published Public Preview
 Decision: GO
-Last updated: 2026-08-16
-Release commit: [`d5a9ad0a1439e4c1481c2a499212ee3fcd537b6b`](https://github.com/iiwish/dsh-testkit/commit/d5a9ad0a1439e4c1481c2a499212ee3fcd537b6b)
+Last updated: 2026-08-28
+Release commit: [`c25df9077825ab2cd7fe4ba2cb61023bfce70033`](https://github.com/iiwish/dsh-testkit/commit/c25df9077825ab2cd7fe4ba2cb61023bfce70033)
 
 ## Release Scope
 
-DSH Testkit is a deterministic real-host lifecycle runner for DeepSeek Harness plugins. The current release provides CLI and GitHub Action gates, a native `dsh_test` tool, bilingual documentation, exact-version community/release-train evidence, one-command repository adoption and one canonical Agent Skill.
+DSH Testkit v0.4.0 adds an explicit Docker-only `dsh web` TurnStatus browser smoke and an attempt-wide watchdog while preserving the existing lifecycle engine, scenario schema v1, report schema v1 and exit-code meanings.
 
-`dsh-test init` generates only a scenario, least-privilege workflow and project-local Skill. It is offline, idempotent and fail-closed for conflicts, path escape and symlink targets. It does not edit package manifests, lockfiles or repository instructions.
+The browser lane uses a disposable Chromium context, permits only the runner-owned loopback origin, blocks service workers and non-loopback HTTP/WebSocket traffic, and retains only browser identity, selected text, bounded JSON evidence and a screenshot. Missing browser support is `unsupported`; failure to navigate an already-live loopback host is infrastructure; a completed DOM mismatch remains a plugin assertion failure.
 
-v0.3.1 corrects repository-root behavior found while applying the v0.3.0 onboarding to a public plugin template: Git source-resolution logs are declared report artifacts, and legitimate package lifecycle output can precede the final validated `npm pack --json` result. Scenario/report v1, exit codes, Action inputs and lifecycle verdict semantics remain unchanged.
-
-The supported host remains exactly `@deepseek-ai/dsh@0.1.0-rc.6`.
+`timeouts.overallMs` bounds each local and Docker attempt. Expiry terminates the owned process tree, force-removes the deterministic container as a fallback and returns infrastructure exit code 3. A pre-probe boot timeout retains generic timeout evidence, so Testkit does not label every plugin-induced boot stall as a host defect.
 
 ## Verification
 
 | Gate | Result |
 |---|---|
-| v0.3.0 TDD | Passed: missing scaffold, Skill, runtime discovery and release identity produced the expected RED results before implementation |
-| v0.3.0 validation | Passed: 108 tests across 21 files, 8 real-host fixtures, native bundle/Skill E2E, packed consumer, actionlint, publint, audit and licenses |
-| v0.3.0 protected release | [PR #12](https://github.com/iiwish/dsh-testkit/pull/12), CI, CodeQL and [trusted release workflow](https://github.com/iiwish/dsh-testkit/actions/runs/31897201179) passed on merge commit `51e7594` |
-| v0.3.1 corrective TDD | Passed: real Git source and lifecycle-prefixed pack-output tests failed first; declared artifacts and fail-closed final-result parsing made them green |
-| v0.3.1 validation | Passed: 111 tests across 22 files, typecheck, coverage, contracts, build, pack, native bundle E2E, audit, CodeQL, Action smokes and real-host CI |
-| v0.3.1 protected release | [PR #13](https://github.com/iiwish/dsh-testkit/pull/13), [main CI](https://github.com/iiwish/dsh-testkit/actions/runs/31898685006), [CodeQL](https://github.com/iiwish/dsh-testkit/actions/runs/31898684935) and [trusted release workflow](https://github.com/iiwish/dsh-testkit/actions/runs/31898835776) passed on merge commit `d5a9ad0` |
-| Public package | A clean public install returned CLI 0.3.1, the root native/scaffold APIs and the canonical packaged Skill |
-| npm provenance | Package and SLSA attestations identify `pkg:npm/dsh-testkit@0.3.1`, `refs/tags/v0.3.1` and the repository release workflow |
-| Public template root | Released `dsh-testkit@0.3.1` passed package, install, assemble, boot, register, exercise, uninstall, reboot and cleanup for `bugmaker2/dsh-plugin-template`; run `20260815174406-8eff34b9` retained 52 artifacts |
-| Generated integration | The public generator was idempotent, `pnpm install --frozen-lockfile`, template typecheck/build and actionlint v1.7.12 passed |
-| Delivery artifacts | T008 implementation, corrective release, public identities, upstream submissions and residual risks pass the delivery validator |
+| T011 and T012 task evidence | Accepted with production-adapter regression coverage and the real-host compatibility matrix |
+| Local validation | `pnpm validate` passed 25 test files and 148 tests, including typecheck, coverage and build |
+| Package preflight | `npm pack --dry-run --json` produced `dsh-testkit@0.4.0` with 151 entries |
+| Implementation PR | [PR #25](https://github.com/iiwish/dsh-testkit/pull/25) passed protected CI, real-host DSH `0.1.1-rc.2`, compatibility replays and CodeQL before merge |
+| Release PR | [PR #26](https://github.com/iiwish/dsh-testkit/pull/26) passed [CI run 33138444470](https://github.com/iiwish/dsh-testkit/actions/runs/33138444470) and CodeQL before merge |
+| Protected main | [CI run 33138833339](https://github.com/iiwish/dsh-testkit/actions/runs/33138833339) and [CodeQL run 33138833308](https://github.com/iiwish/dsh-testkit/actions/runs/33138833308) passed on the release commit |
+| Trusted publication | [Release run 33139219598](https://github.com/iiwish/dsh-testkit/actions/runs/33139219598) passed validation, real-host, native-bundle, packed-consumer, publish and public-registry verification |
+| Host compatibility | Default `0.1.1-rc.2` plus exact replays for `0.1.0-rc.8`, `0.1.0-rc.7` and `0.1.0-rc.6` passed |
+| Fresh repeatability | Warm default-Docker full suite run `20260828043957-c2cfc3c9` passed 5/5 attempts with one semantic digest; each attempt completed in 159.449 to 262.783 seconds |
+| Public package | npm `latest` resolves to `0.4.0`; the registry reports 151 files and 821,715 unpacked bytes |
+| npm provenance | The SLSA v1 statement identifies `pkg:npm/dsh-testkit@0.4.0`, `refs/tags/v0.4.0`, release workflow run `33139219598` and commit `c25df90` |
+
+## Task And Evidence Authority
+
+- T010, T011 and T012 are `Accepted` and have retained summaries, test results and diffs under `.ai-platform/evidence/`.
+- T011 implements US-011, FR-043 through FR-045 and NFR-022.
+- T012 implements US-012, FR-046 through FR-047 and NFR-023.
+- T000 through T009 retain their historical `Needs_Review` or published-needs-acceptance states. This report does not retroactively change those records.
 
 ## Distribution
 
-- [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038) is bilingual, explicitly unofficial, demonstrates one-command adoption and recruits five initial maintainers. The [v0.3.1 follow-up](https://github.com/deepseek-ai/deepseek-harness/discussions/2038#discussioncomment-18032824) records the repository-root evidence.
-- [Official Ideas proposal #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088) provides vendor-neutral, directly adoptable release-lifecycle wording for the built-in `cordis-plugin-development` Skill or tutorial. It does not ask the official project to depend on Testkit.
-- [Public plugin-template PR #1](https://github.com/bugmaker2/dsh-plugin-template/pull/1) applies the released scenario, rolling `v0` Action and project Skill with equivalent English and Chinese documentation.
-- [awesome-dsh-plugin PR #562](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/562) is merged and lists DSH Testkit in both locale indexes.
+- [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038#discussioncomment-18183335) records the completed Web-host gate and watchdog boundary.
+- [Ideas #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088#discussioncomment-18183338) records the vendor-neutral release-gate rules.
+- [Issue #19](https://github.com/iiwish/dsh-testkit/issues/19) closed through the reviewed implementation.
+- [Blue-Whale-Harness #135](https://github.com/leenkcool/Blue-Whale-Harness/issues/135) accepted DSH Testkit as an external testing utility.
 
 ## Review
 
-- Spec compliance: Passed for US-008, FR-029 through FR-036, NFR-015 through NFR-018 and SC-017 through SC-019.
-- Engineering quality: Passed with no open P0 or P1 finding.
-- Safety boundary: Passed; untrusted execution remains explicit, Docker is the default and the Agent Skill cannot authorize local execution.
-- Compatibility: Passed; root CLI behavior, Action inputs, v1 schemas and exit codes remain compatible.
-- Release acceptance: Passed locally, on protected PRs, on main, in trusted publication and against the public template root.
-- Governance acceptance: T008 remains `Needs_Review` until explicit user acceptance. The external-adopter count in SC-020 is a post-release field metric and does not block publication.
+- Spec compliance: Passed for US-010 through US-012, FR-040 through FR-047, NFR-021 through NFR-023 and the v0.4.0 compatibility boundary.
+- Engineering quality: Maintainer review found no surviving P0 through P3 issue on the implementation or release diff.
+- Safety boundary: Passed; browser traffic remains loopback-only, retained evidence is bounded, plugin code remains in the selected runner and watchdog cleanup is deterministic.
+- Compatibility: Passed; headless scenarios, HTTP-only scenarios, Action inputs, v1 schemas and exit codes remain compatible.
+- Publication: Passed through protected PRs, protected main, trusted npm publishing and public provenance verification.
 
 ## Residual Risks
 
-- Generated row expectations are deterministic, but service, tool, exercise and prerequisite expectations still require maintainer review.
-- Docker is not a hardened malware sandbox, and tested package/runtime code can use the network inside the disposable runner.
-- DSH remains a release-candidate contract. Canary success does not automatically widen the supported-version registry.
-- Official Skill wording and template integration are submitted, not accepted; upstream maintainers may revise or decline them without invalidating the released evidence.
-- Broad adoption is not yet demonstrated. The next product signal is repeated use by independent plugin maintainers, not additional framework surface.
+- The browser contract is intentionally one fixed TurnStatus smoke, not a general browser, visual or accessibility test surface.
+- Chromium is provided only in the Docker runner; environments without a supported executable receive honest `unsupported` coverage.
+- A cold arm64 runner-image build can exceed the default 10-minute attempt budget while downloading Chromium. The observed expiry returned infrastructure exit code 3 and left no owned container; the warm repeatability gate passed 5/5 attempts.
+- Docker is not a hardened malware sandbox, and plugin/runtime code can still exercise capabilities allowed by the runner environment.
+- DSH remains a release-candidate contract. GitHub has published `dsh-v0.1.2-alpha.1`, but npm `latest` and `next` remain `0.1.1-rc.2`; support changes require an exact npm canary.
+- External adoption remains the next product signal. The public template PR is not yet a merged, continuously running check.
 
 ## Publication Targets
 
 - Repository: [iiwish/dsh-testkit](https://github.com/iiwish/dsh-testkit)
-- GitHub release: [`v0.3.1`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.3.1), with `v0` dereferencing to the same release commit
-- npm package: [`dsh-testkit@0.3.1`](https://www.npmjs.com/package/dsh-testkit/v/0.3.1)
-- npm tarball SHA-1: `7fd8475e3479fb266621822482db6a4e85a94805`
-- npm integrity: `sha512-cuL8BpHKDJpa53Sy7yxmEwVpx+ojXpWsSjktNGey3K30Hy5QaiBXscltAuQ7xzIGa5V7exgB6OvtxQQK9exGDg==`
-- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.3.1)
-- Official forum: [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038) and [Ideas #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088)
-- Template integration: [bugmaker2/dsh-plugin-template#1](https://github.com/bugmaker2/dsh-plugin-template/pull/1)
+- GitHub release: [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0)
+- Stable moving tag: [`v0`](https://github.com/iiwish/dsh-testkit/tree/v0), resolving to the v0.4.0 release commit
+- npm package: [`dsh-testkit@0.4.0`](https://www.npmjs.com/package/dsh-testkit/v/0.4.0)
+- npm tarball SHA-1: `4238703a0876b038e75a90186f5c205fba661537`
+- npm integrity: `sha512-865EnsRfbcTw/nwRLz+E7hzs87v6MdDuDV6zV3J8+smmGkSjBTdaZfIl75FiXe3za99dNwbQIowi/2/VDspndw==`
+- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.4.0)
