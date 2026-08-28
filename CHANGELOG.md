@@ -4,6 +4,22 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-28
+
+### Added
+
+- Added an explicit Docker-only `dsh web` TurnStatus browser smoke using disposable Chromium, bounded text and screenshot evidence, and an `unsupported` verdict when the browser runner is unavailable.
+- Added a scenario-level `timeouts.overallMs` watchdog for local and Docker attempts, including owned process termination and deterministic container removal after expiry.
+
+### Fixed
+
+- Classified route and browser navigation failures as host infrastructure only after live loopback evidence, while retaining generic pre-probe timeouts and plugin failures for completed status, JSON, or DOM mismatches.
+- Preserved browser `unsupported` assertions through the production DSH adapter instead of promoting missing browser coverage to a plugin failure.
+
+### Security
+
+- Restricted browser traffic to the runner-owned loopback origin, blocked service workers and non-loopback HTTP and WebSocket requests, and excluded cookies, storage, and complete DOM content from retained evidence.
+
 ## [0.3.4] - 2026-08-27
 
 ### Added
@@ -127,7 +143,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/iiwish/dsh-testkit/compare/v0.3.1...v0.3.2

@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
     const english = await readFile(resolve(root, 'README.md'), 'utf8')
     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
 
-    expect(manifest.version).toBe('0.3.4')
+    expect(manifest.version).toBe('0.4.0')
     expect(manifest.files).toContain('README.zh-CN.md')
     expect(english).toContain('[简体中文](README.zh-CN.md)')
     expect(chinese).toContain('[English](README.md)')
     for (const contents of [english, chinese]) {
-      expect(contents).toContain('dsh-testkit@0.3.4')
+      expect(contents).toContain('dsh-testkit@0.4.0')
       expect(contents).toContain('dsh-test init')
       expect(contents).toContain('--repo-root')
       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
@@ -29,6 +29,8 @@ describe('bilingual project entrypoints', () => {
       expect(contents).toContain('http.routes')
       expect(contents).toContain('127.0.0.1')
       expect(contents).toContain('profile: web')
+      expect(contents).toContain('browser smoke')
+      expect(contents).toContain('watchdog')
       expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
     }
     expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
@@ -37,12 +39,13 @@ describe('bilingual project entrypoints', () => {
     expect(chinese).toContain('不是经过强化的恶意代码沙箱')
   })
 
-  it('records the patch release in the changelog and security support table', async () => {
+  it('records the minor release in the changelog and security support table', async () => {
     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
 
-    expect(changelog).toContain('## [0.3.4] - 2026-08-27')
-    expect(changelog).toContain('[0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4')
-    expect(security).toContain('| 0.3.x | Yes |')
+    expect(changelog).toContain('## [0.4.0] - 2026-08-28')
+    expect(changelog).toContain('[0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0')
+    expect(security).toContain('| 0.4.x | Yes |')
+    expect(security).toContain('| 0.3.x | No |')
   })
 })

@@ -1,6 +1,6 @@
 {
   "name": "dsh-testkit",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
   "keywords": [
     "deepseek",
