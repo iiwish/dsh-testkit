@@ -4,7 +4,7 @@ Version: v0.4.0
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-26
+Last updated: 2026-08-28
 
 ## 状态定义
 
@@ -135,7 +135,7 @@ Evidence required:
 
 ### T011: Explicit DSH Web Browser Smoke
 
-Status: Needs_Review
+Status: Accepted
 Priority: P1
 Depends on: T010
 Blocks: T012
@@ -180,7 +180,7 @@ Packet path:
 
 ### T012: Attempt-Wide Watchdog And Host-Hang Classification
 
-Status: Needs_Review
+Status: Accepted
 Priority: P0
 Depends on: T011
 Blocks: None
