@@ -26,6 +26,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
 import { AssertionSchema } from '../../domain/report.js'
 import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
 import { renderScenarioSnapshot } from '../../domain/scenario.js'
+import { checkTurnStatusBrowserSmoke } from './browser-smoke.js'
 import { checkLoopbackHttpRoutes } from './http-routes.js'
 import {
   captureSystemSnapshot,
@@ -195,7 +196,13 @@ function collectIds(value: unknown, ids = new Set<string>()): Set<string> {
 }
 
 function failedAssertions(assertions: readonly Assertion[]): Assertion[] {
-  return assertions.filter(assertion => assertion.status !== 'passed')
+  return assertions.filter(assertion => assertion.status === 'failed')
+}
+
+export function classifyBootFailure(
+  evidence: 'pre-probe-timeout' | 'live-loopback-unresponsive',
+): FailureKind {
+  return evidence === 'live-loopback-unresponsive' ? 'dsh' : 'timeout'
 }
 
 function normalizedLines(value: string | null): string[] {
@@ -285,6 +292,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
   private profileDir = ''
   private dshExecutable = ''
   private webPort: number | null = null
+  private browserIdentity: { name: string; version: string } | null = null
+  private hostInfrastructureError: { message: string; artifacts: string[] } | null = null
   private probePatch = ''
   private canary = ''
   private primaryResolved!: ResolvedSource
@@ -544,20 +553,23 @@ export class DshNpmAdapter implements LifecycleAdapter {
     const assertions = [
       ...observation.probe.assertions,
       ...(observation.probe.routes ?? []),
+      ...(observation.probe.browser ?? []),
     ]
     const failures = failedAssertions(assertions)
     if (failures.length > 0) {
       throw new StageFailure(`${failures.length} runtime registration assertion(s) failed`, {
         failureKind: 'assertion',
         assertions,
-        artifacts: this.routeArtifacts('boot'),
+        artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
       })
     }
     return {
       value: undefined,
-      summary: `${assertions.length} runtime registration assertion(s) passed`,
+      summary: assertions.some(assertion => assertion.status === 'unsupported')
+        ? `${assertions.length} runtime registration assertion(s) completed with unsupported coverage`
+        : `${assertions.length} runtime registration assertion(s) passed`,
       assertions,
-      artifacts: this.routeArtifacts('boot'),
+      artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
     }
   }
 
@@ -610,6 +622,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       ...(configured.assertions ?? []),
       ...boot.value.probe.assertions,
       ...(boot.value.probe.routes ?? []),
+      ...(boot.value.probe.browser ?? []),
       ...boot.value.probe.exercises,
     ]
     if (failedAssertions(assertions).length > 0) {
@@ -865,6 +878,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       pnpm: this.pnpmVersion,
       image: process.env.DSH_TESTKIT_IMAGE ?? null,
       imageId: process.env.DSH_TESTKIT_IMAGE_ID ?? null,
+      browser: this.browserIdentity,
     }
   }
 
@@ -1103,12 +1117,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
     mode: 'present' | 'absent',
   ): Promise<AdapterCompletion<AdapterBootObservation>> {
     await this.ensureProbePatch()
-    if (mode === 'present' && this.request.scenario.http !== undefined) {
+    const webMode = this.request.scenario.http !== undefined || this.request.scenario.browser !== undefined
+    this.hostInfrastructureError = null
+    if (mode === 'present' && webMode) {
       if (this.request.runner !== 'docker') {
-        throw new StageFailure('HTTP route assertions require the Docker runner', { failureKind: 'subject' })
+        throw new StageFailure('Web HTTP and browser assertions require the Docker runner', { failureKind: 'subject' })
       }
       if (this.request.scenario.profile !== 'web') {
-        throw new StageFailure('HTTP route assertions require scenario.profile: web', { failureKind: 'subject' })
+        throw new StageFailure('Web HTTP and browser assertions require scenario.profile: web', { failureKind: 'subject' })
       }
       this.webPort = await this.allocateLoopbackPort()
     }
@@ -1123,7 +1139,6 @@ export class DshNpmAdapter implements LifecycleAdapter {
       exercise: mode === 'present' ? this.request.scenario.exercise : [],
       settleMs: 500,
     }
-    const webMode = this.request.scenario.http !== undefined
     const result = await runCommand({
       executable: this.dshExecutable,
       args: webMode
@@ -1145,6 +1160,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
         if (mode === 'present' && this.request.scenario.http !== undefined && this.webPort !== null) {
           await this.captureHttpRoutes(label)
         }
+        if (mode === 'present' && this.request.scenario.browser !== undefined && this.webPort !== null) {
+          await this.captureBrowserSmoke(label)
+        }
       },
     })
     for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
@@ -1158,9 +1176,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
         signal: result.signal,
       })
     }
+    const hostInfrastructureError = this.hostInfrastructureError as { message: string; artifacts: string[] } | null
+    if (hostInfrastructureError !== null) {
+      throw new StageFailure(hostInfrastructureError.message, {
+        failureKind: classifyBootFailure('live-loopback-unresponsive'),
+        artifacts: [...commandArtifacts(result), ...hostInfrastructureError.artifacts],
+        command: result.command,
+        exitCode: result.exitCode,
+        signal: result.signal,
+      })
+    }
     if (result.timedOut) {
       throw new StageFailure(`DSH boot timed out before the runtime probe completed`, {
-        failureKind: 'timeout',
+        failureKind: classifyBootFailure('pre-probe-timeout'),
         artifacts: commandArtifacts(result),
         command: result.command,
         exitCode: result.exitCode,
@@ -1189,7 +1217,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
         command: result.command,
         exitCode: result.exitCode,
         signal: result.signal,
-        artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
+        artifacts: [
+          ...commandArtifacts(result),
+          ...probeArtifacts,
+          ...this.routeArtifacts(label),
+          ...this.browserArtifacts(label),
+        ],
       }
     }
     const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
@@ -1197,6 +1230,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
       assertions: document.assertions,
       exercises: document.exercises,
       routes: this.routeAssertions(label),
+      browser: this.browserAssertions(label),
     }
     return {
       value: { outcome: 'success', probe },
@@ -1204,11 +1238,17 @@ export class DshNpmAdapter implements LifecycleAdapter {
       command: result.command,
       exitCode: result.exitCode,
       signal: result.signal,
-      artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
+      artifacts: [
+        ...commandArtifacts(result),
+        ...probeArtifacts,
+        ...this.routeArtifacts(label),
+        ...this.browserArtifacts(label),
+      ],
     }
   }
 
   private readonly routeResults = new Map<string, { assertions: Assertion[], artifact: string }>()
+  private readonly browserResults = new Map<string, { assertions: Assertion[], artifacts: string[] }>()
 
   private routeAssertions(label: string): Assertion[] {
     return this.routeResults.get(label)?.assertions ?? []
@@ -1217,6 +1257,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
   private routeArtifacts(label: string): string[] {
     const artifact = this.routeResults.get(label)?.artifact
     return artifact === undefined ? [] : [artifact]
+  }
+
+  private browserAssertions(label: string): Assertion[] {
+    return this.browserResults.get(label)?.assertions ?? []
+  }
+
+  private browserArtifacts(label: string): string[] {
+    return this.browserResults.get(label)?.artifacts ?? []
   }
 
   private async captureHttpRoutes(label: string): Promise<void> {
@@ -1235,6 +1283,13 @@ export class DshNpmAdapter implements LifecycleAdapter {
         artifact,
         assertions: result.assertions.map(assertion => ({ ...assertion, evidence: [artifact] })),
       })
+      const unresponsive = result.evidence.requests.find(request => request.status === null && request.error !== undefined)
+      if (unresponsive !== undefined) {
+        this.hostInfrastructureError = {
+          message: `DSH web host did not complete HTTP ${unresponsive.path}: ${unresponsive.error}`,
+          artifacts: [artifact],
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const assertions: Assertion[] = routes.map(route => ({
@@ -1253,6 +1308,41 @@ export class DshNpmAdapter implements LifecycleAdapter {
       }, null, 2)}\n`)
       this.addArtifact(artifactPath)
       this.routeResults.set(label, { artifact, assertions })
+    }
+  }
+
+  private async captureBrowserSmoke(label: string): Promise<void> {
+    const smoke = this.request.scenario.browser?.smoke
+    if (smoke === undefined || this.webPort === null) return
+    const artifact = `evidence/browser-${label}.json`
+    const artifactPath = join(this.evidenceDir, `browser-${label}.json`)
+    const screenshotArtifact = `evidence/browser-${label}-turn-status.png`
+    const screenshotPath = join(this.evidenceDir, `browser-${label}-turn-status.png`)
+    const result = await checkTurnStatusBrowserSmoke(smoke, {
+      port: this.webPort,
+      screenshotPath,
+      screenshotArtifact,
+    })
+    await writeFile(artifactPath, `${JSON.stringify(result.evidence, null, 2)}\n`)
+    this.addArtifact(artifactPath)
+    const artifacts = [artifact]
+    if (await exists(screenshotPath)) {
+      this.addArtifact(screenshotPath)
+      artifacts.push(screenshotArtifact)
+    }
+    const assertions = result.assertions.map(assertion => ({
+      ...assertion,
+      evidence: [...new Set([...(assertion.evidence ?? []).filter(value => artifacts.includes(value)), artifact])],
+    }))
+    this.browserResults.set(label, { assertions, artifacts })
+    if (result.evidence.browserName !== null && result.evidence.browserVersion !== null) {
+      this.browserIdentity = {
+        name: result.evidence.browserName,
+        version: result.evidence.browserVersion,
+      }
+    }
+    if (result.infrastructureError !== undefined) {
+      this.hostInfrastructureError = { message: result.infrastructureError, artifacts }
     }
   }
 
@@ -1420,7 +1510,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
     // The DSH web profile lazily materializes its workspace storage while the
     // host is running. That state belongs to the profile runtime rather than
     // to the plugin, so HTTP route scenarios must not report it as residue.
-    if (this.request.scenario.http !== undefined && this.profileName(this.request.scenario) === 'web') {
+    if ((this.request.scenario.http !== undefined || this.request.scenario.browser !== undefined)
+      && this.profileName(this.request.scenario) === 'web') {
       managedPrefixes.push('storages/')
     }
     const exactPaths = new Set([

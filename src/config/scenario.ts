@@ -38,8 +38,14 @@ export function validateRunnerSelection(selection: RunnerSelection): RunnerSelec
   if (selection.runner === 'local' && selection.scenario?.http !== undefined) {
     throw new Error('HTTP route assertions require the Docker runner')
   }
+  if (selection.runner === 'local' && selection.scenario?.browser !== undefined) {
+    throw new Error('Browser smoke requires the Docker runner')
+  }
   if (selection.scenario?.http !== undefined && selection.scenario.profile !== 'web') {
     throw new Error('HTTP route assertions require scenario.profile: web')
+  }
+  if (selection.scenario?.browser !== undefined && selection.scenario.profile !== 'web') {
+    throw new Error('Browser smoke requires scenario.profile: web')
   }
   return selection
 }

@@ -81,6 +81,63 @@ describe('scenario contract', () => {
     })
   })
 
+  it('parses the bounded TurnStatus browser smoke and overall watchdog budget', () => {
+    const scenario = parseScenario({
+      schemaVersion: 1,
+      name: 'browser-smoke',
+      subject: { source: './plugin' },
+      dsh: { version: '0.1.1-rc.2' },
+      profile: 'web',
+      browser: {
+        smoke: {
+          kind: 'turn-status-text',
+          path: '/',
+          expectedText: 'Fixture status ready',
+          timeoutMs: 5_000,
+        },
+      },
+      timeouts: { overallMs: 120_000 },
+    })
+
+    expect(scenario.browser?.smoke).toEqual({
+      kind: 'turn-status-text',
+      path: '/',
+      expectedText: 'Fixture status ready',
+      timeoutMs: 5_000,
+    })
+    expect(scenario.timeouts).toMatchObject({ overallMs: 120_000 })
+  })
+
+  it('defaults the attempt-wide watchdog to ten minutes', () => {
+    expect(buildScenario({ source: '.', dshVersion: '0.1.1-rc.2' }).timeouts.overallMs)
+      .toBe(600_000)
+  })
+
+  it('rejects browser smoke outside the explicit web profile', () => {
+    const scenario = parseScenario({
+      schemaVersion: 1,
+      name: 'browser-headless',
+      subject: { source: '.' },
+      dsh: { version: '0.1.1-rc.2' },
+      browser: { smoke: { kind: 'turn-status-text', expectedText: 'ready' } },
+    })
+    expect(() => validateRunnerSelection({ runner: 'docker', unsafeLocal: false, scenario }))
+      .toThrow(/profile: web/i)
+  })
+
+  it('rejects browser smoke in the unsafe local runner', () => {
+    const scenario = parseScenario({
+      schemaVersion: 1,
+      name: 'browser-local',
+      subject: { source: '.' },
+      dsh: { version: '0.1.1-rc.2' },
+      profile: 'web',
+      browser: { smoke: { kind: 'turn-status-text', expectedText: 'ready' } },
+    })
+    expect(() => validateRunnerSelection({ runner: 'local', unsafeLocal: true, scenario }))
+      .toThrow(/Docker runner/i)
+  })
+
   it.each([
     'https://example.test/status',
     '/status?token=secret',

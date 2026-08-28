@@ -10,6 +10,7 @@ export interface ProbeArtifact {
   assertions: Assertion[]
   exercises: Assertion[]
   routes?: Assertion[]
+  browser?: Assertion[]
 }
 
 export interface AdapterBootObservation {

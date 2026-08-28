@@ -46,6 +46,19 @@ export const HttpRoutesSchema = z.object({
   ),
 }).strict()
 
+export const BrowserSmokeSchema = z.object({
+  kind: z.literal('turn-status-text'),
+  path: z.string().refine(validateHttpPath, {
+    message: 'Browser smoke path must be an absolute loopback path without query, fragment, traversal or control characters',
+  }).default('/'),
+  expectedText: z.string().min(1).max(512),
+  timeoutMs: z.number().int().min(1_000).max(30_000).default(5_000),
+}).strict()
+
+export const BrowserSchema = z.object({
+  smoke: BrowserSmokeSchema,
+}).strict()
+
 export const ScenarioSchema = z.object({
   schemaVersion: z.literal(SCENARIO_SCHEMA_VERSION),
   name: z.string().min(1),
@@ -67,6 +80,7 @@ export const ScenarioSchema = z.object({
     tools: UniqueStringsSchema.default([]),
   }).strict().default({ boot: 'success', rows: [], services: [], tools: [] }),
   http: HttpRoutesSchema.optional(),
+  browser: BrowserSchema.optional(),
   exercise: z.array(ExerciseSchema).default([]),
   recovery: z.object({
     onBootFailure: z.enum(['remove-plugin', 'none']).default('remove-plugin'),
@@ -88,7 +102,8 @@ export const ScenarioSchema = z.object({
     installMs: z.number().int().min(1_000).max(1_800_000).default(300_000),
     bootMs: z.number().int().min(1_000).max(300_000).default(30_000),
     cleanupMs: z.number().int().min(1_000).max(120_000).default(30_000),
-  }).strict().default({ installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000 }),
+    overallMs: z.number().int().min(5_000).max(3_600_000).default(600_000),
+  }).strict().default({ installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000, overallMs: 600_000 }),
 }).strict()
 
 export type ObserverRequirement = z.infer<typeof ObserverRequirementSchema>
@@ -96,6 +111,8 @@ export type Exercise = z.infer<typeof ExerciseSchema>
 export type HttpRouteExpectation = z.infer<typeof HttpRouteExpectationSchema>
 export type HttpRoute = z.infer<typeof HttpRouteSchema>
 export type HttpRoutes = z.infer<typeof HttpRoutesSchema>
+export type BrowserSmoke = z.infer<typeof BrowserSmokeSchema>
+export type Browser = z.infer<typeof BrowserSchema>
 export type Scenario = z.infer<typeof ScenarioSchema>
 
 export function renderScenarioSnapshot(scenario: Scenario): string {

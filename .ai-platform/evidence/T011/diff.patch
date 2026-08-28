@@ -1,0 +1,1676 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 848a482..715be18 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -117,6 +117,24 @@ Scenario:
+ 2. Testkit 只向 `127.0.0.1` 的 disposable DSH web process 发起 `GET` 请求，并在 boot 成功后、uninstall 前完成检查。
+ 3. 报告保留路径、状态、选定字段和 response digest，不落盘 headers 或完整 body；失败仍归因于 register 阶段并保留机器可读证据。
+ 
++### US-011: 浏览器插件作者验证最小 Web 行为
++
++As a browser-only DSH plugin maintainer, I want an explicit `dsh web` fixture and a narrow browser smoke, so that client-side behavior is tested in its supported host without weakening the headless lifecycle contract.
++
++Scenario:
++1. 作者声明 `profile: web` 和一个受限的 TurnStatus 文本 smoke，Testkit 在 disposable DSH web host 中打开真实页面。
++2. Browser runner 在页面中创建确定性的 TurnStatus 起始状态，并等待插件把默认文本替换为场景期望值。
++3. 报告记录浏览器与宿主版本、选定 DOM 文本和 screenshot；浏览器 runner 缺失时返回 `unsupported`，而不是合成通过。
++
++### US-012: 维护者从宿主永久无响应中获得基础设施结论
++
++As a DSH Testkit maintainer, I want an attempt-wide watchdog and host-hang classification, so that an unresponsive DSH process cannot hold CI forever or be blamed on the tested plugin without evidence.
++
++Scenario:
++1. 每次 lifecycle attempt 受一个显式总预算保护，预算耗尽后 controller 终止 owned process/container 并尽力保留 watchdog 日志。
++2. `dsh web` 仍监听但 loopback HTTP 无法完成时，结果归类为 DSH host/infrastructure failure。
++3. 插件断言失败、HTTP 非预期 status 和 browser DOM 不匹配仍保持 subject/assertion failure。
++
+ ## 4. 核心用户旅程
+ 
+ 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
+@@ -172,6 +190,11 @@ Scenario:
+ - FR-040: 场景可以声明可选的 `http.routes`，必须使用 `profile: web`，每个 route 只能使用 `GET`、绝对路径和期望的 HTTP status；runner 必须为真实 DSH web host 分配 disposable loopback port。
+ - FR-041: HTTP route 检查只允许 Docker runner，必须发生在成功 boot 之后、uninstall 之前；boot failure、crash 或 timeout 不得发起 route 请求。
+ - FR-042: route 结果必须记录 request path、method、status、期望值、选定 JSON 字段和 response digest；headers 与完整 body 默认不进入证据，敏感字段必须脱敏。
++- FR-043: 场景可以声明一个可选的 `browser.smoke`，首个支持类型只检查 TurnStatus 从固定默认文本到场景期望文本的转换；该 lane 必须显式使用 `profile: web`。
++- FR-044: Browser smoke 必须在真实 DSH web 页面和 disposable browser context 中执行，不调用模型、不访问外部网络；证据只保留 browser identity、选定 DOM 文本、错误摘要和 screenshot，不保存完整 DOM、cookies 或 storage。
++- FR-045: Browser runner 或 browser executable 不可用时，register 阶段必须产生 `unsupported` assertion 和总体 `unsupported` verdict，不得把缺失能力报告为 pass 或插件失败。
++- FR-046: 每个 runner attempt 必须有场景级 `overallMs` 总预算；controller 超时后必须终止 owned process group/container，并以 exit code `3` 报告 host/infrastructure failure。
++- FR-047: `dsh web` 在 loopback port 存活但 HTTP/browser 导航无法在有界时间内完成时，必须归类为 DSH host/infrastructure failure；收到 HTTP response 后的 status/JSON/DOM mismatch 仍归类为插件断言失败。
+ 
+ ## 6. Non-Functional Requirements
+ 
+@@ -196,6 +219,8 @@ Scenario:
+ - NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
+ - NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
+ - NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
++- NFR-022 Browser safety: browser smoke 只允许 runner-owned loopback origin、固定 TurnStatus contract、无任意脚本输入；context 在每次检查后关闭，并阻止非 loopback 请求。
++- NFR-023 Watchdog reliability: 默认 attempt 总预算不超过 quick suite 的 10 分钟目标；watchdog 必须有 SIGTERM 后的强制终止与 Docker container removal fallback。
+ 
+ ## 7. 功能范围
+ 
+diff --git a/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json b/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+index 56ebf2c..175b6ed 100644
+--- a/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
++++ b/.ai-platform/specs/lifecycle-runner/contracts/scenario.schema.json
+@@ -40,6 +40,9 @@
+     "http": {
+       "$ref": "#/$defs/httpRoutes"
+     },
++    "browser": {
++      "$ref": "#/$defs/browser"
++    },
+     "exercise": {
+       "type": "array",
+       "items": {
+@@ -76,7 +79,8 @@
+       "properties": {
+         "installMs": { "type": "integer", "minimum": 1000, "maximum": 1800000 },
+         "bootMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
+-        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 }
++        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 },
++        "overallMs": { "type": "integer", "minimum": 5000, "maximum": 3600000, "default": 600000 }
+       }
+     }
+   },
+@@ -116,6 +120,25 @@
+         "status": { "type": "integer", "minimum": 100, "maximum": 599, "default": 200 },
+         "json": { "type": "object", "additionalProperties": true, "default": {} }
+       }
++    },
++    "browser": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["smoke"],
++      "properties": {
++        "smoke": { "$ref": "#/$defs/browserSmoke" }
++      }
++    },
++    "browserSmoke": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["kind", "expectedText"],
++      "properties": {
++        "kind": { "const": "turn-status-text" },
++        "path": { "type": "string", "pattern": "^\\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\\/-]*)$", "default": "/" },
++        "expectedText": { "type": "string", "minLength": 1, "maxLength": 512 },
++        "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 30000, "default": 5000 }
++      }
+     }
+   }
+ }
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T011.yaml b/.ai-platform/specs/lifecycle-runner/packets/T011.yaml
+new file mode 100644
+index 0000000..b414b8c
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T011.yaml
+@@ -0,0 +1,14 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T011
++task_id: T011
++feature_id: lifecycle-runner
++mode: direct_execute
++approval: User explicitly requested Issue #19 implementation on 2026-08-27
++goal: Add a bounded explicit dsh web TurnStatus browser smoke with unsupported fallback.
++allowed_files: [.ai-platform/**, src/domain/scenario.ts, src/config/scenario.ts, src/worker/adapter.ts, src/adapters/dsh/**, fixtures/web-status-plugin/**, tests/**, assets/runner.Dockerfile, package.json, pnpm-lock.yaml, schemas/scenario-v1.json, docs/**, README.md, README.zh-CN.md]
++tdd:
++  red: pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
++  green: pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
++validation: [pnpm typecheck, pnpm build, pnpm validate, pnpm test:pack]
++evidence: [.ai-platform/evidence/T011/summary.md, .ai-platform/evidence/T011/test-results.md, .ai-platform/evidence/T011/diff.patch]
++stop_conditions: [arbitrary browser script input, non-loopback browsing, persisted cookies/storage/full DOM, synthetic pass without browser]
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T012.yaml b/.ai-platform/specs/lifecycle-runner/packets/T012.yaml
+new file mode 100644
+index 0000000..f3dedaa
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T012.yaml
+@@ -0,0 +1,14 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T012
++task_id: T012
++feature_id: lifecycle-runner
++mode: direct_execute
++approval: User explicitly requested watchdog and host/infrastructure classification on 2026-08-27
++goal: Bound every attempt and classify an unresponsive DSH web host as infrastructure.
++allowed_files: [.ai-platform/**, src/domain/scenario.ts, src/domain/lifecycle.ts, src/runners/**, src/adapters/dsh/**, src/process/command.ts, tests/**, schemas/scenario-v1.json, docs/**]
++tdd:
++  red: pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts
++  green: pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts
++validation: [pnpm validate, pnpm test:pack]
++evidence: [.ai-platform/evidence/T012/summary.md, .ai-platform/evidence/T012/test-results.md, .ai-platform/evidence/T012/diff.patch]
++stop_conditions: [watchdog cannot terminate owned resources, completed plugin assertion is reclassified as infrastructure, exit-code contract changes]
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index fdb31d0..036b43c 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -105,6 +105,13 @@ Status: Completed; accepted after local validation and the required real-host Do
+ - Persist bounded status, selected JSON fields and response digest evidence with headers and complete bodies redacted.
+ - Reject HTTP route scenarios in explicit unsafe-local mode and preserve the v1 report schema and lifecycle stage IDs.
+ 
++### Slice 9: Explicit Web Browser Smoke And Host Watchdog
++
++- Add an explicit `profile: web` TurnStatus browser smoke using a disposable Playwright context and a deterministic local fixture.
++- Return `unsupported` when the browser runner or executable is unavailable; retain only bounded DOM/browser identity and screenshot evidence.
++- Add a scenario-level attempt budget enforced by both Docker and local controllers, with owned-container removal after expiry.
++- Classify unresponsive DSH web HTTP/browser behavior as host/infrastructure while preserving assertion failure semantics for completed responses and DOM mismatches.
++
+ ## Validation Strategy
+ 
+ - RED/GREEN Vitest tests per task.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index c7419f2..4ef8732 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -4,7 +4,7 @@ Version: v0.4.0
+ Status: Confirmed
+ Feature: lifecycle-runner
+ Source spec: `.ai-platform/docs/product-design.md`
+-Last updated: 2026-08-26
++Last updated: 2026-08-28
+ 
+ ## 状态定义
+ 
+@@ -56,6 +56,8 @@ Tasks:
+ - [x] T008 [US-008] Ship one-command onboarding and a discoverable Agent Skill, then publish v0.3.0 and upstream integrations.
+ - [x] T009 [US-009] Support nested plugin roots and complete the bounded first design-partner pilot without publishing a package.
+ - [x] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
++- [x] T011 [US-011] Add an explicit `dsh web` fixture and narrow TurnStatus browser smoke with `unsupported` fallback.
++- [x] T012 [US-012] Add an attempt-wide watchdog and classify unresponsive DSH web hosts as infrastructure.
+ 
+ ### T010: Deterministic Loopback HTTP Route Assertions
+ 
+@@ -131,6 +133,89 @@ Evidence required:
+ - Diff summary.
+ - Residual risks.
+ 
++### T011: Explicit DSH Web Browser Smoke
++
++Status: Accepted
++Priority: P1
++Depends on: T010
++Blocks: T012
++Story / Requirement: US-011, FR-043 through FR-045, NFR-022
++Parallel: No
++Conflicts with: T012
++
++Goal:
++Exercise one deterministic TurnStatus text transition in a disposable browser against the real `dsh web` host without adding a general browser-testing surface.
++
++Allowed files:
++- `.ai-platform/**`
++- `src/domain/scenario.ts`
++- `src/config/scenario.ts`
++- `src/worker/adapter.ts`
++- `src/adapters/dsh/**`
++- `fixtures/web-status-plugin/**`
++- `tests/unit/**`
++- `tests/integration/**`
++- `tests/e2e/**`
++- `assets/runner.Dockerfile`
++- `package.json`
++- `pnpm-lock.yaml`
++- `schemas/scenario-v1.json`
++- `docs/**`
++- `README.md`
++- `README.zh-CN.md`
++
++Acceptance criteria:
++- The scenario accepts only the fixed TurnStatus smoke kind on `profile: web`.
++- A disposable browser context opens only the runner-owned loopback origin, injects the deterministic initial TurnStatus, and records the expected transition plus browser identity and screenshot.
++- Missing Playwright or browser executable yields `unsupported`; navigation timeout is DSH/infrastructure; completed DOM mismatch is an assertion failure.
++- Existing headless and HTTP route scenarios remain compatible.
++
++Validation commands:
++- `pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts`
++- `pnpm typecheck`
++- `pnpm build`
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T011.yaml`
++
++### T012: Attempt-Wide Watchdog And Host-Hang Classification
++
++Status: Accepted
++Priority: P0
++Depends on: T011
++Blocks: None
++Story / Requirement: US-012, FR-046 through FR-047, NFR-023
++Parallel: No
++Conflicts with: T011
++
++Goal:
++Bound the complete worker attempt and prevent an unresponsive DSH host from becoming either an infinite CI run or a plugin failure.
++
++Allowed files:
++- `.ai-platform/**`
++- `src/domain/scenario.ts`
++- `src/domain/lifecycle.ts`
++- `src/runners/**`
++- `src/adapters/dsh/**`
++- `src/process/command.ts`
++- `tests/unit/**`
++- `tests/integration/**`
++- `schemas/scenario-v1.json`
++- `docs/**`
++
++Acceptance criteria:
++- `timeouts.overallMs` defaults to 600000 and bounds each attempt in Docker and local runners.
++- Watchdog expiry returns exit code 3, force-removes the owned Docker container, and retains controller logs.
++- DSH web request/navigation timeouts produce infrastructure verdicts; completed plugin assertions remain ordinary failures.
++
++Validation commands:
++- `pnpm vitest run tests/unit/runner.test.ts tests/unit/lifecycle.test.ts tests/unit/http-routes.test.ts tests/integration/cli.test.ts`
++- `pnpm validate`
++- `pnpm test:pack`
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
++
+ ## Task Details
+ 
+ ### T001: Foundation, Domain And Reporters
+diff --git a/README.md b/README.md
+index 503b34d..1b084d9 100644
+--- a/README.md
++++ b/README.md
+@@ -59,6 +59,7 @@ The current adapter supports the exact `@deepseek-ai/dsh` versions `0.1.1-rc.2`
+ | Clean removal | The same profile is rebooted after uninstall and checked for bundles, capabilities, processes, ports, and owned-path residue. |
+ | Repeatability | `--suite full` runs five isolated attempts and returns `flaky` when semantic outcomes disagree. |
+ | Observer limits | Unavailable coverage is disclosed; a required unavailable observer returns `unsupported`, never a false pass. |
++| Web smoke and watchdog | An explicit TurnStatus browser smoke uses disposable Chromium; missing browser support is `unsupported`, while an unresponsive DSH web host and attempt-wide watchdog expiry are infrastructure errors. |
+ 
+ It does **not** prove that arbitrary executable code is safe or that a plugin produces high-quality model output.
+ 
+@@ -122,7 +123,7 @@ http:
+ 
+ Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
+ 
+-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, stage reruns, and the loopback HTTP route contract. HTTP checks are deliberately narrow: GET only, runner-owned `127.0.0.1`, selected JSON fields and digest evidence without headers or full response bodies.
++The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, the attempt-wide watchdog, observer policy, stage reruns, loopback HTTP routes and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser checks stay on runner-owned `127.0.0.1`; browser evidence contains only identity, selected text and a screenshot, and missing Chromium returns `unsupported`.
+ 
+ ## CI Evidence
+ 
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index 422d48a..656459b 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -59,6 +59,7 @@ Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `r
+ | 干净卸载 | 卸载后重启同一 profile，并检查 bundle、能力、进程、端口和归属路径残留。 |
+ | 可重复性 | `--suite full` 运行五次隔离尝试；语义结果不一致时返回 `flaky`。 |
+ | 观测边界 | 不可用的 observer 会明确披露；必需 observer 不可用时返回 `unsupported`，不会伪造通过。 |
++| Web smoke 与 watchdog | 显式 TurnStatus browser smoke 使用一次性 Chromium；缺少 browser runner 时返回 `unsupported`，DSH web 无响应或全局 watchdog 到期则归为基础设施错误。 |
+ 
+ 它**不能**证明任意可执行代码是安全的，也不能证明插件生成的模型结果质量足够高。
+ 
+@@ -122,7 +123,7 @@ http:
+ 
+ 使用 `http.routes` 时请在场景中设置 `profile: web`；route probe 会针对 DSH 的公开 web profile。
+ 
+-[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、超时、observer 策略、单阶段重跑和 loopback HTTP route 契约。HTTP 检查保持窄范围：只允许 GET 和 runner 自己分配的 `127.0.0.1`，只记录选定 JSON 字段与 digest，不保存 headers 或完整响应 body。
++[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、单次尝试全局 watchdog、observer 策略、单阶段重跑、loopback HTTP route 和显式 `dsh web` TurnStatus browser smoke。HTTP 与浏览器检查只访问 runner 自己分配的 `127.0.0.1`；浏览器证据仅包含身份、选定文本和 screenshot，缺少 Chromium 时返回 `unsupported`。
+ 
+ ## CI 证据
+ 
+diff --git a/assets/runner.Dockerfile b/assets/runner.Dockerfile
+index b7cc605..822dc54 100644
+--- a/assets/runner.Dockerfile
++++ b/assets/runner.Dockerfile
+@@ -7,7 +7,7 @@ LABEL dev.dsh-testkit.version="${TESTKIT_VERSION}" \
+ ENV COREPACK_HOME=/opt/corepack
+ 
+ RUN apt-get update \
+-  && apt-get install -y --no-install-recommends ca-certificates g++ git iproute2 make procps python3 \
++  && apt-get install -y --no-install-recommends ca-certificates chromium g++ git iproute2 make procps python3 \
+   && rm -rf /var/lib/apt/lists/* \
+   && corepack enable \
+   && mkdir -p /opt/corepack \
+diff --git a/docs/scenarios.md b/docs/scenarios.md
+index 0bf47a7..f2b1904 100644
+--- a/docs/scenarios.md
++++ b/docs/scenarios.md
+@@ -36,10 +36,17 @@ http:
+         json:
+           status: ok
+           version: $subject.packageVersion
++browser:
++  smoke:
++    kind: turn-status-text
++    path: /
++    expectedText: Fixture status ready
++    timeoutMs: 5000
+ timeouts:
+   installMs: 300000
+   bootMs: 30000
+   cleanupMs: 30000
++  overallMs: 600000
+ ```
+ 
+ `subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. `updateFrom` installs the old artifact first and enables the update stage.
+@@ -54,6 +61,10 @@ Every lifecycle stage is a case identifier. `--case boot` executes resolve throu
+ 
+ Route scenarios must set `profile: web`; this selects DSH's public web profile for both installation and boot. Other profile names remain valid for non-HTTP lifecycle scenarios.
+ 
++`browser.smoke` is an explicit Docker-only `dsh web` lane for one bounded contract: a TurnStatus element beginning as `Deep diving...` must change to `expectedText`. Testkit opens only the runner-owned loopback origin, uses a disposable Chromium context, blocks non-loopback HTTP requests, and retains browser identity, the selected text and a screenshot without cookies, storage or a full DOM dump. A missing browser executable returns `unsupported`; a DSH web navigation timeout is `infrastructure_error`; a completed page whose text does not match remains a plugin assertion failure.
++
++`timeouts.overallMs` bounds each complete attempt, including install, boot, browser/HTTP checks, uninstall and cleanup. It defaults to 600000 ms. When the controller watchdog expires it terminates the owned worker/container, force-removes the named Docker container as a fallback, retains controller logs and exits with infrastructure code `3`.
++
+ An expected boot failure is a negative test: the boot assertion passes only when DSH fails, then recovery removes the plugin and proves that the same profile boots again.
+ 
+ Observer values are `required`, `preferred`, or `off`. Missing required coverage makes the run `unsupported`; preferred coverage records its limitation without changing an otherwise valid lifecycle result.
+diff --git a/fixtures/web-status-plugin/client.js b/fixtures/web-status-plugin/client.js
+new file mode 100644
+index 0000000..35bdf5f
+--- /dev/null
++++ b/fixtures/web-status-plugin/client.js
+@@ -0,0 +1,44 @@
++window.__ModuleLoader__.load({
++  id: '@dsh-testkit/fixture-web-status',
++  factory: (_require) => {
++    var module = { exports: {} }
++    var exports = module.exports
++    Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
++    const name = '@dsh-testkit/fixture-web-status'
++    const inject = []
++
++    function apply(ctx) {
++      const expected = 'Fixture status ready'
++      const selector = '[role="status"][aria-live="polite"]'
++      window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true
++      const adopt = (root) => {
++        const candidates = root instanceof Element
++          ? [root, ...root.querySelectorAll(selector)]
++          : [...document.querySelectorAll(selector)]
++        for (const element of candidates) {
++          if (element.matches?.(selector) && element.textContent === 'Deep diving...') {
++            element.textContent = expected
++          }
++        }
++      }
++      const observer = new MutationObserver(records => {
++        for (const record of records) {
++          for (const node of record.addedNodes) adopt(node)
++        }
++      })
++      ctx.effect(() => {
++        adopt(document)
++        observer.observe(document.body, { childList: true, subtree: true })
++        return () => {
++          observer.disconnect()
++          delete window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__
++        }
++      }, 'dsh-testkit fixture TurnStatus smoke')
++    }
++
++    exports.apply = apply
++    exports.inject = inject
++    exports.name = name
++    return module.exports
++  },
++})
+diff --git a/fixtures/web-status-plugin/cordis.patch.yml b/fixtures/web-status-plugin/cordis.patch.yml
+new file mode 100644
+index 0000000..f5817b6
+--- /dev/null
++++ b/fixtures/web-status-plugin/cordis.patch.yml
+@@ -0,0 +1,3 @@
++- insert:
++    - id: fixture-web-status
++      name: '@dsh-testkit/fixture-web-status'
+diff --git a/fixtures/web-status-plugin/dsh-testkit.yaml b/fixtures/web-status-plugin/dsh-testkit.yaml
+new file mode 100644
+index 0000000..7090033
+--- /dev/null
++++ b/fixtures/web-status-plugin/dsh-testkit.yaml
+@@ -0,0 +1,16 @@
++schemaVersion: 1
++name: web-status-plugin
++subject:
++  source: .
++dsh:
++  version: 0.1.1-rc.2
++profile: web
++expect:
++  boot: success
++  rows: [fixture-web-status]
++browser:
++  smoke:
++    kind: turn-status-text
++    path: /
++    expectedText: Fixture status ready
++    timeoutMs: 5000
+diff --git a/fixtures/web-status-plugin/index.js b/fixtures/web-status-plugin/index.js
+new file mode 100644
+index 0000000..836940f
+--- /dev/null
++++ b/fixtures/web-status-plugin/index.js
+@@ -0,0 +1,3 @@
++export const name = 'dsh-testkit-fixture-web-status'
++export const inject = []
++export function apply() {}
+diff --git a/fixtures/web-status-plugin/package.json b/fixtures/web-status-plugin/package.json
+new file mode 100644
+index 0000000..071fe37
+--- /dev/null
++++ b/fixtures/web-status-plugin/package.json
+@@ -0,0 +1,23 @@
++{
++  "name": "@dsh-testkit/fixture-web-status",
++  "version": "1.0.0",
++  "type": "module",
++  "main": "index.js",
++  "files": ["index.js", "client.js", "cordis.patch.yml"],
++  "license": "MIT",
++  "exports": {
++    ".": "./index.js",
++    "./client": "./client.js",
++    "./package.json": "./package.json"
++  },
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    },
++    "client": {
++      "platform": "web",
++      "inject": [],
++      "immediately": true
++    }
++  }
++}
+diff --git a/package.json b/package.json
+index cf31352..eeeb0f7 100644
+--- a/package.json
++++ b/package.json
+@@ -82,6 +82,7 @@
+   },
+   "dependencies": {
+     "commander": "15.0.0",
++    "playwright-core": "1.62.1",
+     "xmlbuilder2": "4.0.3",
+     "yaml": "2.9.0",
+     "zod": "4.4.3"
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index dd92aa4..a90754f 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -11,6 +11,9 @@ importers:
+       commander:
+         specifier: 15.0.0
+         version: 15.0.0
++      playwright-core:
++        specifier: 1.62.1
++        version: 1.62.1
+       xmlbuilder2:
+         specifier: 4.0.3
+         version: 4.0.3
+@@ -852,6 +855,11 @@ packages:
+     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
+     engines: {node: '>=12'}
+ 
++  playwright-core@1.62.1:
++    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
++    engines: {node: '>=20'}
++    hasBin: true
++
+   postcss@8.5.26:
+     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
+     engines: {node: ^10 || ^12 || >=14}
+@@ -1703,6 +1711,8 @@ snapshots:
+ 
+   picomatch@4.0.5: {}
+ 
++  playwright-core@1.62.1: {}
++
+   postcss@8.5.26:
+     dependencies:
+       nanoid: 3.3.18
+diff --git a/schemas/scenario-v1.json b/schemas/scenario-v1.json
+index 56ebf2c..175b6ed 100644
+--- a/schemas/scenario-v1.json
++++ b/schemas/scenario-v1.json
+@@ -40,6 +40,9 @@
+     "http": {
+       "$ref": "#/$defs/httpRoutes"
+     },
++    "browser": {
++      "$ref": "#/$defs/browser"
++    },
+     "exercise": {
+       "type": "array",
+       "items": {
+@@ -76,7 +79,8 @@
+       "properties": {
+         "installMs": { "type": "integer", "minimum": 1000, "maximum": 1800000 },
+         "bootMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
+-        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 }
++        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 },
++        "overallMs": { "type": "integer", "minimum": 5000, "maximum": 3600000, "default": 600000 }
+       }
+     }
+   },
+@@ -116,6 +120,25 @@
+         "status": { "type": "integer", "minimum": 100, "maximum": 599, "default": 200 },
+         "json": { "type": "object", "additionalProperties": true, "default": {} }
+       }
++    },
++    "browser": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["smoke"],
++      "properties": {
++        "smoke": { "$ref": "#/$defs/browserSmoke" }
++      }
++    },
++    "browserSmoke": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["kind", "expectedText"],
++      "properties": {
++        "kind": { "const": "turn-status-text" },
++        "path": { "type": "string", "pattern": "^\\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\\/-]*)$", "default": "/" },
++        "expectedText": { "type": "string", "minLength": 1, "maxLength": 512 },
++        "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 30000, "default": 5000 }
++      }
+     }
+   }
+ }
+diff --git a/src/adapters/dsh/browser-smoke.ts b/src/adapters/dsh/browser-smoke.ts
+new file mode 100644
+index 0000000..637a1b8
+--- /dev/null
++++ b/src/adapters/dsh/browser-smoke.ts
+@@ -0,0 +1,231 @@
++import { access } from 'node:fs/promises'
++
++import { chromium } from 'playwright-core'
++
++import type { Assertion } from '../../domain/report.js'
++import type { BrowserSmoke } from '../../domain/scenario.js'
++
++const INITIAL_TURN_STATUS = 'Deep diving...'
++const TURN_STATUS_SELECTOR = '[role="status"][aria-live="polite"]'
++
++export interface BrowserSmokeEvidence {
++  schemaVersion: 1
++  available: boolean
++  browserName: string | null
++  browserVersion: string | null
++  path: string
++  selector: typeof TURN_STATUS_SELECTOR
++  initialText: typeof INITIAL_TURN_STATUS
++  expectedText: string
++  selectedText: string | null
++  screenshot: string | null
++  domRedacted: true
++  storageRedacted: true
++  error?: string
++}
++
++export interface BrowserSmokeResult {
++  assertions: Assertion[]
++  evidence: BrowserSmokeEvidence
++  infrastructureError?: string
++}
++
++export interface BrowserSmokeObservation {
++  browserName: string
++  browserVersion: string
++  actualText: string | null
++  screenshot: string
++}
++
++export function unavailableBrowserSmoke(smoke: BrowserSmoke, reason: string): BrowserSmokeResult {
++  return {
++    assertions: [{
++      id: 'browser.turn-status.runner',
++      status: 'unsupported',
++      message: 'Browser runner is unavailable',
++      expected: 'Chromium browser runner',
++      actual: reason,
++    }],
++    evidence: {
++      schemaVersion: 1,
++      available: false,
++      browserName: null,
++      browserVersion: null,
++      path: smoke.path,
++      selector: TURN_STATUS_SELECTOR,
++      initialText: INITIAL_TURN_STATUS,
++      expectedText: smoke.expectedText,
++      selectedText: null,
++      screenshot: null,
++      domRedacted: true,
++      storageRedacted: true,
++      error: reason,
++    },
++  }
++}
++
++export function assessTurnStatusSmoke(
++  smoke: BrowserSmoke,
++  observation: BrowserSmokeObservation,
++): BrowserSmokeResult {
++  const passed = observation.actualText === smoke.expectedText
++  return {
++    assertions: [{
++      id: 'browser.turn-status.text',
++      status: passed ? 'passed' : 'failed',
++      message: passed
++        ? 'TurnStatus changed to the expected fixture text'
++        : 'TurnStatus did not change to the expected fixture text',
++      expected: smoke.expectedText,
++      actual: observation.actualText,
++      evidence: [observation.screenshot],
++    }],
++    evidence: {
++      schemaVersion: 1,
++      available: true,
++      browserName: observation.browserName,
++      browserVersion: observation.browserVersion,
++      path: smoke.path,
++      selector: TURN_STATUS_SELECTOR,
++      initialText: INITIAL_TURN_STATUS,
++      expectedText: smoke.expectedText,
++      selectedText: observation.actualText,
++      screenshot: observation.screenshot,
++      domRedacted: true,
++      storageRedacted: true,
++    },
++  }
++}
++
++async function existingBrowserExecutable(explicit: string | undefined): Promise<string | null> {
++  const candidates = [explicit, '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome']
++    .filter((value): value is string => value !== undefined && value !== '')
++  for (const candidate of candidates) {
++    try {
++      await access(candidate)
++      return candidate
++    } catch {
++      // Try the next runner-owned browser candidate.
++    }
++  }
++  return null
++}
++
++export async function checkTurnStatusBrowserSmoke(
++  smoke: BrowserSmoke,
++  options: {
++    port: number
++    screenshotPath: string
++    screenshotArtifact: string
++    executablePath?: string
++  },
++): Promise<BrowserSmokeResult> {
++  const executablePath = await existingBrowserExecutable(
++    options.executablePath ?? process.env.DSH_TESTKIT_BROWSER_EXECUTABLE,
++  )
++  if (executablePath === null) return unavailableBrowserSmoke(smoke, 'Chromium executable was not found')
++
++  const origin = `http://127.0.0.1:${options.port}`
++  let browser
++  let navigated = false
++  try {
++    browser = await chromium.launch({
++      executablePath,
++      headless: true,
++      args: [
++        '--disable-background-networking',
++        '--disable-component-update',
++        '--disable-dev-shm-usage',
++        '--disable-domain-reliability',
++        '--disable-sync',
++        '--metrics-recording-only',
++        '--no-first-run',
++        '--no-sandbox',
++      ],
++    })
++    const context = await browser.newContext({ serviceWorkers: 'block' })
++    await context.route('**/*', async (route) => {
++      const url = new URL(route.request().url())
++      if (url.origin === origin) await route.continue()
++      else await route.abort('blockedbyclient')
++    })
++    await context.routeWebSocket('**/*', async (route) => {
++      const url = new URL(route.url())
++      if (url.hostname === '127.0.0.1' && url.port === String(options.port)) {
++        route.connectToServer()
++      } else {
++        await route.close({ code: 1008, reason: 'Non-loopback WebSocket blocked by DSH Testkit' })
++      }
++    })
++    const page = await context.newPage()
++    await page.goto(`${origin}${smoke.path}`, {
++      waitUntil: 'domcontentloaded',
++      timeout: smoke.timeoutMs,
++    })
++    navigated = true
++    await page.waitForFunction(`
++      globalThis.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ === true
++        || (globalThis.__ModuleLoader__?.mode === 'live'
++          && !document.querySelector('[data-dsh-boot]'))
++    `, undefined, { timeout: smoke.timeoutMs }).catch(() => undefined)
++    await page.evaluate(`(() => {
++      const selector = ${JSON.stringify(TURN_STATUS_SELECTOR)};
++      document.querySelector(selector)?.remove();
++      const status = document.createElement('div');
++      status.setAttribute('role', 'status');
++      status.setAttribute('aria-live', 'polite');
++      status.textContent = ${JSON.stringify(INITIAL_TURN_STATUS)};
++      document.body.appendChild(status);
++    })()`)
++    await page.waitForFunction(
++      `document.querySelector(${JSON.stringify(TURN_STATUS_SELECTOR)})?.textContent === ${JSON.stringify(smoke.expectedText)}`,
++      undefined,
++      { timeout: smoke.timeoutMs },
++    ).catch(() => undefined)
++    const actualText = await page.locator(TURN_STATUS_SELECTOR).first().textContent()
++    await page.screenshot({ path: options.screenshotPath, fullPage: false })
++    await context.close()
++    return assessTurnStatusSmoke(smoke, {
++      browserName: chromium.name(),
++      browserVersion: browser.version(),
++      actualText,
++      screenshot: options.screenshotArtifact,
++    })
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error)
++    if (browser === undefined) return unavailableBrowserSmoke(smoke, message)
++    if (!navigated) {
++      return {
++        ...unavailableBrowserSmoke(smoke, message),
++        assertions: [],
++        infrastructureError: `DSH web browser navigation did not complete: ${message}`,
++      }
++    }
++    return {
++      assertions: [{
++        id: 'browser.turn-status.text',
++        status: 'failed',
++        message: 'TurnStatus browser smoke did not complete',
++        expected: smoke.expectedText,
++        actual: message,
++      }],
++      evidence: {
++        schemaVersion: 1,
++        available: true,
++        browserName: chromium.name(),
++        browserVersion: browser?.version() ?? 'unknown',
++        path: smoke.path,
++        selector: TURN_STATUS_SELECTOR,
++        initialText: INITIAL_TURN_STATUS,
++        expectedText: smoke.expectedText,
++        selectedText: null,
++        screenshot: null,
++        domRedacted: true,
++        storageRedacted: true,
++        error: message,
++      },
++    }
++  } finally {
++    await browser?.close().catch(() => undefined)
++  }
++}
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+index 0d3b9f8..b2ed6e5 100644
+--- a/src/adapters/dsh/npm-adapter.ts
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -26,6 +26,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
+ import { AssertionSchema } from '../../domain/report.js'
+ import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
+ import { renderScenarioSnapshot } from '../../domain/scenario.js'
++import { checkTurnStatusBrowserSmoke } from './browser-smoke.js'
+ import { checkLoopbackHttpRoutes } from './http-routes.js'
+ import {
+   captureSystemSnapshot,
+@@ -195,7 +196,13 @@ function collectIds(value: unknown, ids = new Set<string>()): Set<string> {
+ }
+ 
+ function failedAssertions(assertions: readonly Assertion[]): Assertion[] {
+-  return assertions.filter(assertion => assertion.status !== 'passed')
++  return assertions.filter(assertion => assertion.status === 'failed')
++}
++
++export function classifyBootFailure(
++  evidence: 'pre-probe-timeout' | 'live-loopback-unresponsive',
++): FailureKind {
++  return evidence === 'live-loopback-unresponsive' ? 'dsh' : 'timeout'
+ }
+ 
+ function normalizedLines(value: string | null): string[] {
+@@ -285,6 +292,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
+   private profileDir = ''
+   private dshExecutable = ''
+   private webPort: number | null = null
++  private browserIdentity: { name: string; version: string } | null = null
++  private hostInfrastructureError: { message: string; artifacts: string[] } | null = null
+   private probePatch = ''
+   private canary = ''
+   private primaryResolved!: ResolvedSource
+@@ -544,20 +553,23 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     const assertions = [
+       ...observation.probe.assertions,
+       ...(observation.probe.routes ?? []),
++      ...(observation.probe.browser ?? []),
+     ]
+     const failures = failedAssertions(assertions)
+     if (failures.length > 0) {
+       throw new StageFailure(`${failures.length} runtime registration assertion(s) failed`, {
+         failureKind: 'assertion',
+         assertions,
+-        artifacts: this.routeArtifacts('boot'),
++        artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
+       })
+     }
+     return {
+       value: undefined,
+-      summary: `${assertions.length} runtime registration assertion(s) passed`,
++      summary: assertions.some(assertion => assertion.status === 'unsupported')
++        ? `${assertions.length} runtime registration assertion(s) completed with unsupported coverage`
++        : `${assertions.length} runtime registration assertion(s) passed`,
+       assertions,
+-      artifacts: this.routeArtifacts('boot'),
++      artifacts: [...this.routeArtifacts('boot'), ...this.browserArtifacts('boot')],
+     }
+   }
+ 
+@@ -610,6 +622,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       ...(configured.assertions ?? []),
+       ...boot.value.probe.assertions,
+       ...(boot.value.probe.routes ?? []),
++      ...(boot.value.probe.browser ?? []),
+       ...boot.value.probe.exercises,
+     ]
+     if (failedAssertions(assertions).length > 0) {
+@@ -865,6 +878,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       pnpm: this.pnpmVersion,
+       image: process.env.DSH_TESTKIT_IMAGE ?? null,
+       imageId: process.env.DSH_TESTKIT_IMAGE_ID ?? null,
++      browser: this.browserIdentity,
+     }
+   }
+ 
+@@ -1103,12 +1117,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     mode: 'present' | 'absent',
+   ): Promise<AdapterCompletion<AdapterBootObservation>> {
+     await this.ensureProbePatch()
+-    if (mode === 'present' && this.request.scenario.http !== undefined) {
++    const webMode = this.request.scenario.http !== undefined || this.request.scenario.browser !== undefined
++    this.hostInfrastructureError = null
++    if (mode === 'present' && webMode) {
+       if (this.request.runner !== 'docker') {
+-        throw new StageFailure('HTTP route assertions require the Docker runner', { failureKind: 'subject' })
++        throw new StageFailure('Web HTTP and browser assertions require the Docker runner', { failureKind: 'subject' })
+       }
+       if (this.request.scenario.profile !== 'web') {
+-        throw new StageFailure('HTTP route assertions require scenario.profile: web', { failureKind: 'subject' })
++        throw new StageFailure('Web HTTP and browser assertions require scenario.profile: web', { failureKind: 'subject' })
+       }
+       this.webPort = await this.allocateLoopbackPort()
+     }
+@@ -1123,7 +1139,6 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       exercise: mode === 'present' ? this.request.scenario.exercise : [],
+       settleMs: 500,
+     }
+-    const webMode = this.request.scenario.http !== undefined
+     const result = await runCommand({
+       executable: this.dshExecutable,
+       args: webMode
+@@ -1145,6 +1160,9 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         if (mode === 'present' && this.request.scenario.http !== undefined && this.webPort !== null) {
+           await this.captureHttpRoutes(label)
+         }
++        if (mode === 'present' && this.request.scenario.browser !== undefined && this.webPort !== null) {
++          await this.captureBrowserSmoke(label)
++        }
+       },
+     })
+     for (const artifact of commandArtifacts(result)) this.artifactSet.add(artifact)
+@@ -1158,9 +1176,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         signal: result.signal,
+       })
+     }
++    const hostInfrastructureError = this.hostInfrastructureError as { message: string; artifacts: string[] } | null
++    if (hostInfrastructureError !== null) {
++      throw new StageFailure(hostInfrastructureError.message, {
++        failureKind: classifyBootFailure('live-loopback-unresponsive'),
++        artifacts: [...commandArtifacts(result), ...hostInfrastructureError.artifacts],
++        command: result.command,
++        exitCode: result.exitCode,
++        signal: result.signal,
++      })
++    }
+     if (result.timedOut) {
+       throw new StageFailure(`DSH boot timed out before the runtime probe completed`, {
+-        failureKind: 'timeout',
++        failureKind: classifyBootFailure('pre-probe-timeout'),
+         artifacts: commandArtifacts(result),
+         command: result.command,
+         exitCode: result.exitCode,
+@@ -1189,7 +1217,12 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         command: result.command,
+         exitCode: result.exitCode,
+         signal: result.signal,
+-        artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
++        artifacts: [
++          ...commandArtifacts(result),
++          ...probeArtifacts,
++          ...this.routeArtifacts(label),
++          ...this.browserArtifacts(label),
++        ],
+       }
+     }
+     const document = ProbeDocumentSchema.parse(JSON.parse(await readFile(probePath, 'utf8')))
+@@ -1197,6 +1230,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       assertions: document.assertions,
+       exercises: document.exercises,
+       routes: this.routeAssertions(label),
++      browser: this.browserAssertions(label),
+     }
+     return {
+       value: { outcome: 'success', probe },
+@@ -1204,11 +1238,17 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       command: result.command,
+       exitCode: result.exitCode,
+       signal: result.signal,
+-      artifacts: [...commandArtifacts(result), ...probeArtifacts, ...this.routeArtifacts(label)],
++      artifacts: [
++        ...commandArtifacts(result),
++        ...probeArtifacts,
++        ...this.routeArtifacts(label),
++        ...this.browserArtifacts(label),
++      ],
+     }
+   }
+ 
+   private readonly routeResults = new Map<string, { assertions: Assertion[], artifact: string }>()
++  private readonly browserResults = new Map<string, { assertions: Assertion[], artifacts: string[] }>()
+ 
+   private routeAssertions(label: string): Assertion[] {
+     return this.routeResults.get(label)?.assertions ?? []
+@@ -1219,6 +1259,14 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     return artifact === undefined ? [] : [artifact]
+   }
+ 
++  private browserAssertions(label: string): Assertion[] {
++    return this.browserResults.get(label)?.assertions ?? []
++  }
++
++  private browserArtifacts(label: string): string[] {
++    return this.browserResults.get(label)?.artifacts ?? []
++  }
++
+   private async captureHttpRoutes(label: string): Promise<void> {
+     const routes = this.request.scenario.http?.routes
+     if (routes === undefined || this.webPort === null) return
+@@ -1235,6 +1283,13 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         artifact,
+         assertions: result.assertions.map(assertion => ({ ...assertion, evidence: [artifact] })),
+       })
++      const unresponsive = result.evidence.requests.find(request => request.status === null && request.error !== undefined)
++      if (unresponsive !== undefined) {
++        this.hostInfrastructureError = {
++          message: `DSH web host did not complete HTTP ${unresponsive.path}: ${unresponsive.error}`,
++          artifacts: [artifact],
++        }
++      }
+     } catch (error) {
+       const message = error instanceof Error ? error.message : String(error)
+       const assertions: Assertion[] = routes.map(route => ({
+@@ -1256,6 +1311,41 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     }
+   }
+ 
++  private async captureBrowserSmoke(label: string): Promise<void> {
++    const smoke = this.request.scenario.browser?.smoke
++    if (smoke === undefined || this.webPort === null) return
++    const artifact = `evidence/browser-${label}.json`
++    const artifactPath = join(this.evidenceDir, `browser-${label}.json`)
++    const screenshotArtifact = `evidence/browser-${label}-turn-status.png`
++    const screenshotPath = join(this.evidenceDir, `browser-${label}-turn-status.png`)
++    const result = await checkTurnStatusBrowserSmoke(smoke, {
++      port: this.webPort,
++      screenshotPath,
++      screenshotArtifact,
++    })
++    await writeFile(artifactPath, `${JSON.stringify(result.evidence, null, 2)}\n`)
++    this.addArtifact(artifactPath)
++    const artifacts = [artifact]
++    if (await exists(screenshotPath)) {
++      this.addArtifact(screenshotPath)
++      artifacts.push(screenshotArtifact)
++    }
++    const assertions = result.assertions.map(assertion => ({
++      ...assertion,
++      evidence: [...new Set([...(assertion.evidence ?? []).filter(value => artifacts.includes(value)), artifact])],
++    }))
++    this.browserResults.set(label, { assertions, artifacts })
++    if (result.evidence.browserName !== null && result.evidence.browserVersion !== null) {
++      this.browserIdentity = {
++        name: result.evidence.browserName,
++        version: result.evidence.browserVersion,
++      }
++    }
++    if (result.infrastructureError !== undefined) {
++      this.hostInfrastructureError = { message: result.infrastructureError, artifacts }
++    }
++  }
++
+   private async allocateLoopbackPort(): Promise<number> {
+     const server = createServer()
+     return await new Promise<number>((resolve, reject) => {
+@@ -1420,7 +1510,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
+     // The DSH web profile lazily materializes its workspace storage while the
+     // host is running. That state belongs to the profile runtime rather than
+     // to the plugin, so HTTP route scenarios must not report it as residue.
+-    if (this.request.scenario.http !== undefined && this.profileName(this.request.scenario) === 'web') {
++    if ((this.request.scenario.http !== undefined || this.request.scenario.browser !== undefined)
++      && this.profileName(this.request.scenario) === 'web') {
+       managedPrefixes.push('storages/')
+     }
+     const exactPaths = new Set([
+diff --git a/src/config/scenario.ts b/src/config/scenario.ts
+index 245c5c4..76e1276 100644
+--- a/src/config/scenario.ts
++++ b/src/config/scenario.ts
+@@ -38,8 +38,14 @@ export function validateRunnerSelection(selection: RunnerSelection): RunnerSelec
+   if (selection.runner === 'local' && selection.scenario?.http !== undefined) {
+     throw new Error('HTTP route assertions require the Docker runner')
+   }
++  if (selection.runner === 'local' && selection.scenario?.browser !== undefined) {
++    throw new Error('Browser smoke requires the Docker runner')
++  }
+   if (selection.scenario?.http !== undefined && selection.scenario.profile !== 'web') {
+     throw new Error('HTTP route assertions require scenario.profile: web')
+   }
++  if (selection.scenario?.browser !== undefined && selection.scenario.profile !== 'web') {
++    throw new Error('Browser smoke requires scenario.profile: web')
++  }
+   return selection
+ }
+diff --git a/src/domain/lifecycle.ts b/src/domain/lifecycle.ts
+index be51976..4f7c800 100644
+--- a/src/domain/lifecycle.ts
++++ b/src/domain/lifecycle.ts
+@@ -125,7 +125,7 @@ export class LifecycleRecorder {
+ 
+ export function deriveVerdict(stages: readonly StageResult[]): Verdict {
+   if (stages.some(stage => stage.status === 'failed'
+-    && (stage.failureKind === 'infrastructure' || stage.failureKind === 'cleanup'))) {
++    && (stage.failureKind === 'dsh' || stage.failureKind === 'infrastructure' || stage.failureKind === 'cleanup'))) {
+     return 'infrastructure_error'
+   }
+   if (stages.some(stage => stage.status === 'failed')) return 'failed'
+diff --git a/src/domain/scenario.ts b/src/domain/scenario.ts
+index 2e971e2..fd6b216 100644
+--- a/src/domain/scenario.ts
++++ b/src/domain/scenario.ts
+@@ -46,6 +46,19 @@ export const HttpRoutesSchema = z.object({
+   ),
+ }).strict()
+ 
++export const BrowserSmokeSchema = z.object({
++  kind: z.literal('turn-status-text'),
++  path: z.string().refine(validateHttpPath, {
++    message: 'Browser smoke path must be an absolute loopback path without query, fragment, traversal or control characters',
++  }).default('/'),
++  expectedText: z.string().min(1).max(512),
++  timeoutMs: z.number().int().min(1_000).max(30_000).default(5_000),
++}).strict()
++
++export const BrowserSchema = z.object({
++  smoke: BrowserSmokeSchema,
++}).strict()
++
+ export const ScenarioSchema = z.object({
+   schemaVersion: z.literal(SCENARIO_SCHEMA_VERSION),
+   name: z.string().min(1),
+@@ -67,6 +80,7 @@ export const ScenarioSchema = z.object({
+     tools: UniqueStringsSchema.default([]),
+   }).strict().default({ boot: 'success', rows: [], services: [], tools: [] }),
+   http: HttpRoutesSchema.optional(),
++  browser: BrowserSchema.optional(),
+   exercise: z.array(ExerciseSchema).default([]),
+   recovery: z.object({
+     onBootFailure: z.enum(['remove-plugin', 'none']).default('remove-plugin'),
+@@ -88,7 +102,8 @@ export const ScenarioSchema = z.object({
+     installMs: z.number().int().min(1_000).max(1_800_000).default(300_000),
+     bootMs: z.number().int().min(1_000).max(300_000).default(30_000),
+     cleanupMs: z.number().int().min(1_000).max(120_000).default(30_000),
+-  }).strict().default({ installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000 }),
++    overallMs: z.number().int().min(5_000).max(3_600_000).default(600_000),
++  }).strict().default({ installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000, overallMs: 600_000 }),
+ }).strict()
+ 
+ export type ObserverRequirement = z.infer<typeof ObserverRequirementSchema>
+@@ -96,6 +111,8 @@ export type Exercise = z.infer<typeof ExerciseSchema>
+ export type HttpRouteExpectation = z.infer<typeof HttpRouteExpectationSchema>
+ export type HttpRoute = z.infer<typeof HttpRouteSchema>
+ export type HttpRoutes = z.infer<typeof HttpRoutesSchema>
++export type BrowserSmoke = z.infer<typeof BrowserSmokeSchema>
++export type Browser = z.infer<typeof BrowserSchema>
+ export type Scenario = z.infer<typeof ScenarioSchema>
+ 
+ export function renderScenarioSnapshot(scenario: Scenario): string {
+diff --git a/src/runners/docker.ts b/src/runners/docker.ts
+index 9dfa3a1..374734d 100644
+--- a/src/runners/docker.ts
++++ b/src/runners/docker.ts
+@@ -91,8 +91,18 @@ export function buildDockerRunArgs(plan: DockerRunPlan): string[] {
+   ]
+ }
+ 
++export function buildDockerWatchdogRemoveArgs(runId: string): string[] {
++  return ['rm', '--force', dockerRunName(runId)]
++}
++
+ export class DockerRunner implements Runner {
+   async run(request: WorkerRequest, signal?: AbortSignal): Promise<RunReport> {
++    const watchdog = new AbortController()
++    const watchdogTimer = setTimeout(() => watchdog.abort(), runnerTimeoutMs(request))
++    watchdogTimer.unref()
++    const attemptSignal = signal === undefined
++      ? watchdog.signal
++      : AbortSignal.any([signal, watchdog.signal])
+     try {
+       await mkdir(request.outputDir, { recursive: true })
+       const logsDir = join(request.outputDir, 'logs')
+@@ -101,8 +111,8 @@ export class DockerRunner implements Runner {
+       const contextDigest = await dockerContextDigest(root)
+       const image = runnerImageName(contextDigest)
+       try {
+-        await this.ensureImage(image, contextDigest, root, controllerLogsDir, signal)
+-        const imageId = await this.imageId(image, root, controllerLogsDir, signal)
++        await this.ensureImage(image, contextDigest, root, controllerLogsDir, attemptSignal)
++        const imageId = await this.imageId(image, root, controllerLogsDir, attemptSignal)
+ 
+         const inputs: DockerInputMount[] = []
+         const scenario = structuredClone(request.scenario)
+@@ -145,12 +155,21 @@ export class DockerRunner implements Runner {
+           }),
+           cwd: root,
+           timeoutMs: runnerTimeoutMs(request),
+-          ...(signal === undefined ? {} : { signal }),
++          signal: attemptSignal,
+           logDir: controllerLogsDir,
+           logName: 'docker-runner',
+         }).finally(async () => {
+           await rm(join(request.outputDir, requestFilename), { force: true })
+         })
++        if (result.timedOut || result.interruptedBy !== null) {
++          await this.forceRemoveContainer(request.runId, root, controllerLogsDir)
++        }
++        if (result.timedOut) {
++          throw new RunnerError(
++            `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
++            3,
++          )
++        }
+         if (result.stdoutTruncated || result.stderrTruncated) {
+           throw new RunnerError('Docker worker output exceeded the 8 MiB per-stream evidence limit', 3)
+         }
+@@ -178,10 +197,18 @@ export class DockerRunner implements Runner {
+         await rm(controllerLogsDir, { recursive: true, force: true })
+       }
+     } catch (error) {
++      if (watchdog.signal.aborted) {
++        throw new RunnerError(
++          `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
++          3,
++        )
++      }
+       if (error instanceof RunnerError) throw error
+       const code = (error as NodeJS.ErrnoException).code
+       if (code === 'ENOENT') throw new RunnerError('Docker is required by the default runner but was not found', 4)
+       throw new RunnerError(error instanceof Error ? error.message : String(error), 3)
++    } finally {
++      clearTimeout(watchdogTimer)
+     }
+   }
+ 
+@@ -241,6 +268,21 @@ export class DockerRunner implements Runner {
+     if (result.exitCode !== 0) throw new RunnerError(`Unable to inspect ${image} identity`, 3)
+     return result.stdout.trim()
+   }
++
++  private async forceRemoveContainer(runId: string, root: string, logsDir: string): Promise<void> {
++    try {
++      await runCommand({
++        executable: 'docker',
++        args: buildDockerWatchdogRemoveArgs(runId),
++        cwd: root,
++        timeoutMs: 10_000,
++        logDir: logsDir,
++        logName: 'docker-watchdog-cleanup',
++      })
++    } catch {
++      // The primary RunnerError remains authoritative; controller logs retain cleanup evidence.
++    }
++  }
+ }
+ 
+ async function exists(path: string): Promise<boolean> {
+diff --git a/src/runners/local.ts b/src/runners/local.ts
+index 81027d7..ccbb99c 100644
+--- a/src/runners/local.ts
++++ b/src/runners/local.ts
+@@ -35,6 +35,12 @@ export class LocalRunner implements Runner {
+         rm(workRoot, { recursive: true, force: true }),
+       ])
+     })
++    if (result.timedOut) {
++      throw new RunnerError(
++        `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
++        3,
++      )
++    }
+     if (result.stdoutTruncated || result.stderrTruncated) {
+       throw new RunnerError('Local worker output exceeded the 8 MiB per-stream evidence limit', 3)
+     }
+diff --git a/src/runners/types.ts b/src/runners/types.ts
+index e519b39..0a67690 100644
+--- a/src/runners/types.ts
++++ b/src/runners/types.ts
+@@ -8,10 +8,7 @@ export interface Runner {
+ }
+ 
+ export function runnerTimeoutMs(request: WorkerRequest): number {
+-  return request.scenario.timeouts.installMs * 10
+-    + request.scenario.timeouts.bootMs * 6
+-    + request.scenario.timeouts.cleanupMs
+-    + 10_000
++  return request.scenario.timeouts.overallMs
+ }
+ 
+ export class RunnerError extends Error {
+diff --git a/src/worker/adapter.ts b/src/worker/adapter.ts
+index 9026ccc..ae874cf 100644
+--- a/src/worker/adapter.ts
++++ b/src/worker/adapter.ts
+@@ -10,6 +10,7 @@ export interface ProbeArtifact {
+   assertions: Assertion[]
+   exercises: Assertion[]
+   routes?: Assertion[]
++  browser?: Assertion[]
+ }
+ 
+ export interface AdapterBootObservation {
+diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
+index 4ec7ec5..bc92f1f 100644
+--- a/tests/e2e/real-dsh.test.ts
++++ b/tests/e2e/real-dsh.test.ts
+@@ -169,4 +169,27 @@ describe.sequential('real DSH lifecycle fixtures', () => {
+     ]))
+     expect(register?.artifacts).toContain('evidence/http-boot.json')
+   }, 900_000)
++
++  it('asserts a deterministic TurnStatus transition in the real Docker web host', async () => {
++    const result = await runFixture('web-status-plugin', [], 'docker')
++    if (result.code !== 0) {
++      const [stdout, stderr] = await Promise.all([
++        readFile(join(result.outputDir, 'logs/boot.stdout.log'), 'utf8').catch(() => ''),
++        readFile(join(result.outputDir, 'logs/boot.stderr.log'), 'utf8').catch(() => ''),
++      ])
++      throw new Error(`Browser fixture failed\nstdout:\n${stdout}\nstderr:\n${stderr}\nstages:\n${JSON.stringify(result.report.stages, null, 2)}`)
++    }
++    expect(result.report.verdict).toBe('passed')
++    expect(result.report.environment.browser).toMatchObject({ name: 'chromium' })
++    const register = result.report.stages.find(stage => stage.id === 'register')
++    expect(register?.assertions).toContainEqual(expect.objectContaining({
++      id: 'browser.turn-status.text',
++      status: 'passed',
++      actual: 'Fixture status ready',
++    }))
++    expect(register?.artifacts).toEqual(expect.arrayContaining([
++      'evidence/browser-boot.json',
++      'evidence/browser-boot-turn-status.png',
++    ]))
++  }, 900_000)
+ })
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index f477495..b2bc170 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
+ 
+ import type { RunReport } from '../../src/domain/report.js'
+ import { runCli } from '../../src/cli.js'
++import { RunnerError } from '../../src/runners/types.js'
+ import type { Runner } from '../../src/runners/types.js'
+ import type { WorkerRequest } from '../../src/worker/protocol.js'
+ 
+@@ -263,6 +264,28 @@ describe('CLI integration', () => {
+     expect(stderr.join('')).toContain('declared artifact is missing')
+   })
+ 
++  it('returns infrastructure exit code when the global watchdog expires', async () => {
++    const output = await mkdtemp(join(tmpdir(), 'dsh-cli-watchdog-'))
++    const stderr: string[] = []
++    const runner: Runner = {
++      run: async () => {
++        throw new RunnerError('Global watchdog expired after 5000ms; classified as host/infrastructure', 3)
++      },
++    }
++    const exitCode = await runCli([
++      '.', '--dsh', '0.1.0-rc.6', '--runner', 'local', '--unsafe-local', '--output', output,
++    ], {
++      stdout: () => undefined,
++      stderr: value => stderr.push(value),
++      runnerFactory: () => runner,
++      cwd: process.cwd(),
++      env: {},
++    })
++
++    expect(exitCode).toBe(3)
++    expect(stderr.join('')).toContain('host/infrastructure')
++  })
++
+   it('prints the package version without constructing a runner', async () => {
+     const stdout: string[] = []
+     let factoryCalled = false
+diff --git a/tests/integration/worker.test.ts b/tests/integration/worker.test.ts
+index fa94ab3..1d986a2 100644
+--- a/tests/integration/worker.test.ts
++++ b/tests/integration/worker.test.ts
+@@ -37,7 +37,7 @@ const scenario: Scenario = {
+     network: 'off',
+     canary: 'preferred',
+   },
+-  timeouts: { installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000 },
++  timeouts: { installMs: 300_000, bootMs: 30_000, cleanupMs: 30_000, overallMs: 600_000 },
+ }
+ 
+ function completion<T>(value: T, summary: string): AdapterCompletion<T> {
+@@ -51,6 +51,7 @@ class FakeAdapter implements LifecycleAdapter {
+   bootOutcome: AdapterBootObservation['outcome'] = 'success'
+   registerFailure = false
+   routeFailure = false
++  browserUnsupported = false
+   failAt: StageId | null = null
+ 
+   private record(stage: StageId, call: string): void {
+@@ -101,7 +102,14 @@ class FakeAdapter implements LifecycleAdapter {
+       }],
+       artifacts: ['evidence/http-boot.json'],
+     })
+-    return completion(undefined, 'registered')
++    return {
++      ...completion(undefined, 'registered'),
++      assertions: this.browserUnsupported ? [{
++        id: 'browser.turn-status.runner',
++        status: 'unsupported' as const,
++        message: 'Browser runner is unavailable',
++      }] : [],
++    }
+   }
+   async exercise() { this.record('exercise', 'exercise'); return completion(undefined, 'exercised') }
+   async update() { this.record('update', 'update'); return completion(undefined, 'updated') }
+@@ -256,6 +264,33 @@ describe('LifecycleWorker', () => {
+     expect(adapter.calls.at(-1)).toBe('cleanup')
+   })
+ 
++  it('returns unsupported when an explicit web smoke has no browser runner', async () => {
++    const adapter = new FakeAdapter()
++    adapter.browserUnsupported = true
++    const browserScenario: Scenario = {
++      ...scenario,
++      name: 'browser-unavailable',
++      profile: 'web',
++      browser: {
++        smoke: {
++          kind: 'turn-status-text',
++          path: '/',
++          expectedText: 'Fixture status ready',
++          timeoutMs: 5_000,
++        },
++      },
++    }
++    const report = await new LifecycleWorker(adapter).run(await request({
++      scenario: browserScenario,
++      runner: 'docker',
++      unsafeLocal: false,
++    }))
++
++    expect(report.verdict).toBe('unsupported')
++    expect(report.stages.find(stage => stage.id === 'register')?.assertions)
++      .toContainEqual(expect.objectContaining({ id: 'browser.turn-status.runner', status: 'unsupported' }))
++  })
++
+   it('does not accept a host crash as the declared negative boot failure', async () => {
+     const adapter = new FakeAdapter()
+     adapter.bootOutcome = 'crash'
+diff --git a/tests/unit/browser-smoke.test.ts b/tests/unit/browser-smoke.test.ts
+new file mode 100644
+index 0000000..3fc334c
+--- /dev/null
++++ b/tests/unit/browser-smoke.test.ts
+@@ -0,0 +1,71 @@
++import { readFile } from 'node:fs/promises'
++import { join } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++
++import {
++  assessTurnStatusSmoke,
++  unavailableBrowserSmoke,
++} from '../../src/adapters/dsh/browser-smoke.js'
++import type { BrowserSmoke } from '../../src/domain/scenario.js'
++
++const smoke: BrowserSmoke = {
++  kind: 'turn-status-text',
++  path: '/',
++  expectedText: 'Fixture status ready',
++  timeoutMs: 5_000,
++}
++
++describe('TurnStatus browser smoke', () => {
++  it('registers the fixture client with its exact scoped package identity', async () => {
++    const fixtureRoot = join(process.cwd(), 'fixtures/web-status-plugin')
++    const [manifest, client] = await Promise.all([
++      readFile(join(fixtureRoot, 'package.json'), 'utf8'),
++      readFile(join(fixtureRoot, 'client.js'), 'utf8'),
++    ])
++    const parsed = JSON.parse(manifest) as { name: string, exports: Record<string, string> }
++    const packageName = parsed.name
++    expect(parsed.exports['./package.json']).toBe('./package.json')
++    expect(client).toContain(`id: '${packageName}'`)
++    expect(client).toContain(`name = '${packageName}'`)
++    expect(client).toContain("Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })")
++    expect(client).toContain('window.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ = true')
++  })
++
++  it('returns unsupported rather than a synthetic pass without a browser runner', () => {
++    const result = unavailableBrowserSmoke(smoke, 'Chromium executable was not found')
++    expect(result.assertions).toEqual([
++      expect.objectContaining({ id: 'browser.turn-status.runner', status: 'unsupported' }),
++    ])
++    expect(result.evidence).toMatchObject({ available: false, domRedacted: true })
++  })
++
++  it('passes only the selected TurnStatus text and retains browser identity', () => {
++    const result = assessTurnStatusSmoke(smoke, {
++      browserName: 'chromium',
++      browserVersion: '123.0',
++      actualText: 'Fixture status ready',
++      screenshot: 'evidence/browser-boot-turn-status.png',
++    })
++    expect(result.assertions).toEqual([
++      expect.objectContaining({ id: 'browser.turn-status.text', status: 'passed' }),
++    ])
++    expect(result.evidence).toMatchObject({
++      available: true,
++      selectedText: 'Fixture status ready',
++      domRedacted: true,
++      storageRedacted: true,
++    })
++  })
++
++  it('keeps a completed DOM mismatch as a plugin assertion failure', () => {
++    const result = assessTurnStatusSmoke(smoke, {
++      browserName: 'chromium',
++      browserVersion: '123.0',
++      actualText: 'Deep diving...',
++      screenshot: 'evidence/browser-boot-turn-status.png',
++    })
++    expect(result.assertions[0]).toMatchObject({ status: 'failed' })
++    expect(result.infrastructureError).toBeUndefined()
++  })
++})
+diff --git a/tests/unit/lifecycle.test.ts b/tests/unit/lifecycle.test.ts
+index 19fc0c1..9aee215 100644
+--- a/tests/unit/lifecycle.test.ts
++++ b/tests/unit/lifecycle.test.ts
+@@ -58,6 +58,8 @@ describe('lifecycle state', () => {
+     }] })])).toBe('unsupported')
+     expect(deriveVerdict([stage({ status: 'failed', failureKind: 'infrastructure' })]))
+       .toBe('infrastructure_error')
++    expect(deriveVerdict([stage({ status: 'failed', failureKind: 'dsh' })]))
++      .toBe('infrastructure_error')
+ 
+     expect(exitCodeForVerdict('passed')).toBe(0)
+     expect(exitCodeForVerdict('failed')).toBe(1)
+diff --git a/tests/unit/npm-adapter.test.ts b/tests/unit/npm-adapter.test.ts
+new file mode 100644
+index 0000000..e357155
+--- /dev/null
++++ b/tests/unit/npm-adapter.test.ts
+@@ -0,0 +1,37 @@
++import { describe, expect, it } from 'vitest'
++
++import {
++  classifyBootFailure,
++  DshNpmAdapter,
++} from '../../src/adapters/dsh/npm-adapter.js'
++import type { AdapterBootObservation } from '../../src/worker/adapter.js'
++
++describe('DshNpmAdapter verdict boundaries', () => {
++  it('requires live loopback evidence before attributing a timeout to the DSH host', () => {
++    expect(classifyBootFailure('pre-probe-timeout')).toBe('timeout')
++    expect(classifyBootFailure('live-loopback-unresponsive')).toBe('dsh')
++  })
++
++  it('preserves an unavailable browser runner as an unsupported registration assertion', async () => {
++    const adapter = new DshNpmAdapter()
++    const observation: AdapterBootObservation = {
++      outcome: 'success',
++      probe: {
++        assertions: [],
++        exercises: [],
++        browser: [{
++          id: 'browser.turn-status.runner',
++          status: 'unsupported',
++          message: 'Browser runner is unavailable',
++        }],
++      },
++    }
++
++    await expect(adapter.register(observation)).resolves.toMatchObject({
++      assertions: [expect.objectContaining({
++        id: 'browser.turn-status.runner',
++        status: 'unsupported',
++      })],
++    })
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index 64eb0cf..11bf0d4 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
+ 
+ import {
+   buildDockerRunArgs,
++  buildDockerWatchdogRemoveArgs,
+   dockerInputContainerPath,
+   dockerRunName,
+   runnerImageName,
+ } from '../../src/runners/docker.js'
++import { runnerTimeoutMs } from '../../src/runners/types.js'
++import type { WorkerRequest } from '../../src/worker/protocol.js'
+ 
+ describe('Docker runner command planning', () => {
+   it('mounts output read-write, local input read-only and uses tmpfs work roots', () => {
+@@ -46,4 +49,17 @@ describe('Docker runner command planning', () => {
+     const digest = `sha256:${'a'.repeat(64)}`
+     expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.3.4-aaaaaaaaaaaa')
+   })
++
++  it('uses the explicit attempt-wide watchdog budget', () => {
++    const request = {
++      scenario: { timeouts: { overallMs: 123_456 } },
++    } as WorkerRequest
++    expect(runnerTimeoutMs(request)).toBe(123_456)
++  })
++
++  it('force-removes only the named owned container after watchdog expiry', () => {
++    expect(buildDockerWatchdogRemoveArgs('run:unsafe/name')).toEqual([
++      'rm', '--force', 'dsh-testkit-run-unsafe-name',
++    ])
++  })
+ })
+diff --git a/tests/unit/scenario.test.ts b/tests/unit/scenario.test.ts
+index 5bb0fa7..f6baf66 100644
+--- a/tests/unit/scenario.test.ts
++++ b/tests/unit/scenario.test.ts
+@@ -81,6 +81,63 @@ describe('scenario contract', () => {
+     })
+   })
+ 
++  it('parses the bounded TurnStatus browser smoke and overall watchdog budget', () => {
++    const scenario = parseScenario({
++      schemaVersion: 1,
++      name: 'browser-smoke',
++      subject: { source: './plugin' },
++      dsh: { version: '0.1.1-rc.2' },
++      profile: 'web',
++      browser: {
++        smoke: {
++          kind: 'turn-status-text',
++          path: '/',
++          expectedText: 'Fixture status ready',
++          timeoutMs: 5_000,
++        },
++      },
++      timeouts: { overallMs: 120_000 },
++    })
++
++    expect(scenario.browser?.smoke).toEqual({
++      kind: 'turn-status-text',
++      path: '/',
++      expectedText: 'Fixture status ready',
++      timeoutMs: 5_000,
++    })
++    expect(scenario.timeouts).toMatchObject({ overallMs: 120_000 })
++  })
++
++  it('defaults the attempt-wide watchdog to ten minutes', () => {
++    expect(buildScenario({ source: '.', dshVersion: '0.1.1-rc.2' }).timeouts.overallMs)
++      .toBe(600_000)
++  })
++
++  it('rejects browser smoke outside the explicit web profile', () => {
++    const scenario = parseScenario({
++      schemaVersion: 1,
++      name: 'browser-headless',
++      subject: { source: '.' },
++      dsh: { version: '0.1.1-rc.2' },
++      browser: { smoke: { kind: 'turn-status-text', expectedText: 'ready' } },
++    })
++    expect(() => validateRunnerSelection({ runner: 'docker', unsafeLocal: false, scenario }))
++      .toThrow(/profile: web/i)
++  })
++
++  it('rejects browser smoke in the unsafe local runner', () => {
++    const scenario = parseScenario({
++      schemaVersion: 1,
++      name: 'browser-local',
++      subject: { source: '.' },
++      dsh: { version: '0.1.1-rc.2' },
++      profile: 'web',
++      browser: { smoke: { kind: 'turn-status-text', expectedText: 'ready' } },
++    })
++    expect(() => validateRunnerSelection({ runner: 'local', unsafeLocal: true, scenario }))
++      .toThrow(/Docker runner/i)
++  })
++
+   it.each([
+     'https://example.test/status',
+     '/status?token=secret',

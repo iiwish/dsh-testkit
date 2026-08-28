@@ -117,6 +117,24 @@ Scenario:
 2. Testkit 只向 `127.0.0.1` 的 disposable DSH web process 发起 `GET` 请求，并在 boot 成功后、uninstall 前完成检查。
 3. 报告保留路径、状态、选定字段和 response digest，不落盘 headers 或完整 body；失败仍归因于 register 阶段并保留机器可读证据。
 
+### US-011: 浏览器插件作者验证最小 Web 行为
+
+As a browser-only DSH plugin maintainer, I want an explicit `dsh web` fixture and a narrow browser smoke, so that client-side behavior is tested in its supported host without weakening the headless lifecycle contract.
+
+Scenario:
+1. 作者声明 `profile: web` 和一个受限的 TurnStatus 文本 smoke，Testkit 在 disposable DSH web host 中打开真实页面。
+2. Browser runner 在页面中创建确定性的 TurnStatus 起始状态，并等待插件把默认文本替换为场景期望值。
+3. 报告记录浏览器与宿主版本、选定 DOM 文本和 screenshot；浏览器 runner 缺失时返回 `unsupported`，而不是合成通过。
+
+### US-012: 维护者从宿主永久无响应中获得基础设施结论
+
+As a DSH Testkit maintainer, I want an attempt-wide watchdog and host-hang classification, so that an unresponsive DSH process cannot hold CI forever or be blamed on the tested plugin without evidence.
+
+Scenario:
+1. 每次 lifecycle attempt 受一个显式总预算保护，预算耗尽后 controller 终止 owned process/container 并尽力保留 watchdog 日志。
+2. `dsh web` 仍监听但 loopback HTTP 无法完成时，结果归类为 DSH host/infrastructure failure。
+3. 插件断言失败、HTTP 非预期 status 和 browser DOM 不匹配仍保持 subject/assertion failure。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -172,6 +190,11 @@ Scenario:
 - FR-040: 场景可以声明可选的 `http.routes`，必须使用 `profile: web`，每个 route 只能使用 `GET`、绝对路径和期望的 HTTP status；runner 必须为真实 DSH web host 分配 disposable loopback port。
 - FR-041: HTTP route 检查只允许 Docker runner，必须发生在成功 boot 之后、uninstall 之前；boot failure、crash 或 timeout 不得发起 route 请求。
 - FR-042: route 结果必须记录 request path、method、status、期望值、选定 JSON 字段和 response digest；headers 与完整 body 默认不进入证据，敏感字段必须脱敏。
+- FR-043: 场景可以声明一个可选的 `browser.smoke`，首个支持类型只检查 TurnStatus 从固定默认文本到场景期望文本的转换；该 lane 必须显式使用 `profile: web`。
+- FR-044: Browser smoke 必须在真实 DSH web 页面和 disposable browser context 中执行，不调用模型、不访问外部网络；证据只保留 browser identity、选定 DOM 文本、错误摘要和 screenshot，不保存完整 DOM、cookies 或 storage。
+- FR-045: Browser runner 或 browser executable 不可用时，register 阶段必须产生 `unsupported` assertion 和总体 `unsupported` verdict，不得把缺失能力报告为 pass 或插件失败。
+- FR-046: 每个 runner attempt 必须有场景级 `overallMs` 总预算；controller 超时后必须终止 owned process group/container，并以 exit code `3` 报告 host/infrastructure failure。
+- FR-047: `dsh web` 在 loopback port 存活但 HTTP/browser 导航无法在有界时间内完成时，必须归类为 DSH host/infrastructure failure；收到 HTTP response 后的 status/JSON/DOM mismatch 仍归类为插件断言失败。
 
 ## 6. Non-Functional Requirements
 
@@ -196,6 +219,8 @@ Scenario:
 - NFR-019 Nested scaffold safety: 显式或自动识别的 repository root 必须是真实目录，plugin root 必须经过 realpath 后仍被其包含，所有生成目标拒绝 symlink 路径组件。
 - NFR-020 Backward compatibility: bundle 位于 repository root 时，生成内容、文件路径、CLI 输出与幂等语义保持兼容；嵌套支持不引入多插件编排或 workflow 合并。
 - NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
+- NFR-022 Browser safety: browser smoke 只允许 runner-owned loopback origin、固定 TurnStatus contract、无任意脚本输入；context 在每次检查后关闭，并阻止非 loopback 请求。
+- NFR-023 Watchdog reliability: 默认 attempt 总预算不超过 quick suite 的 10 分钟目标；watchdog 必须有 SIGTERM 后的强制终止与 Docker container removal fallback。
 
 ## 7. 功能范围
 

@@ -59,6 +59,7 @@ The current adapter supports the exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` 
 | Clean removal | The same profile is rebooted after uninstall and checked for bundles, capabilities, processes, ports, and owned-path residue. |
 | Repeatability | `--suite full` runs five isolated attempts and returns `flaky` when semantic outcomes disagree. |
 | Observer limits | Unavailable coverage is disclosed; a required unavailable observer returns `unsupported`, never a false pass. |
+| Web smoke and watchdog | An explicit TurnStatus browser smoke uses disposable Chromium; missing browser support is `unsupported`, while an unresponsive DSH web host and attempt-wide watchdog expiry are infrastructure errors. |
 
 It does **not** prove that arbitrary executable code is safe or that a plugin produces high-quality model output.
 
@@ -122,7 +123,7 @@ http:
 
 Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
 
-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, timeouts, observer policy, stage reruns, and the loopback HTTP route contract. HTTP checks are deliberately narrow: GET only, runner-owned `127.0.0.1`, selected JSON fields and digest evidence without headers or full response bodies.
+The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, the attempt-wide watchdog, observer policy, stage reruns, loopback HTTP routes and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser checks stay on runner-owned `127.0.0.1`; browser evidence contains only identity, selected text and a screenshot, and missing Chromium returns `unsupported`.
 
 ## CI Evidence
 

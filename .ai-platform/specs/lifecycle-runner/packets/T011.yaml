@@ -1,0 +1,14 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T011
+task_id: T011
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User explicitly requested Issue #19 implementation on 2026-08-27
+goal: Add a bounded explicit dsh web TurnStatus browser smoke with unsupported fallback.
+allowed_files: [.ai-platform/**, src/domain/scenario.ts, src/config/scenario.ts, src/worker/adapter.ts, src/adapters/dsh/**, fixtures/web-status-plugin/**, tests/**, assets/runner.Dockerfile, package.json, pnpm-lock.yaml, schemas/scenario-v1.json, docs/**, README.md, README.zh-CN.md]
+tdd:
+  red: pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
+  green: pnpm vitest run tests/unit/scenario.test.ts tests/unit/browser-smoke.test.ts tests/integration/worker.test.ts tests/integration/cli.test.ts
+validation: [pnpm typecheck, pnpm build, pnpm validate, pnpm test:pack]
+evidence: [.ai-platform/evidence/T011/summary.md, .ai-platform/evidence/T011/test-results.md, .ai-platform/evidence/T011/diff.patch]
+stop_conditions: [arbitrary browser script input, non-loopback browsing, persisted cookies/storage/full DOM, synthetic pass without browser]

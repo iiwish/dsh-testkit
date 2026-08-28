@@ -8,10 +8,7 @@ export interface Runner {
 }
 
 export function runnerTimeoutMs(request: WorkerRequest): number {
-  return request.scenario.timeouts.installMs * 10
-    + request.scenario.timeouts.bootMs * 6
-    + request.scenario.timeouts.cleanupMs
-    + 10_000
+  return request.scenario.timeouts.overallMs
 }
 
 export class RunnerError extends Error {

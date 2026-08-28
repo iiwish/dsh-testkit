@@ -35,6 +35,12 @@ export class LocalRunner implements Runner {
         rm(workRoot, { recursive: true, force: true }),
       ])
     })
+    if (result.timedOut) {
+      throw new RunnerError(
+        `Global watchdog expired after ${runnerTimeoutMs(request)}ms; classified as host/infrastructure`,
+        3,
+      )
+    }
     if (result.stdoutTruncated || result.stderrTruncated) {
       throw new RunnerError('Local worker output exceeded the 8 MiB per-stream evidence limit', 3)
     }

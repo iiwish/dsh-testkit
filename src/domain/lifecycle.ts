@@ -125,7 +125,7 @@ export class LifecycleRecorder {
 
 export function deriveVerdict(stages: readonly StageResult[]): Verdict {
   if (stages.some(stage => stage.status === 'failed'
-    && (stage.failureKind === 'infrastructure' || stage.failureKind === 'cleanup'))) {
+    && (stage.failureKind === 'dsh' || stage.failureKind === 'infrastructure' || stage.failureKind === 'cleanup'))) {
     return 'infrastructure_error'
   }
   if (stages.some(stage => stage.status === 'failed')) return 'failed'

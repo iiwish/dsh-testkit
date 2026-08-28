@@ -7,7 +7,7 @@ LABEL dev.dsh-testkit.version="${TESTKIT_VERSION}" \
 ENV COREPACK_HOME=/opt/corepack
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates g++ git iproute2 make procps python3 \
+  && apt-get install -y --no-install-recommends ca-certificates chromium g++ git iproute2 make procps python3 \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable \
   && mkdir -p /opt/corepack \

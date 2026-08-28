@@ -40,6 +40,9 @@
     "http": {
       "$ref": "#/$defs/httpRoutes"
     },
+    "browser": {
+      "$ref": "#/$defs/browser"
+    },
     "exercise": {
       "type": "array",
       "items": {
@@ -76,7 +79,8 @@
       "properties": {
         "installMs": { "type": "integer", "minimum": 1000, "maximum": 1800000 },
         "bootMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
-        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 }
+        "cleanupMs": { "type": "integer", "minimum": 1000, "maximum": 120000 },
+        "overallMs": { "type": "integer", "minimum": 5000, "maximum": 3600000, "default": 600000 }
       }
     }
   },
@@ -115,6 +119,25 @@
       "properties": {
         "status": { "type": "integer", "minimum": 100, "maximum": 599, "default": 200 },
         "json": { "type": "object", "additionalProperties": true, "default": {} }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["smoke"],
+      "properties": {
+        "smoke": { "$ref": "#/$defs/browserSmoke" }
+      }
+    },
+    "browserSmoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "expectedText"],
+      "properties": {
+        "kind": { "const": "turn-status-text" },
+        "path": { "type": "string", "pattern": "^\\/(?:[A-Za-z0-9._~!$&'()*+,;=:@%\\/-]*)$", "default": "/" },
+        "expectedText": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 30000, "default": 5000 }
       }
     }
   }
