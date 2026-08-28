@@ -10,7 +10,7 @@ describe('published DSH bundle contract', () => {
     const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
     const patch = parse(await readFile(resolve(root, 'cordis.patch.yml'), 'utf8'))
 
-    expect(manifest.version).toBe('0.3.4')
+    expect(manifest.version).toBe('0.4.0')
     expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
     expect(manifest.exports['.']).toMatchObject({
       types: './dist/src/index.d.ts',
