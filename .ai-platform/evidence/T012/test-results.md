@@ -20,4 +20,6 @@ Tests 146 passed (146)
 
 ## Watchdog reproduction
 
-The targeted real-Docker browser fixture exceeded 600000 ms during a cold image build and exited with `Global watchdog expired after 600000ms; classified as host/infrastructure`. No `dsh-testkit-*` container remained. `pnpm test:pack` was separately stopped after more than ten minutes of slow shared Docker package downloads; it produced no functional failure output and is left for protected CI.
+The targeted real-Docker browser fixture exceeded 600000 ms during a cold image build and exited with `Global watchdog expired after 600000ms; classified as host/infrastructure`. No `dsh-testkit-*` container remained. `pnpm test:pack` was separately stopped after more than ten minutes of slow shared Docker package downloads and produced no functional failure output.
+
+Protected GitHub CI run [33061801560](https://github.com/iiwish/dsh-testkit/actions/runs/33061801560) passed the normal `real-host` job on DSH `0.1.1-rc.2`, compatibility jobs on `0.1.0-rc.6` through `0.1.0-rc.8`, validation, action smoke, and CodeQL.

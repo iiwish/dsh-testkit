@@ -6,4 +6,4 @@ Issue #19 is implemented as a deliberately narrow Docker-only browser lane. The 
 
 The fixture injects a deterministic initial TurnStatus into the real DSH web page and its client plugin changes the exact default text to `Fixture status ready`. Missing Chromium or a launch failure returns `unsupported`; failure to navigate the DSH host is infrastructure; a completed DOM mismatch remains a plugin assertion failure.
 
-Residual risk: the local arm64 Docker host downloaded Chromium dependencies too slowly for the default ten-minute cold-image budget. The attempt ended through the new infrastructure watchdog with no owned container left behind, so the real browser pass is delegated to protected GitHub CI on the review PR.
+Protected GitHub CI run [33061801560](https://github.com/iiwish/dsh-testkit/actions/runs/33061801560) passed the real browser assertion on DSH `0.1.1-rc.2` and the compatibility matrix on `0.1.0-rc.6`, `0.1.0-rc.7`, and `0.1.0-rc.8`. The remaining environmental risk is limited to unusually slow cold-image downloads: the local arm64 attempt reached the watchdog and left no owned container behind.
