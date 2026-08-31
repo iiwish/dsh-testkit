@@ -1,13 +1,13 @@
 # DSH Testkit v0.4.1 Release Acceptance Test Results
 
 Date: 2026-08-31
-Result: Local release gate passed; protected publication pending
+Result: GO; protected publication and public verification passed
 
 ## Repository And Package
 
 | Check | Result |
 |---|---|
-| Base identity | Local base and `origin/main` both resolve to `d9118bbec66540664bf067fe009545e17736cc50` |
+| Release identity | Local `main`, `origin/main`, `v0.4.1` and `v0` resolve to `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41` at release closeout |
 | `git diff --check` | Passed |
 | T013 delivery validator | Passed without warnings or errors |
 | Frozen install | `CI=1 pnpm install --frozen-lockfile` passed with pnpm 11.1.3 |
@@ -19,7 +19,7 @@ Result: Local release gate passed; protected publication pending
 | Package allowlist | Contains runtime assets, schemas, bilingual README and license; contains no tests, fixtures, governance files, workflows or `AGENTS.md` |
 | Production audit | No known vulnerability |
 | Production licenses | Apache-2.0, ISC, MIT and Python-2.0 |
-| Public version check | `dsh-testkit@0.4.1` is absent before publication; npm `latest` remains `0.4.0` |
+| Public version check | `dsh-testkit@0.4.1` is public and npm `latest` resolves to `0.4.1` |
 
 ## Maintainer Review Regression
 
@@ -60,4 +60,15 @@ The public registry exposes no `dsh-shelf` package higher than the `0.7.0` basel
 
 ## Protected Publication Checks
 
-The repository requires strict protected-main status checks for validation, real host and both default Action smoke subjects. Compatibility real-host and Action-smoke matrices also run in CI. Their candidate run IDs, merge commit, release workflow, public tarball integrity and npm provenance are recorded after the protected merge and trusted publication complete.
+| Check | Result |
+|---|---|
+| Release PR | [#31](https://github.com/iiwish/dsh-testkit/pull/31) merged as `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41` |
+| Candidate CI | [33351739325](https://github.com/iiwish/dsh-testkit/actions/runs/33351739325) passed validation, default real-host, rc.6/rc.7/rc.8 compatibility real-host, and all eight Action smoke rows |
+| Candidate CodeQL | [33351737788](https://github.com/iiwish/dsh-testkit/actions/runs/33351737788) passed Actions and JavaScript/TypeScript analysis |
+| Protected-main CI | [33352221017](https://github.com/iiwish/dsh-testkit/actions/runs/33352221017) passed the same required and compatibility matrix |
+| Protected-main CodeQL | [33352221601](https://github.com/iiwish/dsh-testkit/actions/runs/33352221601) passed Actions and JavaScript/TypeScript analysis |
+| Trusted release | [33352703674](https://github.com/iiwish/dsh-testkit/actions/runs/33352703674) passed validation, real-host, native bundle, packed consumer, npm trusted publishing and public verification |
+| Public tarball | Integrity `sha512-TmltTUQSCp+AjlBSnJCRA6hpUPwRGmV0LagqUtFE6JMvQ/UmKi94T2FyunBnrDj2/SeR7lNKuh7U01KNM4psLg==`; shasum `5b00611c1cccfe13110cc1cb1612ff4071b91ddd` |
+| Public execution | `npm exec --yes --package=dsh-testkit@0.4.1 -- dsh-test --version` returned `0.4.1` |
+| Provenance | npm attestations expose both the publish predicate and SLSA provenance; the provenance binds tag `v0.4.1`, workflow `release.yml`, run `33352703674` and commit `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41` |
+| Release aliases | `v0.4.1` is immutable; moving tag `v0` targets the same commit; [GitHub Release](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.1) is public |
