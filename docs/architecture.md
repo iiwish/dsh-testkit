@@ -18,7 +18,7 @@ flowchart LR
   E --> M[Markdown and terminal]
 ```
 
-The controller validates the scenario, chooses a runner, and renders projections. It never imports plugin code. The worker owns a fresh DSH home, profile, workspace, package area, logs, and observer snapshots. Local directories are copied and packed before DSH installs the tarball. A Testkit-owned no-op bundle creates and removes the empty profile baseline first, so install-time and boot-time filesystem residue can be separated from DSH's own profile scaffolding.
+The controller validates the scenario, chooses a runner, and renders projections. It never imports plugin code. The worker owns a fresh DSH home, profile, workspace, package area, logs, and observer snapshots. Local directories remain read-only inputs: the worker copies them into its owned root, restores development dependencies when a pack lifecycle script requires them, and then runs `npm pack`. The declared `packageManager` and lockfile select the install command, while Corepack state lives in a writable run directory seeded from the immutable image. DSH only installs the resulting tarball. A Testkit-owned no-op bundle creates and removes the empty profile baseline first, so install-time and boot-time filesystem residue can be separated from DSH's own profile scaffolding.
 
 The DSH adapter is the only version-sensitive layer. It invokes the real profile and plugin CLI, appends a Testkit-owned Cordis probe through `--patch`, and stops the host only after the probe writes its atomic result. The probe enumerates requested services and tool schemas and can call explicitly declared tools without a model.
 
@@ -27,3 +27,5 @@ Docker is the security boundary for the default workflow. The worker runs as the
 Observer results are capability-aware. Files under the owned root, process checkpoints, port checkpoints, and canary log scans disclose their limitations in every report. Network tracing is unavailable in v0.1, so a scenario that requires it receives `unsupported`, never a synthetic pass.
 
 Command output is sanitized before persistence and bounded to 8 MiB per stream. Exceeding that limit fails the owning stage instead of silently claiming complete evidence.
+
+The Composite Action keeps reporting and repository mutation separate. Its default `publish-junit-check: 'false'` mode emits annotations and uploads evidence with `contents: read`. Only a trusted workflow that explicitly opts into a named JUnit Check needs `checks: write`.

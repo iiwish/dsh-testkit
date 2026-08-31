@@ -1,0 +1,115 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T013
+task_id: T013
+feature_id: lifecycle-runner
+mode: direct_execute
+adapter: codex
+
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product_design: .ai-platform/docs/product-design.md
+  checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
+  plan: .ai-platform/specs/lifecycle-runner/plan.md
+  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
+  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
+  approval: User explicitly requested coordinated rc.8 contracts, official alpha canary tracking, and immutable design-partner rerun gates on 2026-08-30, extending the approved v0.4.1 work.
+
+work_unit:
+  title: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
+  goal: Make source packages reproducibly testable inside Docker, keep generated CI read-only, align rc.8 tool contracts, and classify release and partner canaries without widening support.
+  requirements: [US-007, US-013, FR-026, FR-027, FR-048, FR-049, FR-050, FR-051, FR-052, FR-053, FR-054, NFR-024, NFR-025, NFR-026, NFR-027, NFR-028]
+  depends_on: [T012]
+  blocks: [v0.4.1-release-readiness]
+
+codebase_context:
+  relevant_files:
+    - src/adapters/dsh/npm-adapter.ts
+    - src/adapters/dsh/release-train.ts
+    - src/adapters/dsh/support.ts
+    - src/scaffold/init.ts
+    - assets/runner.Dockerfile
+    - .github/actions/dsh-test/action.yml
+    - .github/workflows/ci.yml
+    - .github/workflows/dsh-release-watch.yml
+  patterns:
+    - Exact DSH versions are centralized in src/adapters/dsh/support.ts.
+    - The controller resolves immutable source identity; package scripts execute only in the owned worker.
+    - CI contracts are enforced by Vitest YAML/documentation tests and pinned-action checks.
+  invariants:
+    - Docker remains the default isolation boundary.
+    - v1 schemas and exit-code meanings remain stable.
+    - Official releases require exact npm artifacts before disposable canary execution.
+    - Design partners require a package identity higher than the recorded immutable baseline.
+
+execution_constraints:
+  adapter: codex
+  isolation: current_worktree
+  direct_execute_reason: The user did not authorize delegation; the task continues in the existing explainable T013 worktree.
+  allowed_files: [.ai-platform/**, src/adapters/dsh/npm-adapter.ts, src/adapters/dsh/release-train.ts, src/scaffold/init.ts, src/version.ts, assets/runner.Dockerfile, .github/actions/dsh-test/action.yml, .github/workflows/ci.yml, .github/workflows/dsh-release-watch.yml, fixtures/prepare-plugin/**, tests/**, scripts/check-release-readiness.mjs, scripts/check-dsh-release-train.mjs, scripts/enable-dsh-canary.mjs, package.json, pnpm-lock.yaml, CHANGELOG.md, README.md, README.zh-CN.md, docs/**]
+  forbidden_changes:
+    - Do not modify the user-owned untracked AGENTS.md.
+    - Do not run plugin package scripts on the controller host.
+    - Do not add an alpha release to default support without reviewed adapter evidence.
+    - Do not rerun a design partner from a mutable branch, commit, or existing package.
+    - Do not publish, commit, or mark the task Accepted without explicit user approval.
+
+tdd_plan:
+  red:
+    command: pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts
+    expected_signal: New package-manager, permission, rc.8, release and partner contracts fail against the pre-T013 implementation.
+  green:
+    command: pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts
+    expected_signal: Focused contracts pass without weakening stable lifecycle behavior.
+  refactor: Consolidate package-manager and release classification logic only while focused and full validation stay green.
+  exception: none
+
+validation_loop:
+  retry_budget: 2
+  commands:
+    - CI=1 pnpm install --frozen-lockfile
+    - pnpm validate
+    - pnpm test:e2e
+    - pnpm test:bundle-e2e
+    - pnpm test:pack
+    - go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml .github/workflows/dsh-release-watch.yml
+    - pnpm check:actions
+  expected_signals:
+    - Frozen rc.8 tool contracts resolve together.
+    - All supported real-host, native bundle and Action smoke rows pass.
+    - Alpha canaries remain disposable and design-partner gates remain immutable.
+  failure_handling: Classify network or cold-image infrastructure separately, rerun only the affected supported row, then require one complete green matrix before review. Record alpha incompatibility without promoting support.
+
+evidence_contract:
+  paths:
+    - .ai-platform/evidence/T013/summary.md
+    - .ai-platform/evidence/T013/test-results.md
+    - .ai-platform/evidence/T013/diff.patch
+  required:
+    - RED and GREEN results
+    - Supported real-host, bundle and Action smoke matrices
+    - Official release plus npm availability classification
+    - Design-partner immutable package checks
+    - Full validation, package and workflow evidence
+    - Residual risks
+
+review_contract:
+  spec_compliance: Confirm every T013 acceptance criterion has implementation and evidence.
+  bug_and_quality: Review package execution boundary, permission defaults, semver classification, support registry isolation and canary-enabler syntax.
+  qa_acceptance: Verify supported matrices are green and alpha or partner failures cannot become support claims.
+  acceptance_authority: user
+
+handoff:
+  status: Accepted
+  acceptance: User authorized publication after a clean maintainer review on 2026-08-31; the review finding was fixed and revalidated before handoff.
+  issue: null
+  pull_request: null
+  commit: not_requested
+  finish_options: [user_acceptance, requested_follow_up, release_preparation]
+
+stop_conditions:
+  - Plugin packaging runs on the controller host.
+  - Generated workflow requires write permission by default.
+  - A release-only alpha enters default support.
+  - A design partner is rerun without a higher immutable package.
+  - v1 schema or exit-code semantics change.
+  - User-owned AGENTS.md is modified.

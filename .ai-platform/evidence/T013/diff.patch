@@ -1,0 +1,2902 @@
+diff --git a/.ai-platform/docs/product-design.md b/.ai-platform/docs/product-design.md
+index 715be18..6772f00 100644
+--- a/.ai-platform/docs/product-design.md
++++ b/.ai-platform/docs/product-design.md
+@@ -1,10 +1,10 @@
+ # DSH Testkit Product Design Contract
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Confirmed
+ Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
+-Last updated: 2026-08-26
+-Review: User authorized continuation after SSOT review on 2026-08-15
++Last updated: 2026-08-30
++Review: User authorized v0.4.1 packaging, least-privilege CI, rc.8 contract alignment, official alpha canary tracking and immutable design-partner rerun gates
+ 
+ ## 1. 产品定位
+ 
+@@ -86,7 +86,7 @@ As an AI-assisted plugin maintainer, I want one reproducible real-host gate acro
+ Scenario:
+ 1. 维护者在不携带模型密钥、npm token 或用户 Docker 凭证的一次性环境中，对精确版本的社区插件运行 quick suite。
+ 2. 公开报告仅声明已执行的环境、阶段、聚合 verdict 和发现类型；未复现并通知维护者的单一插件失败不做命名披露。
+-3. 新 DSH dist-tag 出现时，自动化先识别未支持版本，再在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
++3. 新 DSH npm dist-tag 或官方不可变 GitHub Release 出现时，自动化先识别候选；只有对应精确 npm 包存在时才在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
+ 
+ ### US-008: 插件作者和开发 Agent 一键接入生命周期门禁
+ 
+@@ -135,6 +135,16 @@ Scenario:
+ 2. `dsh web` 仍监听但 loopback HTTP 无法完成时，结果归类为 DSH host/infrastructure failure。
+ 3. 插件断言失败、HTTP 非预期 status 和 browser DOM 不匹配仍保持 subject/assertion failure。
+ 
++### US-013: 现代插件源码获得可复现打包与只读 CI 门禁
++
++As a DSH plugin maintainer, I want source packages with build-time dependencies to pack inside the isolated runner and generated CI to work with a read-only token, so that adopting Testkit does not require host-side prebuild workarounds or unnecessary write permissions.
++
++Scenario:
++1. 插件通过精确 `packageManager`、lockfile、devDependencies 与 `prepare`/`prepack` 脚本构建发布文件。
++2. Testkit 在 disposable worker 内恢复打包依赖并生成 tarball，宿主不预先执行插件脚本或提供 `node_modules`。
++3. `dsh-test init` 生成的 workflow 只授予 `contents: read`，默认把 JUnit 作为 annotation/job summary；只有可信 workflow 显式选择时才创建需要 `checks: write` 的独立 Check。
++4. README 首屏直接说明问题、目标用户、核心价值与边界，中英文在定位和采用路径上保持一致。
++
+ ## 4. 核心用户旅程
+ 
+ 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
+@@ -173,8 +183,8 @@ Scenario:
+ - FR-023: 英文 `README.md` 与简体中文 `README.zh-CN.md` 必须共享定位、支持版本、安装命令、生命周期、安全边界和文档入口。
+ - FR-024: README 必须明确区分 Testkit 与单元测试、plugin doctor/preflight 和 composition check，不抢占静态诊断或市场定位。
+ - FR-025: 社区验证工具必须只接受精确 npm 版本，强制 Docker，从子进程环境移除凭证，输出不包含插件名称的聚合报告，并保留本地详细证据供复核。
+-- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag，并将未进入支持注册表的精确版本作为可机器消费的 canary matrix 输入。
+-- FR-027: Canary 可在一次性 CI checkout 中临时启用候选 DSH 版本并运行真实宿主测试，但不得修改发布包的支持列表或将 canary 通过宣称为正式支持。
++- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag 和官方不可变 GitHub Release；未进入支持注册表的精确版本必须按 npm 可用性分为可运行 canary 与待发布候选。
++- FR-027: Canary 只对已存在精确 npm 包的候选在一次性 CI checkout 中临时启用并运行真实宿主测试；待发布候选不得进入默认支持矩阵，canary 通过也不得表述为正式支持。
+ - FR-028: v0.2.1 必须从受保护分支的 reviewed merge commit 发布，并验证 tag、GitHub Release、npm provenance、公共安装与 DSH bundle 运行身份。
+ - FR-029: CLI 必须提供 `dsh-test init [directory]`，只接受真实目录中的 DSH bundle，结构化读取 `package.json` 的 `dsh.bundle.patch` 并解析可确定的 patch row ID。
+ - FR-030: `init` 必须生成 `dsh-testkit.yaml`、`.github/workflows/dsh-lifecycle.yml` 和 `.agents/skills/dsh-testkit/SKILL.md`；相同内容重跑必须幂等，冲突内容必须在任何写入前失败，只有显式 `--force` 才可替换目标文件。
+@@ -195,6 +205,13 @@ Scenario:
+ - FR-045: Browser runner 或 browser executable 不可用时，register 阶段必须产生 `unsupported` assertion 和总体 `unsupported` verdict，不得把缺失能力报告为 pass 或插件失败。
+ - FR-046: 每个 runner attempt 必须有场景级 `overallMs` 总预算；controller 超时后必须终止 owned process group/container，并以 exit code `3` 报告 host/infrastructure failure。
+ - FR-047: `dsh web` 在 loopback port 存活但 HTTP/browser 导航无法在有界时间内完成时，必须归类为 DSH host/infrastructure failure；收到 HTTP response 后的 status/JSON/DOM mismatch 仍归类为插件断言失败。
++- FR-048: local-directory 源声明 `prepare`、`prepack` 或 `postpack` 时，Docker worker 必须根据精确 `packageManager` 或 lockfile 在复制后的 owned source 中恢复开发依赖，再执行标准 pack 生命周期；Corepack cache 必须可写且不得依赖宿主 `node_modules` 或预构建 tarball。
++- FR-049: Composite Action 默认必须在 `contents: read` 下发布 JUnit annotations/job summary 与完整 artifact；创建 GitHub Checks API check 必须由显式输入启用，并声明只适用于授予 `checks: write` 的可信 workflow。
++- FR-050: `dsh-test init` 生成 workflow 必须保持只读最小权限、默认关闭 Checks 写入、固定 Action 入口并在外部 pull request 上可执行。
++- FR-051: 英文与中文 README 必须先回答项目解决什么问题、适合谁、为何不同于 unit/doctor/composition check，再进入安装、场景、CI、原生工具、社区验证和安全边界。
++- FR-052: Testkit 的 DSH tool 编译契约必须把 `@deepseek-ai/dsh-tools` 与 `@deepseek-ai/dsh-invariants` 固定在同一已验证 release train；rc.8 支持必须使用两者的精确 `0.1.0-rc.8` 组合。
++- FR-053: 默认与兼容 real-host matrix 必须覆盖支持注册表中的全部 DSH npm 版本；Action smoke 必须对每个兼容宿主覆盖 healthy 与预期 boot-failure 两类制品。
++- FR-054: `dsh-shelf` 与 `dsh-spotlight` 设计伙伴复测只接受高于已记录基线的新不可变包版本；mutable branch、未发布修复 commit 和既有包不得产生新的复测结论。
+ 
+ ## 6. Non-Functional Requirements
+ 
+@@ -221,6 +238,11 @@ Scenario:
+ - NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
+ - NFR-022 Browser safety: browser smoke 只允许 runner-owned loopback origin、固定 TurnStatus contract、无任意脚本输入；context 在每次检查后关闭，并阻止非 loopback 请求。
+ - NFR-023 Watchdog reliability: 默认 attempt 总预算不超过 quick suite 的 10 分钟目标；watchdog 必须有 SIGTERM 后的强制终止与 Docker container removal fallback。
++- NFR-024 Packaging isolation: local-directory 依赖恢复和全部 package lifecycle script 必须留在默认 Docker worker；失败属于 package/subject stage 并保留脱敏日志，不能在 controller 宿主执行。
++- NFR-025 Least privilege: 默认生成 workflow 和 Action smoke 不需要任何 GitHub write permission；显式 JUnit Check 模式的权限升级必须可见、可关闭且不用于外部 PR 默认路径。
++- NFR-026 Positioning clarity: README 首个 screenful 必须包含一句明确品类定义、静态检查遗漏的真实问题、三个核心结果与三条命令的采用路径；详细参考下沉到 docs，避免功能清单取代产品定位。
++- NFR-027 Release-train integrity: GitHub Release 身份、npm 精确版本与支持声明必须分层记录；release-only 候选、可运行 canary 和正式支持不得混为同一状态。
++- NFR-028 Partner evidence integrity: 设计伙伴结论必须绑定 package name、精确版本和 registry identity；未满足新不可变包 gate 时只记录等待状态，不执行源码替代复测。
+ 
+ ## 7. 功能范围
+ 
+@@ -251,6 +273,17 @@ Scenario:
+ - 通过官方 Ideas 讨论和公开插件模板 PR 争取把生命周期测试放入插件开发默认路径。
+ - 支持单个 DSH bundle 位于 Git 仓库子目录的一键接入，并把 workflow 与项目 Skill 放在仓库可发现位置。
+ 
++### v0.4 范围
++
++- 增加 runner-owned loopback HTTP route 和受限 TurnStatus browser smoke，同时保持 v1 scenario/report contract。
++- 以 attempt-wide watchdog 限制永久无响应，并把已有 live-loopback 证据的宿主挂死归为 infrastructure。
++- 让带 package manager、lockfile、devDependencies 和打包生命周期脚本的本地源码在 Docker 内可靠生成发布候选制品。
++- 让 scaffold 与 Composite Action 默认在只读 GitHub token 下工作，JUnit Checks 写入成为可信 workflow 的显式选择。
++- 用清晰的双语入口把产品定义为 DSH 插件的真实宿主发布门禁，而不是通用测试框架或安全认证。
++- 将 rc.8 tool/invariants 编译契约作为一个协调版本升级，并对每个兼容宿主运行完整 real-host 与 Action smoke 证据。
++- 跟踪官方不可变 alpha release；精确 npm 包可用前保持待发布 canary 状态，不进入默认支持矩阵。
++- 设计伙伴只在高于既有基线的新不可变包发布后复测。
++
+ ### 后续候选
+ 
+ - macOS 和 Windows runner。
+@@ -292,6 +325,9 @@ Scenario:
+ - bundle patch 缺失、位于仓库外、经过 symlink 逃逸、没有可确定 row，或采用当前 scaffold 不支持的结构。
+ - 目标 scaffold 文件部分存在、内容被维护者修改，或 `.github`/`.agents` 路径组件是 symlink。
+ - DSH profile 没有挂载 `skills` service；`dsh_test` 仍必须注册且运行时 Skill 明确不可用。
++- 官方 GitHub Release 已存在，但相同精确版本尚未发布到 npm。
++- DSH tool 与 invariants 的 release train 不一致，导致类型契约或 peer resolution 偏离目标宿主。
++- 设计伙伴 source fix 已合并，但没有高于既有基线的新不可变 package identity。
+ 
+ ## 10. 约束与假设
+ 
+@@ -329,13 +365,16 @@ Scenario:
+ - SC-012: tool 调用的被测插件执行只发生在 Docker 中，workspace 越界、本地 symlink 逃逸、缺少确认和取消均有自动化回归测试。
+ - SC-013: 至少 10 个精确版本的公开社区 bundle 在无凭证的 Docker cohort 中完成 quick suite，公开报告包含样本选择、环境、聚合 verdict 和首个失败阶段分布。
+ - SC-014: 英文和中文 README 经过版本/链接/安全契约检查，打包消费者可读取两份文档。
+-- SC-015: DSH dist-tag 发现器对“全部已支持”和“出现新候选”均有固定 fixture，新候选能启动真实宿主 canary matrix。
++- SC-015: DSH release-train 发现器对“全部已支持”“官方 release 等待 npm”“npm 包可运行 canary”均有固定 fixture；只有可运行候选能启动真实宿主 canary matrix。
+ - SC-016: 多插件完整生命周期是否进入下一版本，必须以 10 插件 cohort 和社区失败类型为证据做明确 TDR，不以功能完整性直觉扩张。
+ - SC-017: 干净 bundle fixture 的 `dsh-test init` 在无网络条件下生成可解析的场景、workflow 和 Skill；第二次运行字节不变，冲突文件使整次操作零写入。
+ - SC-018: 单元测试、打包消费者和真实 DSH bundle E2E 分别证明 Skill 文件身份、项目级发现契约和可选运行时注册，且 `skills` 缺失不阻塞 `dsh_test`。
+ - SC-019: v0.3.0 发布后，官方 Ideas 区存在可直接采纳的 vendor-neutral Agent Skill 建议，至少一个公开插件模板 PR 使用 released `v0` Action 和生成场景。
+ - SC-020: 首批采用阶段以 5 个外部插件仓库运行 lifecycle Action、3 个持续 check 和至少 1 个上游/模板引用为目标；该 field metric 不阻塞 v0.3.0 发布。
+ - SC-021: root bundle、自动识别 Git root 的嵌套 bundle 和显式 `--repo-root` 的嵌套 bundle 均生成可解析场景与正确 workflow 路径；跨根目录冲突和越界测试证明零部分写入。
++- SC-022: `dsh-tools` 与 `dsh-invariants` 的 rc.8 精确契约、lockfile resolution、全部支持宿主 real-host matrix 和兼容 Action smoke matrix 同时通过。
++- SC-023: 官方 `dsh-v0.1.2-alpha.1` 在 npm 包缺失时出现在 `pendingNpmVersions`；已存在 npm 包的后续不可变 alpha 只进入可运行 canary，二者都不出现在 `SUPPORTED_DSH_NPM_VERSIONS`。
++- SC-024: `dsh-shelf@0.7.0` 与 `@0xsline/dsh-spotlight@0.0.2` 保持复测基线；没有更高不可变 package identity 时不产生新 lifecycle run。
+ 
+ ## 13. 验收标准
+ 
+@@ -354,6 +393,7 @@ Scenario:
+ - `dsh-test init plugin/` 将场景留在 `plugin/`，将 workflow 与 Skill 放在仓库根目录，并输出可从仓库根目录直接运行的验证命令。
+ - Agent Skill 的路由描述、正文大小、安全约束和生成文件通过契约测试，真实 DSH profile 可同时观察 `dsh_test` 和 `dsh-testkit` Skill。
+ - v0.3.0 公共 npm 包、GitHub Release、Show & Tell 更新、官方 Ideas 建议和插件模板 PR 均引用同一个发布身份。
++- rc.8 的编译依赖与宿主兼容矩阵使用一致的 tool/invariants release train；官方 alpha 和设计伙伴等待状态有机器可读或文档证据，且不会扩大默认支持声明。
+ 
+ ## 14. Clarifications
+ 
+@@ -384,5 +424,5 @@ None blocking product review. 技术栈、runner 后端、模块布局和首批
+ 
+ ## 16. User Review Gate
+ 
+-- Approval: Approved on 2026-08-16
+-- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板；2026-08-16 进一步批准首位设计伙伴受控试点和嵌套插件 repo-root 修复。既有 lifecycle、schema 和安全边界保持不变。
++- Approval: Approved on 2026-08-30
++- Reviewer notes: 用户明确批准 rc.8 tool/invariants 协调升级、完整 real-host/Action smoke、官方 `v0.1.2-alpha.1` 非默认 canary 跟踪，以及仅在 `dsh-shelf`、`dsh-spotlight` 发布新不可变包后的设计伙伴复测。既有 lifecycle、schema 和安全边界保持不变。
+diff --git a/.ai-platform/docs/release-acceptance-plan.md b/.ai-platform/docs/release-acceptance-plan.md
+index e963f16..1d87fd5 100644
+--- a/.ai-platform/docs/release-acceptance-plan.md
++++ b/.ai-platform/docs/release-acceptance-plan.md
+@@ -1,10 +1,10 @@
+ # DSH Testkit Release Acceptance Plan
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Current
+ Release channel: Public preview
+ Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
+-Last updated: 2026-08-28
++Last updated: 2026-08-31
+ 
+ ## 1. Acceptance Objective
+ 
+@@ -160,6 +160,17 @@ Requirements: US-011, US-012, FR-043 through FR-047, NFR-022, NFR-023.
+ - Pre-probe boot timeout remains generic timeout evidence; host/infrastructure classification requires live-loopback evidence.
+ - Scenario schema v1, report schema v1 and exit-code meanings remain unchanged.
+ 
++### G13 Source Packaging, Least-Privilege CI And Release Canaries
++
++Requirements: US-007, US-013, FR-026, FR-027, FR-048 through FR-054, NFR-024 through NFR-028.
++
++- A source plugin with an exact `packageManager`, frozen lockfile, development dependency and `prepare` script builds entirely inside the owned Docker worker.
++- Explicit package-manager versions are immutable semantic versions and execute through Corepack at the declared version; mutable tags are rejected before plugin scripts run.
++- Generated CI and the Composite Action operate under `contents: read`; Checks API publication requires an explicit trusted-workflow input.
++- `dsh-tools` and `dsh-invariants` resolve together at rc.8, and every supported host passes real-host, native-bundle and both Action-smoke subjects.
++- Official immutable releases without npm artifacts remain pending; published candidates run only in a disposable canary and do not widen default support.
++- Design-partner reruns require a package identity higher than the recorded immutable baseline.
++
+ ## 5. Public-Preview Field Gates
+ 
+ These measurements require publication or an external repository and do not block the first public preview:
+diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index 2fdf1f1..0fc6e98 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -1,72 +1,46 @@
+-# DSH Testkit Release Report
++# DSH Testkit v0.4.1 Release Report
+ 
+-Version: v0.4.0
+-Status: Published Public Preview
+-Decision: GO
+-Last updated: 2026-08-28
+-Release commit: [`c25df9077825ab2cd7fe4ba2cb61023bfce70033`](https://github.com/iiwish/dsh-testkit/commit/c25df9077825ab2cd7fe4ba2cb61023bfce70033)
++Version: v0.4.1
++Status: Release Candidate
++Decision: CONDITIONAL_GO
++Release channel: Public preview
++Last updated: 2026-08-31
+ 
+ ## Release Scope
+ 
+-DSH Testkit v0.4.0 adds an explicit Docker-only `dsh web` TurnStatus browser smoke and an attempt-wide watchdog while preserving the existing lifecycle engine, scenario schema v1, report schema v1 and exit-code meanings.
++DSH Testkit v0.4.1 adds worker-owned source dependency restoration, read-only generated CI, coordinated rc.8 tool contracts, complete compatibility Action smoke, official-release/npm canary classification, and immutable design-partner rerun gates. Scenario schema v1, report schema v1, exit-code meanings, and Docker-default isolation remain unchanged.
+ 
+-The browser lane uses a disposable Chromium context, permits only the runner-owned loopback origin, blocks service workers and non-loopback HTTP/WebSocket traffic, and retains only browser identity, selected text, bounded JSON evidence and a screenshot. Missing browser support is `unsupported`; failure to navigate an already-live loopback host is infrastructure; a completed DOM mismatch remains a plugin assertion failure.
++T013 is the accepted v0.4.1 scope. T010 through T012 remain accepted v0.4.0 history. T000 through T009 retain their recorded historical states.
+ 
+-`timeouts.overallMs` bounds each local and Docker attempt. Expiry terminates the owned process tree, force-removes the deterministic container as a fallback and returns infrastructure exit code 3. A pre-probe boot timeout retains generic timeout evidence, so Testkit does not label every plugin-induced boot stall as a host defect.
++## Review Decision
+ 
+-## Verification
++Maintainer review found one P2 before publication: mutable `packageManager` tags were accepted and an explicit npm version was not guaranteed. The release candidate rejects non-semver manager versions and dispatches explicit npm, pnpm, and Yarn versions through Corepack. RED/GREEN unit coverage and the real Docker prepare fixture pass after the fix. No P0 through P3 finding remains.
+ 
+-| Gate | Result |
+-|---|---|
+-| T011 and T012 task evidence | Accepted with production-adapter regression coverage and the real-host compatibility matrix |
+-| Local validation | `pnpm validate` passed 25 test files and 148 tests, including typecheck, coverage and build |
+-| Package preflight | `npm pack --dry-run --json` produced `dsh-testkit@0.4.0` with 151 entries |
+-| Implementation PR | [PR #25](https://github.com/iiwish/dsh-testkit/pull/25) passed protected CI, real-host DSH `0.1.1-rc.2`, compatibility replays and CodeQL before merge |
+-| Release PR | [PR #26](https://github.com/iiwish/dsh-testkit/pull/26) passed [CI run 33138444470](https://github.com/iiwish/dsh-testkit/actions/runs/33138444470) and CodeQL before merge |
+-| Protected main | [CI run 33138833339](https://github.com/iiwish/dsh-testkit/actions/runs/33138833339) and [CodeQL run 33138833308](https://github.com/iiwish/dsh-testkit/actions/runs/33138833308) passed on the release commit |
+-| Trusted publication | [Release run 33139219598](https://github.com/iiwish/dsh-testkit/actions/runs/33139219598) passed validation, real-host, native-bundle, packed-consumer, publish and public-registry verification |
+-| Host compatibility | Default `0.1.1-rc.2` plus exact replays for `0.1.0-rc.8`, `0.1.0-rc.7` and `0.1.0-rc.6` passed |
+-| Fresh repeatability | Warm default-Docker full suite run `20260828043957-c2cfc3c9` passed 5/5 attempts with one semantic digest; each attempt completed in 159.449 to 262.783 seconds |
+-| Public package | npm `latest` resolves to `0.4.0`; the registry reports 151 files and 821,715 unpacked bytes |
+-| npm provenance | The SLSA v1 statement identifies `pkg:npm/dsh-testkit@0.4.0`, `refs/tags/v0.4.0`, release workflow run `33139219598` and commit `c25df90` |
+-
+-## Task And Evidence Authority
+-
+-- T010, T011 and T012 are `Accepted` and have retained summaries, test results and diffs under `.ai-platform/evidence/`.
+-- T011 implements US-011, FR-043 through FR-045 and NFR-022.
+-- T012 implements US-012, FR-046 through FR-047 and NFR-023.
+-- T000 through T009 retain their historical `Needs_Review` or published-needs-acceptance states. This report does not retroactively change those records.
+-
+-## Distribution
+-
+-- [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038#discussioncomment-18183335) records the completed Web-host gate and watchdog boundary.
+-- [Ideas #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088#discussioncomment-18183338) records the vendor-neutral release-gate rules.
+-- [Issue #19](https://github.com/iiwish/dsh-testkit/issues/19) closed through the reviewed implementation.
+-- [Blue-Whale-Harness #135](https://github.com/leenkcool/Blue-Whale-Harness/issues/135) accepted DSH Testkit as an external testing utility.
++The executable candidate is approved. Final `GO` requires the reviewed tree to merge through protected `main`, all required and compatibility CI jobs to pass, and the trusted tag workflow to publish and verify the same immutable commit.
+ 
+-## Review
++## Candidate Evidence
+ 
+-- Spec compliance: Passed for US-010 through US-012, FR-040 through FR-047, NFR-021 through NFR-023 and the v0.4.0 compatibility boundary.
+-- Engineering quality: Maintainer review found no surviving P0 through P3 issue on the implementation or release diff.
+-- Safety boundary: Passed; browser traffic remains loopback-only, retained evidence is bounded, plugin code remains in the selected runner and watchdog cleanup is deterministic.
+-- Compatibility: Passed; headless scenarios, HTTP-only scenarios, Action inputs, v1 schemas and exit codes remain compatible.
+-- Publication: Passed through protected PRs, protected main, trusted npm publishing and public provenance verification.
+-
+-## Residual Risks
+-
+-- The browser contract is intentionally one fixed TurnStatus smoke, not a general browser, visual or accessibility test surface.
+-- Chromium is provided only in the Docker runner; environments without a supported executable receive honest `unsupported` coverage.
+-- A cold arm64 runner-image build can exceed the default 10-minute attempt budget while downloading Chromium. The observed expiry returned infrastructure exit code 3 and left no owned container; the warm repeatability gate passed 5/5 attempts.
+-- Docker is not a hardened malware sandbox, and plugin/runtime code can still exercise capabilities allowed by the runner environment.
+-- DSH remains a release-candidate contract. GitHub has published `dsh-v0.1.2-alpha.1`, but npm `latest` and `next` remain `0.1.1-rc.2`; support changes require an exact npm canary.
+-- External adoption remains the next product signal. The public template PR is not yet a merged, continuously running check.
+-
+-## Publication Targets
+-
+-- Repository: [iiwish/dsh-testkit](https://github.com/iiwish/dsh-testkit)
+-- GitHub release: [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0)
+-- Stable moving tag: [`v0`](https://github.com/iiwish/dsh-testkit/tree/v0), resolving to the v0.4.0 release commit
+-- npm package: [`dsh-testkit@0.4.0`](https://www.npmjs.com/package/dsh-testkit/v/0.4.0)
+-- npm tarball SHA-1: `4238703a0876b038e75a90186f5c205fba661537`
+-- npm integrity: `sha512-865EnsRfbcTw/nwRLz+E7hzs87v6MdDuDV6zV3J8+smmGkSjBTdaZfIl75FiXe3za99dNwbQIowi/2/VDspndw==`
+-- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.4.0)
++| Gate | Result |
++|---|---|
++| Frozen install and validation | Passed: 25 test files, 159 tests, typecheck, coverage and build |
++| Package contract | Passed: publint, packed consumer, npm publish dry run, 151-file allowlist |
++| Package size | 199,843 bytes packed; 845,603 bytes unpacked |
++| Dependency hygiene | Production audit found no known vulnerability; licenses are MIT, ISC, Apache-2.0 and Python-2.0 |
++| Supported real host | Passed all 11 cases on DSH rc.2, rc.8, rc.7 and rc.6 |
++| Native DSH bundle | Passed on DSH rc.2, rc.8, rc.7 and rc.6 |
++| Composite Action | Healthy and expected boot-failure subjects passed on default plus all compatibility hosts |
++| Source prepare path | Exact pnpm 10.17.0 fixture passed inside the owned Docker worker |
++| Alpha boundary | alpha.1 waits for npm; alpha.2 remains a failing disposable canary; neither is supported |
++| Design partners | No immutable package higher than the recorded shelf or spotlight baseline; no rerun performed |
++| Artifact governance | T013 validator and diff checks passed |
++
++## Publication Boundary
++
++- The previous public release remains [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0) and npm `latest` remains `0.4.0` until the trusted workflow succeeds.
++- The v0.4.1 tag must point to the reviewed protected-main merge commit.
++- The release workflow must pass validation, real-host, native-bundle, packed-consumer, npm trusted publishing, and public-registry verification.
++- The stable `v0` moving tag and GitHub Release are updated only after npm publication succeeds.
++
++## Residual Risk
++
++DSH `0.1.2-alpha.2` creates new credential/fallback profile paths and changes the observed TurnStatus transition. Testkit records these as unsupported canary differences rather than normalizing them into the stable adapter. Cold arm64 image builds can exceed the ten-minute attempt budget while Chromium packages download; the watchdog classifies this as infrastructure and removes owned containers.
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index 6d3047f..0355cd4 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -1,8 +1,8 @@
+ # DSH Testkit Delivery Index
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Confirmed
+-Last updated: 2026-08-28
++Last updated: 2026-08-31
+ 
+ ## Active Release
+ 
+@@ -12,7 +12,7 @@ Last updated: 2026-08-28
+ - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
+ - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
+ 
+-The v0.4.0 release scope is T010 through T012. T010, T011 and T012 are accepted with task evidence. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
++The v0.4.1 release scope is T013 and is accepted for protected-branch publication. T010, T011 and T012 remain accepted v0.4.0 history. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
+ 
+ ## Release Gate
+ 
+@@ -135,3 +135,9 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T011.yaml`
+ Status: Accepted
+ Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t012-attempt-wide-watchdog-and-host-hang-classification`
+ Packet: `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
++
++#### Work Item T013: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
++
++Status: Accepted
++Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t013-source-packaging-least-privilege-ci-and-v041-positioning`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T013.yaml`
+diff --git a/.ai-platform/docs/technology-decision-record.md b/.ai-platform/docs/technology-decision-record.md
+index 2a2d9b7..27cacb9 100644
+--- a/.ai-platform/docs/technology-decision-record.md
++++ b/.ai-platform/docs/technology-decision-record.md
+@@ -448,7 +448,7 @@ Task impact:
+ ## TDR-019: Dist-Tag Watch With Ephemeral Canary Enablement
+ 
+ Decision:
+-Discover exact DSH versions from the npm `latest` and `next` dist-tags. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become canary matrix inputs. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
++Discover exact DSH versions from the npm `latest` and `next` dist-tags and immutable releases from the official `deepseek-ai/deepseek-harness` GitHub repository. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become runnable canary inputs only when the exact npm version exists. Official releases without an npm package remain `pendingNpmVersions`. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
+ 
+ Requirement mapping:
+ - FR-026, FR-027, SC-015
+@@ -458,11 +458,11 @@ Rationale:
+ - A separate ephemeral canary provides early evidence without silently widening the product's support promise.
+ 
+ Risks:
+-- npm dist-tags can move or omit a release line.
++- npm dist-tags can move or omit a release line, while an official GitHub release can precede its npm package.
+ - Canary failures can be infrastructure failures rather than adapter incompatibility.
+ 
+ Mitigations:
+-- Record the resolved exact version and dist-tag metadata, keep verdict categories separate, and require reviewed real-host evidence before changing support.
++- Record the resolved exact version, dist-tag, official release and npm availability metadata; keep pending, canary and supported states separate; require reviewed real-host evidence before changing support.
+ 
+ Task impact:
+ - T007 adds release discovery fixtures, canary preparation and the scheduled workflow.
+diff --git a/.ai-platform/evidence/release-acceptance/summary.md b/.ai-platform/evidence/release-acceptance/summary.md
+index f682cd5..ef88ce7 100644
+--- a/.ai-platform/evidence/release-acceptance/summary.md
++++ b/.ai-platform/evidence/release-acceptance/summary.md
+@@ -1,52 +1,36 @@
+-# DSH Testkit v0.4.0 Release Acceptance Summary
++# DSH Testkit v0.4.1 Release Acceptance Summary
+ 
+-Date: 2026-08-28
+-Decision: GO
+-Channel: Published public preview
+-Release commit: `c25df9077825ab2cd7fe4ba2cb61023bfce70033`
+-Implementation PR: [#25](https://github.com/iiwish/dsh-testkit/pull/25)
+-Release PR: [#26](https://github.com/iiwish/dsh-testkit/pull/26)
++Date: 2026-08-31
++Decision: CONDITIONAL_GO
++Channel: Public preview candidate
++Accepted task: T013
+ Acceptance plan: `.ai-platform/docs/release-acceptance-plan.md`
+ 
+ ## Gate Result
+ 
+ | Gate | Result | Summary |
+ |---|---|---|
+-| G01 Candidate and governance integrity | Passed | The release commit is immutable, v0.4.0 identities agree, T010 through T012 are accepted, and historical T000 through T009 states remain unchanged. |
+-| G02 Build, types and package contract | Passed | Local validation passed 25 test files and 148 tests; the trusted release also passed packed-consumer and package publication checks. |
+-| G03 Scenario, report and exit-code contracts | Passed | Runtime and published v1 contracts remain aligned; browser and watchdog behavior retain the existing schema and exit-code meanings. |
+-| G04 Lifecycle state machine | Passed | Protected real-host jobs exercised the healthy lifecycle on DSH `0.1.1-rc.2` and the supported compatibility set. |
+-| G05 Supported subject inputs | Passed | Source-resolution contract tests and the packed-consumer gate remained green; the v0.4.0 scope does not change the accepted input boundary. |
+-| G06 Isolation, secret handling and cleanup | Passed | Browser traffic is loopback-only and bounded; watchdog expiry returns infrastructure exit code 3 and leaves no owned container. |
+-| G07 Determinism and performance | Passed | A fresh warm default-Docker full suite passed 5/5 attempts with one semantic digest; every attempt completed in 159.449 to 262.783 seconds. |
+-| G08 CI and distribution integration | Passed | Implementation, release and protected-main CI passed; the trusted release workflow verified the public package. |
+-| G09 Dependency and open-source hygiene | Passed | A fresh production audit found no known vulnerability; MIT, ISC, Apache-2.0 and Python-2.0 licenses, package metadata and npm provenance passed review. |
+-| G10 Native DSH bundle and tool boundary | Passed | The trusted release exercised the native bundle and packed consumer without widening the tool boundary. |
+-| G11 Scaffold and Agent Skill adoption boundary | Passed for release | Scaffold, Action and packaged Skill contracts passed; post-release adoption remains a field metric. |
+-| G12 Explicit web smoke and attempt-wide watchdog | Passed | The production adapter, real Web host, Chromium smoke, unsupported path, classification boundary and deterministic cleanup are covered. |
+-
+-## Current Release Authority
+-
+-- T010, T011 and T012 are the v0.4.0 release scope and are `Accepted` with retained task evidence.
+-- T000 through T009 remain historical records in their existing `Needs_Review` or published-needs-user-acceptance states. Publication does not supply retroactive acceptance.
+-- The v0.4.0 release is public on GitHub and npm; the `v0` moving tag and `v0.4.0` tag resolve to the release commit.
+-
+-## Fresh Repeatability Identity
+-
+-- Run: `20260828043957-c2cfc3c9`
+-- Subject: `@dsh-testkit/fixture-healthy@1.0.0`
+-- Subject digest: `sha256:420728ef7835c2d216d3dc4b18098608ba00327186209e57a168950769879e75`
+-- DSH: `@deepseek-ai/dsh@0.1.1-rc.2`
+-- DSH integrity: `sha256:bf9d4cf18b53489dacb94ebd32ad3de663edaebb2da1c5517ad69e4fc75d862a`
+-- Scenario digest: `sha256:bf7a181994e4d5d9df0da6f6067718e0815e7b5affe05d1450df3da21f049f45`
+-- Semantic digest: `sha256:f1749a1d60d06ae50c4067060298dbac4808f25a2d529d6672a31ad157f9d0aa`
+-- Runner image: `dsh-testkit-runner:0.4.0-7ccc65787e39`
+-- Runner image ID: `sha256:88d010ddf2a6f681f76edeefb591a661818d06667a8f32c594092bfb9bc7b17c`
+-- Attempts: 5 passed, 5 completed, consistent, 243 retained artifacts, zero owned containers after completion
+-
+-## Publication And Field Boundary
+-
+-- GitHub release [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0), npm `latest` and the SLSA provenance statement identify the same release.
+-- The existing Show & Tell and Ideas discussions each received one v0.4.0 update. Issue #19 is closed, and Blue-Whale-Harness intake #135 accepted the listing.
+-- A cold arm64 runner-image build can exceed the default attempt budget while downloading Chromium. The observed expiry was classified as host/infrastructure and left no owned container; the fresh five-run gate uses the acceptance plan's warm-run boundary.
+-- External repository adoption remains the next product signal and does not block the published public preview.
++| G01 Candidate and governance integrity | Conditional | T013 is accepted and its artifacts validate; the protected merge commit and matching tag are publication-time identities. |
++| G02 Build, types and package contract | Passed | Frozen install, 159 tests, build, publint, package allowlist, dry-run publish and packed consumer passed. |
++| G03 Scenario, report and exit-code contracts | Passed | v1 schemas and exit-code meanings remain unchanged. |
++| G04 Lifecycle state machine | Passed | Every supported DSH host passed the complete 11-case real-host suite. |
++| G05 Supported subject inputs | Passed | Existing input contracts remain green and the source prepare fixture passes from a read-only mount. |
++| G06 Isolation, secret handling and cleanup | Passed | Dependency restoration and package scripts stay in the owned worker; watchdog cleanup remains effective. |
++| G07 Determinism and performance | Passed for release | Supported matrix verdicts are green; cold image download remains a classified infrastructure condition. |
++| G08 CI and distribution integration | Conditional | Local Action smoke and workflow validation pass; protected GitHub CI must prove the merge candidate. |
++| G09 Dependency and open-source hygiene | Passed | Production audit and license inventory pass; package metadata is complete. |
++| G10 Native DSH bundle and tool boundary | Passed | Native bundle passed on every supported DSH version. |
++| G11 Scaffold and Agent Skill adoption boundary | Passed | Generated workflow stays read-only and packed-consumer contracts pass. |
++| G12 Explicit web smoke and attempt-wide watchdog | Passed | Supported web/browser cases and cleanup behavior remain green. |
++| G13 Source packaging, least-privilege CI and canaries | Passed | Exact Corepack dispatch, rc.8 coordination, release classification and immutable partner gates are proved. |
++
++## Review Result
++
++The first maintainer pass found a P2 reproducibility defect in explicit package-manager handling. A negative control failed for mutable `pnpm@latest`, and explicit npm used the runner default. The accepted candidate validates an exact semantic version and invokes Corepack with the complete declared manager identity. Unit, type, package, and real Docker source-prepare evidence pass. No review finding remains.
++
++## Publication Conditions
++
++1. Merge the reviewed candidate through protected `main` after all required and compatibility jobs pass.
++2. Tag that exact commit as `v0.4.1`; do not tag a branch-local or unreviewed commit.
++3. Require the trusted release workflow to publish with npm provenance and verify the public package.
++4. Move `v0` and create the GitHub Release only after npm publication succeeds.
+diff --git a/.ai-platform/evidence/release-acceptance/test-results.md b/.ai-platform/evidence/release-acceptance/test-results.md
+index f2dbb50..aae41f2 100644
+--- a/.ai-platform/evidence/release-acceptance/test-results.md
++++ b/.ai-platform/evidence/release-acceptance/test-results.md
+@@ -1,75 +1,63 @@
+-# DSH Testkit v0.4.0 Release Acceptance Test Results
++# DSH Testkit v0.4.1 Release Acceptance Test Results
+ 
+-Date: 2026-08-28
+-Result: Passed release gate
+-Release commit: `c25df9077825ab2cd7fe4ba2cb61023bfce70033`
++Date: 2026-08-31
++Result: Local release gate passed; protected publication pending
+ 
+ ## Repository And Package
+ 
+ | Check | Result |
+ |---|---|
++| Base identity | Local base and `origin/main` both resolve to `d9118bbec66540664bf067fe009545e17736cc50` |
+ | `git diff --check` | Passed |
+-| Delivery artifact validator | Passed for T011 and T012 release work |
+-| `pnpm validate` | Passed: 25 test files, 148 tests, typecheck, coverage and build |
+-| Package dry run | Passed: `dsh-testkit@0.4.0`, 151 entries |
+-| Public npm metadata | `latest` is `0.4.0`; 151 files; 821,715 unpacked bytes |
+-| npm tarball identity | SHA-1 `4238703a0876b038e75a90186f5c205fba661537`; integrity `sha512-865EnsRfbcTw/nwRLz+E7hzs87v6MdDuDV6zV3J8+smmGkSjBTdaZfIl75FiXe3za99dNwbQIowi/2/VDspndw==` |
+-| Production dependency audit | Fresh `pnpm audit --prod` found no known vulnerability |
+-| Production license inventory | MIT, ISC, Apache-2.0 and Python-2.0 dependencies reviewed |
+-| Version identity | Package, CLI, release tag, GitHub release, npm package and provenance identify v0.4.0 |
++| T013 delivery validator | Passed without warnings or errors |
++| Frozen install | `CI=1 pnpm install --frozen-lockfile` passed with pnpm 11.1.3 |
++| `pnpm validate` | Passed: 25 test files, 159 tests, typecheck, coverage and build |
++| Coverage | 63.82% statements, 76.59% branches, 74.79% functions |
++| `publint@0.3.23` | Passed with no finding |
++| Packed consumer | Passed with `dsh-testkit-0.4.1.tgz` |
++| npm publish dry run | Passed: 151 files, 199,843 packed bytes, 845,603 unpacked bytes |
++| Package allowlist | Contains runtime assets, schemas, bilingual README and license; contains no tests, fixtures, governance files, workflows or `AGENTS.md` |
++| Production audit | No known vulnerability |
++| Production licenses | Apache-2.0, ISC, MIT and Python-2.0 |
++| Public version check | `dsh-testkit@0.4.1` is absent before publication; npm `latest` remains `0.4.0` |
++
++## Maintainer Review Regression
++
++RED proved that the pre-review implementation accepted mutable package-manager tags and did not execute explicit npm versions through Corepack:
+ 
+-## Contracts And Protected CI
+-
+-| Check | Result |
+-|---|---|
+-| Scenario/report v1 and exit-code parity | Passed; v0.4.0 adds no breaking schema or exit-code change |
+-| Documentation contract tests | Passed against the canonical v0.4.0 release state |
+-| Implementation PR #25 | Required CI, real-host, compatibility and CodeQL checks passed before merge |
+-| Implementation main CI | [Run 33137437612](https://github.com/iiwish/dsh-testkit/actions/runs/33137437612) passed |
+-| Release PR #26 | [CI run 33138444470](https://github.com/iiwish/dsh-testkit/actions/runs/33138444470) passed before merge |
+-| Release commit on protected main | [CI run 33138833339](https://github.com/iiwish/dsh-testkit/actions/runs/33138833339) and [CodeQL run 33138833308](https://github.com/iiwish/dsh-testkit/actions/runs/33138833308) passed |
+-| Trusted release | [Run 33139219598](https://github.com/iiwish/dsh-testkit/actions/runs/33139219598) passed validation, real-host, native-bundle, packed-consumer, publish and public-registry verification |
+-| npm provenance | SLSA v1 identifies `pkg:npm/dsh-testkit@0.4.0`, `refs/tags/v0.4.0`, the release workflow and commit `c25df90` |
+-
+-## Real Host, Web And Watchdog
+-
+-| Test | Result |
+-|---|---|
+-| Default protected real host | Passed on `@deepseek-ai/dsh@0.1.1-rc.2` |
+-| Compatibility replays | Passed on exact `0.1.0-rc.8`, `0.1.0-rc.7` and `0.1.0-rc.6` |
+-| Explicit `profile: web` fixture | Passed against the real DSH Web host and the fixed TurnStatus browser assertion |
+-| Browser unavailable path | Production adapter retains `unsupported`; it is not promoted to registration failure |
+-| Browser safety boundary | Disposable context, loopback-only origin, blocked service workers/non-loopback HTTP and WebSocket, bounded retained evidence |
+-| Host classification boundary | Pre-probe boot timeout stays generic `timeout`; route/navigation failure after live-loopback evidence is infrastructure |
+-| Cold runner-image reproduction | Expired at `600000ms` during slow Chromium dependency download; exit 3, host/infrastructure classification, zero owned containers afterward |
+-| Warm full-suite cleanup | Five attempts completed with zero owned containers afterward |
+-
+-## Fresh Full Repeatability Record
++```text
++pnpm vitest run tests/unit/npm-adapter.test.ts
++3 failed, 4 passed
++```
+ 
+-Command:
++GREEN rejects `pnpm@latest`, retains inferred lockfile behavior, and dispatches exact npm/pnpm/Yarn identities through Corepack:
+ 
+ ```text
+-node dist/src/cli.js fixtures/healthy-plugin --config fixtures/healthy-plugin/dsh-testkit.yaml --dsh 0.1.1-rc.2 --suite full --runner docker --output <fresh-run-root>
++pnpm vitest run tests/unit/npm-adapter.test.ts
++7 passed
++pnpm typecheck
++passed
+ ```
+ 
+-The exact v0.4.0 runner image was built once before the warm-run gate. All five attempts used:
++The exact `pnpm@10.17.0` prepare fixture passed inside the real Docker worker in 346.473 seconds. The preceding cold attempt expired while the runner image was still installing Chromium and never reached plugin code; the watchdog returned infrastructure exit code 3 and left no owned container.
++
++## Supported Real-Host Evidence
++
++| DSH version | Complete real host | Native bundle |
++|---|---:|---:|
++| `0.1.1-rc.2` | 11/11 passed | Passed |
++| `0.1.0-rc.8` | 11/11 passed | Passed |
++| `0.1.0-rc.7` | 11/11 passed | Passed |
++| `0.1.0-rc.6` | 11/11 passed | Passed |
++
++The local Composite Action entry passed healthy and expected boot-failure subjects on the default host and all three compatibility hosts. All eight rows returned exit code 0 and produced JSON and JUnit reports. Workflow actionlint and pinned-reference checks pass.
++
++## Release Train And Partner Gates
+ 
+-- Run: `20260828043957-c2cfc3c9`
+-- Subject: `@dsh-testkit/fixture-healthy@1.0.0`
+-- Subject digest: `sha256:420728ef7835c2d216d3dc4b18098608ba00327186209e57a168950769879e75`
+-- DSH integrity: `sha256:bf9d4cf18b53489dacb94ebd32ad3de663edaebb2da1c5517ad69e4fc75d862a`
+-- Scenario digest: `sha256:bf7a181994e4d5d9df0da6f6067718e0815e7b5affe05d1450df3da21f049f45`
+-- Semantic digest: `sha256:f1749a1d60d06ae50c4067060298dbac4808f25a2d529d6672a31ad157f9d0aa`
+-- Runner image: `dsh-testkit-runner:0.4.0-7ccc65787e39`
+-- Runner image ID: `sha256:88d010ddf2a6f681f76edeefb591a661818d06667a8f32c594092bfb9bc7b17c`
+-- Environment: Linux arm64 container, Node `v22.23.2`, pnpm `11.1.3`
++Live discovery classifies `0.1.2-alpha.1` as waiting for npm and `0.1.2-alpha.2` as a runnable disposable canary. Supported versions remain rc.6, rc.7, rc.8 and rc.2. The alpha.2 real-host canary passed 6 of 11 cases and its native bundle lifecycle report failed, so no alpha support claim exists.
+ 
+-Attempt durations were 262.783, 188.659, 187.809, 159.449 and 165.295 seconds. The root report verdict is `passed`, `completedRuns` is 5, `consistent` is `true`, and every attempt carries the same semantic digest.
++The public registry exposes no `dsh-shelf` package higher than the `0.7.0` baseline, and `@0xsline/dsh-spotlight` remains `0.0.2`. No design-partner rerun was performed.
+ 
+-## Publication Verification
++## Protected Publication Checks
+ 
+-- GitHub release: [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0)
+-- npm package: [`dsh-testkit@0.4.0`](https://www.npmjs.com/package/dsh-testkit/v/0.4.0)
+-- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.4.0)
+-- Official updates: [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038#discussioncomment-18183335) and [Ideas #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088#discussioncomment-18183338)
+-- Ecosystem intake: [Blue-Whale-Harness #135](https://github.com/leenkcool/Blue-Whale-Harness/issues/135)
++The repository requires strict protected-main status checks for validation, real host and both default Action smoke subjects. Compatibility real-host and Action-smoke matrices also run in CI. Their candidate run IDs, merge commit, release workflow, public tarball integrity and npm provenance are recorded after the protected merge and trusted publication complete.
+diff --git a/.ai-platform/specs/lifecycle-runner/analysis.md b/.ai-platform/specs/lifecycle-runner/analysis.md
+index 816403b..b3adbea 100644
+--- a/.ai-platform/specs/lifecycle-runner/analysis.md
++++ b/.ai-platform/specs/lifecycle-runner/analysis.md
+@@ -1,9 +1,9 @@
+ # DSH Testkit Spec Consistency Analysis
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Completed
+-Scope: lifecycle-runner, native DSH bundle, adoption workflow and loopback route assertions
+-Last updated: 2026-08-26
++Scope: lifecycle-runner, native DSH bundle, adoption workflow, source packaging and release-train canaries
++Last updated: 2026-08-30
+ 
+ ## Inputs
+ 
+@@ -49,6 +49,13 @@ Last updated: 2026-08-26
+ - Medium: A volunteer's repositories do not establish market demand. The pilot is classified only as technical compatibility evidence and receives a fixed two-plugin scope.
+ - Low: The partner has not yet confirmed deterministic exercise expectations. Scaffold and boot/register evidence can proceed; named capability claims wait for maintainer confirmation.
+ 
++## T013 Risk Check
++
++- Critical/High findings: None.
++- Medium: An official GitHub release may exist without a matching npm package. The release train records it as pending and excludes it from both `SUPPORTED_DSH_NPM_VERSIONS` and the runnable canary matrix.
++- Medium: `dsh-tools` and `dsh-invariants` can resolve from different preview trains. The package contract pins both exact rc.8 versions and the lockfile is regenerated as one operation.
++- Low: Design-partner source fixes can look retestable before publication. The follow-up record requires a higher immutable package identity and forbids mutable-source substitution.
++
+ ## Findings
+ 
+ ### Low: Real DSH E2E depends on npm and Docker availability
+diff --git a/.ai-platform/specs/lifecycle-runner/plan.md b/.ai-platform/specs/lifecycle-runner/plan.md
+index ee7ae64..4c83ee9 100644
+--- a/.ai-platform/specs/lifecycle-runner/plan.md
++++ b/.ai-platform/specs/lifecycle-runner/plan.md
+@@ -1,8 +1,8 @@
+ # DSH Testkit Implementation Plan
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Confirmed
+-Last updated: 2026-08-26
++Last updated: 2026-08-30
+ Source: confirmed Product Design and Technology Decision Record
+ 
+ ## Goal
+@@ -114,6 +114,16 @@ Status: Completed; T011 and T012 were accepted after production-adapter review,
+ - Add a scenario-level attempt budget enforced by both Docker and local controllers, with owned-container removal after expiry.
+ - Classify unresponsive DSH web HTTP/browser behavior as host/infrastructure while preserving assertion failure semantics for completed responses and DOM mismatches.
+ 
++### Slice 10: Source Packaging, Compatibility And Release Canaries
++
++Status: Completed and accepted under T013; protected-branch publication remains the release operation.
++
++- Restore build dependencies only inside the disposable worker and keep generated CI read-only by default.
++- Compile the native bundle against the coordinated rc.8 `dsh-tools` and `dsh-invariants` pair.
++- Run every supported real-host row and healthy/expected-failure Action smoke row after the rc.8 contract upgrade.
++- Discover official immutable DSH releases alongside npm dist-tags; keep release-only versions pending until an exact npm package exists.
++- Keep design-partner reruns closed until `dsh-shelf` or `dsh-spotlight` publishes a higher immutable package version.
++
+ ## Validation Strategy
+ 
+ - RED/GREEN Vitest tests per task.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index 4ef8732..c57b180 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -1,10 +1,10 @@
+ # DSH Testkit Post-Spec Work Graph
+ 
+-Version: v0.4.0
++Version: v0.4.1
+ Status: Confirmed
+ Feature: lifecycle-runner
+ Source spec: `.ai-platform/docs/product-design.md`
+-Last updated: 2026-08-28
++Last updated: 2026-08-31
+ 
+ ## 状态定义
+ 
+@@ -58,6 +58,7 @@ Tasks:
+ - [x] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
+ - [x] T011 [US-011] Add an explicit `dsh web` fixture and narrow TurnStatus browser smoke with `unsupported` fallback.
+ - [x] T012 [US-012] Add an attempt-wide watchdog and classify unresponsive DSH web hosts as infrastructure.
++- [x] T013 [US-007, US-013] Make source packaging reproducible, generated CI read-only by default, align rc.8 contracts, and gate release/partner canaries.
+ 
+ ### T010: Deterministic Loopback HTTP Route Assertions
+ 
+@@ -216,6 +217,104 @@ Validation commands:
+ Packet path:
+ - `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
+ 
++### T013: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
++
++Status: Accepted
++Priority: P0
++Depends on: T012
++Blocks: v0.4.1 release readiness
++Story / Requirement: US-007, US-013, FR-026 through FR-027, FR-048 through FR-054, NFR-024 through NFR-028
++Parallel: No
++Conflicts with: None
++
++Goal:
++Make modern source plugins pack inside the disposable worker, keep generated CI read-only, align the rc.8 tool contracts, and classify official release and design-partner candidates without weakening immutable evidence.
++
++Allowed files:
++- `.ai-platform/**`
++- `src/adapters/dsh/npm-adapter.ts`
++- `src/adapters/dsh/release-train.ts`
++- `src/scaffold/init.ts`
++- `src/version.ts`
++- `assets/runner.Dockerfile`
++- `.github/actions/dsh-test/action.yml`
++- `.github/workflows/ci.yml`
++- `.github/workflows/dsh-release-watch.yml`
++- `fixtures/prepare-plugin/**`
++- `tests/**`
++- `scripts/check-release-readiness.mjs`
++- `scripts/check-dsh-release-train.mjs`
++- `scripts/enable-dsh-canary.mjs`
++- `package.json`
++- `pnpm-lock.yaml`
++- `CHANGELOG.md`
++- `README.md`
++- `README.zh-CN.md`
++- `docs/**`
++
++Test targets:
++- `tests/unit/npm-adapter.test.ts`
++- `tests/unit/scaffold.test.ts`
++- `tests/unit/dsh-release-train.test.ts`
++- `tests/contracts/dsh-bundle.test.ts`
++- `tests/contracts/ci-required-checks.test.ts`
++- `tests/contracts/documentation.test.ts`
++- `tests/e2e/real-dsh.test.ts`
++- `tests/e2e/real-dsh-bundle.test.ts`
++
++Deliverables:
++- Worker-owned package-manager setup and source `prepare` packaging with retained evidence.
++- Read-only generated CI and opt-in trusted Checks API publication.
++- Coordinated rc.8 contracts plus complete supported real-host and Action smoke matrices.
++- Official-release/npm canary classification and immutable design-partner rerun register.
++- Canonical bilingual v0.4.1 product and adoption documentation.
++
++Acceptance criteria:
++- A local-directory fixture with `packageManager`, lockfile, devDependency and `prepare` builds and passes a Docker real-host lifecycle without host-side `node_modules` or a prebuilt tarball.
++- Package dependency setup and scripts execute only inside the owned worker; writable Corepack state stays under the run root and packaging failures retain subject-stage evidence.
++- The Composite Action defaults to annotation-only JUnit output under `contents: read`; an explicit trusted-workflow input enables a Checks API report and documents the required `checks: write` permission.
++- Generated root and nested workflows remain byte-idempotent, use only `contents: read`, and do not enable JUnit Check publication.
++- README opening, audience, value proposition, quick start, proof/boundary table and adoption guidance are semantically equivalent in English and Chinese.
++- `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-invariants` use the coordinated exact rc.8 development contract and frozen lockfile resolution.
++- Every supported compatibility host runs the full real-host gate; both Action smoke subjects run for rc.8, rc.7 and rc.6.
++- Official immutable alpha releases remain pending while their exact npm packages are absent, enter only the disposable canary matrix after publication, and stay excluded from the default support registry until reviewed adapter evidence exists.
++- Design-partner status names the last tested immutable package and performs no rerun until a higher package identity exists.
++- v1 schemas, exit codes and Docker default isolation remain unchanged.
++
++Definition of Done:
++- RED and GREEN evidence exists for source packaging, CI permissions, rc.8 contracts, release classification and partner gates.
++- Every supported DSH host passes the complete real-host, native bundle and Action smoke gates.
++- Alpha and design-partner decisions are tied to exact immutable identities and retain their non-support boundaries.
++- Full validation, packaged-consumer smoke, workflow lint and reviewed diff pass.
++- T013 evidence exists and the task is `Needs_Review`, pending explicit user acceptance.
++
++Validation commands:
++- `pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts`
++- `pnpm validate`
++- `pnpm test:e2e`
++- `pnpm test:bundle-e2e`
++- `pnpm test:pack`
++- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml .github/workflows/dsh-release-watch.yml`
++- `pnpm check:actions`
++
++TDD plan:
++- RED: add package-manager/pack-lifecycle, read-only CI, coordinated rc.8, complete Action matrix and official-alpha pending-state contracts before implementation.
++- GREEN: seed writable Corepack state, align tool contracts, classify release-only candidates, and default JUnit reporting to annotation-only.
++- REFACTOR: consolidate package-manager and release-train detection, preserve immutable design-partner gates, and run every release gate.
++
++Packet path:
++- `.ai-platform/specs/lifecycle-runner/packets/T013.yaml`
++
++Evidence required:
++- RED/GREEN results and real Docker fixture report.
++- Generated workflow and Action permission review.
++- README parity and packaged-consumer proof.
++- rc.8 package/lock contract plus full supported real-host and Action smoke results.
++- Official alpha release identity, npm absence and pending-canary output.
++- Design-partner registry/tag check proving no eligible rerun.
++- Full validation, E2E, pack/install and actionlint results.
++- Changed files, reviewed diff and residual risks.
++
+ ## Task Details
+ 
+ ### T001: Foundation, Domain And Reporters
+diff --git a/.github/actions/dsh-test/action.yml b/.github/actions/dsh-test/action.yml
+index 018893b..383b832 100644
+--- a/.github/actions/dsh-test/action.yml
++++ b/.github/actions/dsh-test/action.yml
+@@ -23,6 +23,10 @@ inputs:
+     description: JUnit check name. A subject-specific name is derived when empty.
+     required: false
+     default: ''
++  publish-junit-check:
++    description: 'Publish a Checks API result. Requires checks: write and should only be enabled for trusted workflows.'
++    required: false
++    default: 'false'
+   artifact-retention-days:
+     description: Number of days to retain lifecycle evidence.
+     required: false
+@@ -98,6 +102,7 @@ runs:
+         report_paths: ${{ github.workspace }}/${{ steps.paths.outputs.output }}/junit.xml
+         check_name: ${{ steps.paths.outputs.check-name }}
+         fail_on_failure: false
++        annotate_only: ${{ inputs.publish-junit-check != 'true' }}
+     - name: Upload lifecycle evidence
+       id: evidence
+       if: always()
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 5db3383..f47ca70 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -121,7 +121,6 @@ jobs:
+     runs-on: ubuntu-latest
+     permissions:
+       contents: read
+-      checks: write
+     strategy:
+       fail-fast: false
+       matrix:
+@@ -149,15 +148,22 @@ jobs:
+     runs-on: ubuntu-latest
+     permissions:
+       contents: read
+-      checks: write
+     strategy:
+       fail-fast: false
+       matrix:
+         include:
+           - plugin: fixtures/healthy-plugin
+             dsh-version: 0.1.0-rc.8
++          - plugin: fixtures/boot-failure-plugin
++            dsh-version: 0.1.0-rc.8
++          - plugin: fixtures/healthy-plugin
++            dsh-version: 0.1.0-rc.7
+           - plugin: fixtures/boot-failure-plugin
+             dsh-version: 0.1.0-rc.7
++          - plugin: fixtures/healthy-plugin
++            dsh-version: 0.1.0-rc.6
++          - plugin: fixtures/boot-failure-plugin
++            dsh-version: 0.1.0-rc.6
+     steps:
+       - name: Preserve compatibility check for documentation-only changes
+         if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'
+diff --git a/.github/workflows/dsh-release-watch.yml b/.github/workflows/dsh-release-watch.yml
+index 17e74f9..f8aab92 100644
+--- a/.github/workflows/dsh-release-watch.yml
++++ b/.github/workflows/dsh-release-watch.yml
+@@ -15,6 +15,7 @@ jobs:
+     outputs:
+       canary_versions: ${{ steps.release-train.outputs.canary_versions }}
+       has_canaries: ${{ steps.release-train.outputs.has_canaries }}
++      pending_npm_versions: ${{ steps.release-train.outputs.pending_npm_versions }}
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+@@ -27,8 +28,15 @@ jobs:
+       - run: pnpm install --frozen-lockfile
+       - run: pnpm build
+       - id: release-train
+-        name: Discover unseen DSH dist-tags
++        name: Discover unseen DSH releases
++        env:
++          GITHUB_TOKEN: ${{ github.token }}
+         run: node scripts/check-dsh-release-train.mjs
++      - name: Record official releases waiting for npm
++        if: steps.release-train.outputs.has_pending_npm == 'true'
++        env:
++          PENDING_NPM_VERSIONS: ${{ steps.release-train.outputs.pending_npm_versions }}
++        run: echo "Official DSH releases waiting for exact npm packages - $PENDING_NPM_VERSIONS" >> "$GITHUB_STEP_SUMMARY"
+ 
+   canary:
+     needs: discover
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c0599c6..8a72b67 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,27 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+ 
+ ## [Unreleased]
+ 
++## [0.4.1] - 2026-08-31
++
++### Added
++
++- Added a real Docker lifecycle fixture for a local plugin that declares an exact package manager and builds from development dependencies in `prepare`.
++- Added an explicit `publish-junit-check` Action input for trusted workflows that choose to grant `checks: write`.
++- Added official immutable DSH release discovery with a distinct pending-npm state; alpha.1 remains pending without an npm package, while alpha.2 enters only the disposable runnable canary matrix. Neither widens default support.
++- Added an immutable package gate for the `dsh-shelf` and `dsh-spotlight` design-partner follow-ups.
++
++### Fixed
++
++- Restored local-package dependencies inside the runner-owned source copy before `npm pack` when `prepare`, `prepack`, or `postpack` is present, using the declared package manager and frozen lockfile when available.
++- Moved runtime Corepack state to the writable run root and seeded it from the immutable runner image, preserving read-only source mounts and root filesystems.
++- Made generated workflows and the default Composite Action contract work with `contents: read`; JUnit annotations and evidence upload no longer require Checks API write access.
++- Aligned the native bundle development contract on exact rc.8 releases of both `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-invariants`.
++
++### Changed
++
++- Reframed the English and Simplified Chinese project entrypoints around the real-host release-gate problem, intended adopters, proof boundary, and least-privilege adoption path.
++- Expanded compatibility Action smoke to run healthy and expected boot-failure subjects across rc.8, rc.7 and rc.6.
++
+ ## [0.4.0] - 2026-08-28
+ 
+ ### Added
+@@ -143,7 +164,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+ - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
+ - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
+ 
+-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...HEAD
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...HEAD
++[0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1
+ [0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0
+ [0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4
+ [0.3.3]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...v0.3.3
+diff --git a/README.md b/README.md
+index 965b087..0ce572e 100644
+--- a/README.md
++++ b/README.md
+@@ -2,7 +2,7 @@
+ 
+ # DSH Testkit
+ 
+-**Deterministic, real-host lifecycle testing for DeepSeek Harness plugins.**
++**The real-host release gate for DeepSeek Harness plugins.**
+ 
+ [简体中文](README.zh-CN.md) · [Scenario reference](docs/scenarios.md) · [Architecture](docs/architecture.md) · [Contributing](docs/contributing.md)
+ 
+@@ -13,12 +13,19 @@
+ 
+ </div>
+ 
+-DSH Testkit packs your plugin, installs it beside an exact DSH version in a disposable environment, boots the real host, exercises deterministic capabilities, uninstalls the plugin, reboots the same profile, and retains reviewable evidence. No model call or model API key is required.
++A plugin can compile, pass unit tests, and still fail after publication because files are missing from the tarball, its bundle does not register in DSH, or uninstall leaves the profile broken. DSH Testkit closes that gap: it tests the artifact a user actually installs against an exact, real DSH host and retains evidence a maintainer can review.
+ 
+-```text
+-resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
+-        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+-```
++It makes no model call and needs no model API key.
++
++## At A Glance
++
++| Release question | Evidence from one isolated run |
++|---|---|
++| Does the publishable artifact install and register? | `npm pack`, exact DSH installation, bundle assembly, config rows, services, and tool schemas |
++| Does its promised behavior work? | Deterministic runtime probes, declared tool calls, optional loopback HTTP routes, and explicit browser smoke |
++| Can a user remove it cleanly? | Uninstall, same-profile reboot, capability checks, owned-path residue, processes, and ports |
++
++Use DSH Testkit when you maintain a DSH plugin, review a release PR, operate a plugin template, or need a reproducible host-level bug report. It is intentionally a release gate, not another unit-test framework, static linter, model-output evaluator, or security certification.
+ 
+ ## Quick Start
+ 
+@@ -30,58 +37,61 @@ pnpm dsh-test init
+ pnpm dsh-test
+ ```
+ 
+-If the DSH bundle is below the repository root, point `init` at the plugin directory:
++For a bundle below the repository root:
+ 
+ ```bash
+ pnpm dsh-test init plugin/
+ pnpm dsh-test --config plugin/dsh-testkit.yaml
+ ```
+ 
+-`init` detects the nearest Git worktree offline. For an exported tree without `.git` metadata, pass `--repo-root .` explicitly. It reads the bundle's declared patch and creates exactly three reviewable files:
++`dsh-test init` works offline, finds the nearest Git worktree, and creates three reviewable files:
+ 
+-- `<plugin-root>/dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
+-- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check and correct plugin/config paths
+-- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
++- `<plugin-root>/dsh-testkit.yaml` with the exact DSH version and detected row expectations
++- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a read-only default token contract and correct nested paths
++- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so compatible coding agents apply the same gate
+ 
+-For a root-level bundle, plugin root and repository root are the same and the existing paths stay unchanged. Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files in either root stop the command before any target is written unless `--force` is explicit.
++For an exported tree without `.git`, pass `--repo-root .`. Generation is byte-idempotent and preflights every target; conflicts stop all writes unless `--force` is explicit. Review detected rows and add only services, tools, exercises, and update behavior that the plugin contract promises.
+ 
+-Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
++Docker is the default runner. Reports land under `.dsh-testkit/runs/` as canonical `report.json`, CI-ready `junit.xml`, readable `report.md`, sanitized command logs, and bounded stage evidence.
+ 
+-The current adapter supports the exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6` (compatibility replays). Unknown versions stop before runner creation with exit code `4`, so host drift is not misreported as a plugin failure.
++## Where It Fits
+ 
+-## What It Proves
++DSH quality needs several complementary checks:
+ 
+-| Signal | How it is tested |
++| Need | Best fit |
+ |---|---|
+-| Package integrity | Local directories go through `npm pack`; links and unpublished files cannot hide packaging defects. |
+-| Real registration | Rows come from DSH `--dump-config`; services and tool schemas come from an in-process Cordis probe. |
+-| Deterministic exercise | The baseline runtime probe and declared tool calls run through the real tool runtime without model selection. |
+-| Clean removal | The same profile is rebooted after uninstall and checked for bundles, capabilities, processes, ports, and owned-path residue. |
+-| Repeatability | `--suite full` runs five isolated attempts and returns `flaky` when semantic outcomes disagree. |
+-| Observer limits | Unavailable coverage is disclosed; a required unavailable observer returns `unsupported`, never a false pass. |
+-| Web smoke and watchdog | An explicit TurnStatus browser smoke uses disposable Chromium; missing browser support is `unsupported`, while an unresponsive DSH web host and attempt-wide watchdog expiry are infrastructure errors. |
++| Author-side manifest, patch, build, and pack preflight | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
++| User-side offline profile, session, and environment diagnosis | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
++| Conflicts among several bundles during composition | `dsh-composition-check` |
++| Plugin-owned logic | Your unit and integration test framework |
++| Packed-artifact install, boot, behavior, removal, recovery, and residue on a real host | **DSH Testkit** |
+ 
+-It does **not** prove that arbitrary executable code is safe or that a plugin produces high-quality model output.
++A practical pipeline runs cheap static checks on every commit and DSH Testkit on release PRs and tags. Testkit exercises one subject plugin per isolated lifecycle; multi-plugin ownership and update ordering remain composition concerns.
+ 
+-## Choose The Right Check
++## The Lifecycle
+ 
+-These tools are complementary, not competing replacements.
++```text
++resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
++        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
++```
+ 
+-| Need | Best fit |
+-|---|---|
+-| Author-side static preflight (manifest/patch/build/pack) | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
+-| User-side offline diagnostic (profile/session/env, before boot/install) | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
+-| Conflicts among several bundles before or during assembly | `dsh-composition-check` |
+-| Plugin-owned unit logic | Your test framework |
+-| Install, boot, exercise, uninstall, reboot, recovery, residue, and repeatability on a real host | **DSH Testkit** |
++The adapter currently accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
+ 
+-DSH Testkit deliberately tests one subject plugin per isolated lifecycle. Multi-plugin state ownership and update order remain outside the current scenario contract until field evidence shows a failure that single-plugin lifecycle testing plus composition checks cannot reproduce.
++The official `dsh-v0.1.2-alpha.1` release remains a pending canary because its matching npm package is unavailable. `@deepseek-ai/dsh@0.1.2-alpha.2` is available and enters only the disposable canary matrix. Neither alpha is part of the default support matrix; a reviewed adapter change and real-host evidence are still required for formal support.
+ 
+-A practical release gate runs Doctor on every commit for cheap preflight and DSH Testkit on release PRs or tags for the packed artifact's real-host lifecycle. Neither result is a security certification.
++### What A Pass Means
++
++- The same packed artifact identified in the report completed every required stage.
++- Requested rows came from DSH `--dump-config`; services and tool schemas came from an in-process Cordis probe.
++- Declared exercises ran through the real tool runtime without model selection.
++- The same profile rebooted after removal without the subject bundle, capabilities, or attributable residue.
++- Required observers were available. Missing required coverage is `unsupported`, never a synthetic pass.
++
++A pass does not prove that arbitrary executable code is safe, that model output is good, or that unasserted behavior works.
+ 
+ ## Scenario As Code
+ 
+-Create `dsh-testkit.yaml` in the plugin project:
++`dsh-test init` produces a small starting scenario:
+ 
+ ```yaml
+ schemaVersion: 1
+@@ -107,9 +117,12 @@ observers:
+   canary: preferred
+ ```
+ 
+-For a live DSH web surface, add an optional Docker-only route assertion:
++Local-directory subjects are mounted read-only, copied into the runner-owned writable root, and then packed. When `prepare`, `prepack`, or `postpack` is declared, Testkit restores dependencies in that copy using `packageManager` and its lockfile before `npm pack`; the original checkout is never modified.
++
++For a public DSH web route, set `profile: web` and add a Docker-only assertion:
+ 
+ ```yaml
++profile: web
+ http:
+   routes:
+     - id: health
+@@ -121,76 +134,71 @@ http:
+           version: $subject.packageVersion
+ ```
+ 
+-Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
+-
+-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, the attempt-wide watchdog, observer policy, stage reruns, loopback HTTP routes and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser checks stay on runner-owned `127.0.0.1`; browser evidence contains only identity, selected text and a screenshot, and missing Chromium returns `unsupported`.
++The [Scenario Reference](docs/scenarios.md) covers `http.routes`, update targets, expected failure and recovery, stage reruns, observer policy, the attempt-wide watchdog, and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser traffic stays on runner-owned `127.0.0.1`. Missing Chromium is `unsupported`; a live but permanently unresponsive DSH web host or watchdog expiry is host/infrastructure, not a plugin failure.
+ 
+-## CI Evidence
++## Least-Privilege CI
+ 
+-`dsh-test init` generates this workflow using the stable moving major tag:
++The generated workflow uses a read-only token and makes that contract visible:
+ 
+ ```yaml
+-- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
+-  with:
+-    plugin: .
+-    dsh-version: 0.1.1-rc.2
++permissions:
++  contents: read
++
++steps:
++  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++    with:
++      plugin: .
++      dsh-version: 0.1.1-rc.2
++      config: dsh-testkit.yaml
++      publish-junit-check: 'false'
+ ```
+ 
+-The Action publishes JUnit and uploads the complete run directory. `artifact-name`, `check-name`, `output`, and retention are configurable; artifact ID, URL, and digest are outputs. GitHub Enterprise Server and other CI systems can invoke the CLI directly because `actions/upload-artifact@v4+` is not available on GHES.
++This default writes JUnit annotations to the job, uploads the complete evidence directory, and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API.
+ 
+-For a nested bundle, the generated workflow remains at repository root and uses `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`; GitHub never needs to discover a workflow inside the plugin directory.
++A trusted push or release workflow may opt into a named JUnit Check:
+ 
+-Stable exit codes are: `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported capability, and `5` flaky. Published JSON Schemas live at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
++```yaml
++permissions:
++  contents: read
++  checks: write
++
++steps:
++  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++    with:
++      plugin: .
++      dsh-version: 0.1.1-rc.2
++      publish-junit-check: 'true'
++```
+ 
+-## Agent Skill
++Do not enable that option for untrusted fork pull requests. The repository's external Actions are pinned to immutable commits; the moving `v0` tag is the consumer compatibility channel. GitHub Enterprise Server and other CI systems can invoke the CLI directly.
+ 
+-The project-local `.agents/skills/dsh-testkit/SKILL.md` teaches compatible coding agents when and how to initialize Testkit, choose quick or full lifecycle coverage, interpret evidence, and preserve the Docker trust boundary. It is generated from the same typed definition that the native DSH bundle registers when the host exposes the optional Skills service.
++Stable exits are `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported, and `5` flaky. Published schemas are available at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
+ 
+-The canonical file also ships in npm at the exported subpath `dsh-testkit/skills/dsh-testkit/SKILL.md`. The Skill helps an agent use Testkit consistently; it does not grant permission to execute untrusted code, replace review, or certify a plugin.
++## Native And Agent Entry Points
+ 
+-## DSH-Native Tool
++The project-local Skill and the exported `dsh-testkit/skills/dsh-testkit/SKILL.md` teach compatible agents how to select coverage, interpret evidence, and preserve the Docker boundary. A Skill guides usage; it does not grant trust or replace review.
+ 
+-DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
++DSH Testkit also ships an optional, community-maintained DSH Profile Bundle:
+ 
+ ```bash
+-dsh plugin --profile web add dsh-testkit@0.4.0
++dsh plugin --profile web add dsh-testkit@0.4.1
+ dsh --profile web --dump-config
+ ```
+ 
+-The bundle registers `dsh_test`, a thin adapter over the same lifecycle engine. It defaults to the active workspace, requires `confirm: true`, always uses Docker, ignores implicit repository configuration, rejects paths outside the workspace, and never exposes unsafe-local execution or arbitrary CLI arguments.
+-
+-This adapter is convenient when DSH is already healthy. Keep the external CLI or CI Action as the independent recovery and release gate because an in-host tool cannot diagnose a host that fails before tool registration.
+-
+-## Community Validation
+-
+-Maintainers can run an exact-version public cohort with an explicit trust acknowledgement:
+-
+-```bash
+-pnpm exec dsh-test-community \
+-  --acknowledge-untrusted-code \
+-  --dsh 0.1.1-rc.2 \
+-  --plugin example-plugin@1.2.3 \
+-  --output /tmp/dsh-testkit-cohort
+-```
+-
+-The runner strips model, npm, GitHub, cloud, and Docker registry credentials from child processes. It keeps named reports locally and writes a subject-free aggregate summary for responsible public reporting.
+-
+-See the [v0.2.1 community validation report](docs/community-validation.md) for the selection method, aggregate evidence, limitations, and the resulting product decision.
+-
+-The [dsh-shelf case study](docs/case-study-dsh-shelf.md) shows a released bundle that installed successfully but failed at host registration, followed by a maintainer fix and a pending exact-artifact rerun.
++It registers `dsh_test`, a confirmed, Docker-only adapter over the same engine. The external CLI or CI Action remains the independent recovery gate because an in-host tool cannot diagnose a host that fails before tool registration.
+ 
+-## Safety
++## Safety And Trust
+ 
+-Plugins are executable code: package scripts and runtime code run during a lifecycle test. Docker narrows the default blast radius but is **not a hardened malware sandbox**. Use disposable infrastructure for unknown code and never use `--runner local --unsafe-local` for an untrusted plugin.
++Plugins are executable code: package scripts and runtime code run during the lifecycle. Docker reduces the default blast radius with a read-only root filesystem and source mount, disposable writable state, dropped capabilities, resource limits, and bounded evidence. It is **not a hardened malware sandbox**.
+ 
+-The native tool needs Docker daemon access and may execute package scripts with network access inside the runner. Confirmation is a trust decision, not a security certification. Private plugins stay on the CI runner; DSH Testkit has no SaaS dependency and does not upload source or credentials.
++Use disposable infrastructure for unknown code. Never use `--runner local --unsafe-local` for an untrusted plugin. The native tool requires Docker daemon access, and confirmation is a trust decision rather than certification. Private plugin source remains on the runner; DSH Testkit has no SaaS dependency and uploads nothing except the evidence configured by your CI workflow.
+ 
+-See [Architecture](docs/architecture.md) for trust boundaries and [Security Policy](SECURITY.md) for private vulnerability reporting.
++The [Architecture](docs/architecture.md) documents trust boundaries. Use the [Security Policy](SECURITY.md) for private vulnerability reports.
+ 
+-## Contributing
++## Community
+ 
+-Bug reports are most useful with the exact plugin version, DSH version, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md), then use the lifecycle-failure issue template for reproducible host behavior.
++The [community validation protocol](docs/community-validation.md) defines credential-free, exact-version cohort runs and aggregate-only reporting. The [dsh-shelf case study](docs/case-study-dsh-shelf.md) shows why install success alone is not proof of host registration. The [design-partner follow-up gate](docs/design-partner-follow-up.md) records the immutable package baselines and prevents source-only fixes from being reported as package reruns.
+ 
+-Meet the project and the first-maintainer cohort in the official DeepSeek Harness [Show & Tell discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/2038).
++Useful bug reports include the exact plugin and DSH versions, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md) or join the official DeepSeek Harness [Show & Tell discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/2038).
+ 
+ DSH Testkit is an independent, unofficial community project released under the [MIT License](LICENSE).
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index cfdd0cb..314c03f 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -2,7 +2,7 @@
+ 
+ # DSH Testkit
+ 
+-**为 DeepSeek Harness 插件提供确定性的真实宿主生命周期测试。**
++**DeepSeek Harness 插件的真实宿主发布门禁。**
+ 
+ [English](README.md) · [场景参考](docs/scenarios.md) · [架构](docs/architecture.md) · [参与贡献](docs/contributing.md)
+ 
+@@ -13,12 +13,19 @@
+ 
+ </div>
+ 
+-DSH Testkit 会打包插件，在一次性环境中将其与精确版本的 DSH 一同安装，启动真实宿主，执行确定性能力探测，卸载插件，重启同一个 profile，并保留可复核的证据。整个过程不调用模型，也不需要模型 API Key。
++一个插件可能已经通过编译和单元测试，发布后却因为 tarball 缺文件、bundle 没有在 DSH 注册，或卸载后破坏 profile 而失败。DSH Testkit 补上这段验证空白：用用户实际安装的制品，对精确版本的真实 DSH 宿主执行生命周期，并保留维护者可以复核的证据。
+ 
+-```text
+-resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
+-        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+-```
++整个过程不调用模型，也不需要模型 API Key。
++
++## 一眼看懂
++
++| 发布问题 | 一次隔离运行提供的证据 |
++|---|---|
++| 可发布制品能否安装并注册？ | `npm pack`、精确 DSH 安装、bundle assemble、配置 row、service 和 tool schema |
++| 对外承诺的行为是否可用？ | 确定性 runtime probe、声明的 tool 调用、可选 loopback HTTP route 和显式 browser smoke |
++| 用户能否干净移除它？ | 卸载、同 profile 重启、能力检查、归属路径残留、进程和端口 |
++
++DSH Testkit 适合插件维护者、release PR 审核者、插件模板维护者，以及需要可复现宿主级故障报告的协作者。它的定位是发布门禁，不是另一套单元测试框架、静态 linter、模型输出评测或安全认证。
+ 
+ ## 快速开始
+ 
+@@ -30,58 +37,61 @@ pnpm dsh-test init
+ pnpm dsh-test
+ ```
+ 
+-如果 DSH bundle 位于仓库子目录，请把插件目录传给 `init`：
++如果 bundle 位于仓库子目录：
+ 
+ ```bash
+ pnpm dsh-test init plugin/
+ pnpm dsh-test --config plugin/dsh-testkit.yaml
+ ```
+ 
+-`init` 会离线识别最近的 Git worktree。导出的源码树没有 `.git` 元数据时，请显式传入 `--repo-root .`。它会读取 bundle 声明的 patch，并且只生成三个可审核文件：
++`dsh-test init` 离线运行，识别最近的 Git worktree，并生成三个可审核文件：
+ 
+-- `<plugin-root>/dsh-testkit.yaml`：固定精确支持的 DSH 版本和自动识别的 row 预期
+-- `<repository-root>/.github/workflows/dsh-lifecycle.yml`：采用最小权限，并引用正确的插件与场景路径
+-- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md`：让 coding agent 使用同一套发布门禁
++- `<plugin-root>/dsh-testkit.yaml`：固定精确 DSH 版本和自动识别的 row 预期
++- `<repository-root>/.github/workflows/dsh-lifecycle.yml`：默认使用只读 token，并引用正确的嵌套路径
++- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md`：让兼容的 coding agent 使用同一发布门禁
+ 
+-根目录插件的 plugin root 与 repository root 相同，现有路径保持不变。请审核自动识别的 row，并且只添加插件契约能够证明的 service、tool、update 和 exercise 预期。重复运行 `init` 时字节保持不变；除非显式使用 `--force`，任一根目录中的冲突文件都会让命令在写入全部目标前停止。
++导出的源码树没有 `.git` 时，请显式传入 `--repo-root .`。生成过程字节幂等，并在写入前检查全部目标；除非显式使用 `--force`，任一冲突都会停止全部写入。请审核检测到的 row，只添加插件契约明确承诺的 service、tool、exercise 和 update 行为。
+ 
+-Docker 是默认 runner。成功执行后，`.dsh-testkit/runs/` 中会生成 `report.json`、`junit.xml`、`report.md`、脱敏命令日志和各阶段证据。
++Docker 是默认 runner。报告写入 `.dsh-testkit/runs/`，包括规范 `report.json`、CI 可消费的 `junit.xml`、便于阅读的 `report.md`、脱敏命令日志和有大小边界的阶段证据。
+ 
+-当前 adapter 支持精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`（兼容性回放）。未知版本会在创建 runner 之前以退出码 `4` 停止，避免把宿主版本漂移误报成插件故障。
++## 它在工具链中的位置
+ 
+-## 它能证明什么
++DSH 质量需要多种互补检查：
+ 
+-| 信号 | 测试方式 |
++| 需求 | 合适的工具 |
+ |---|---|
+-| 包完整性 | 本地目录必须经过 `npm pack`，软链接和未发布文件无法掩盖打包缺陷。 |
+-| 真实注册 | 配置 row 来自 DSH `--dump-config`；service 和 tool schema 来自进程内 Cordis probe。 |
+-| 确定性执行 | 基础 runtime probe 和声明的 tool 调用都经过真实 tool runtime，不依赖模型选择。 |
+-| 干净卸载 | 卸载后重启同一 profile，并检查 bundle、能力、进程、端口和归属路径残留。 |
+-| 可重复性 | `--suite full` 运行五次隔离尝试；语义结果不一致时返回 `flaky`。 |
+-| 观测边界 | 不可用的 observer 会明确披露；必需 observer 不可用时返回 `unsupported`，不会伪造通过。 |
+-| Web smoke 与 watchdog | 显式 TurnStatus browser smoke 使用一次性 Chromium；缺少 browser runner 时返回 `unsupported`，DSH web 无响应或全局 watchdog 到期则归为基础设施错误。 |
++| 作者侧 manifest、patch、build 和 pack 预检 | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
++| 用户侧 profile、session 和环境离线诊断 | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
++| 多个 bundle 在 composition 阶段发生冲突 | `dsh-composition-check` |
++| 插件自身逻辑 | 你的单元和集成测试框架 |
++| 打包制品在真实宿主上的安装、启动、行为、移除、恢复和残留 | **DSH Testkit** |
+ 
+-它**不能**证明任意可执行代码是安全的，也不能证明插件生成的模型结果质量足够高。
++实用的流水线会在每次提交运行低成本静态检查，在 release PR 和 tag 上运行 DSH Testkit。Testkit 每个隔离生命周期只测试一个目标插件；多插件的状态归属和更新顺序仍属于 composition 问题。
+ 
+-## 选择正确的检查工具
++## 生命周期
+ 
+-这些工具彼此互补，而不是相互替代。
++```text
++resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
++        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
++```
+ 
+-| 需求 | 合适的工具 |
+-|---|---|
+-| 作者侧静态预检（manifest/patch/build/pack） | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
+-| 用户侧离线诊断（profile/session/env，启动/安装前） | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
+-| 多个 bundle 在 assemble 前后发生冲突 | `dsh-composition-check` |
+-| 插件自身的单元逻辑 | 你的测试框架 |
+-| 在真实宿主验证安装、启动、执行、卸载、重启、恢复、残留与重复性 | **DSH Testkit** |
++当前 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
+ 
+-DSH Testkit 当前刻意让每个隔离生命周期只包含一个被测插件。只有真实案例证明“单插件生命周期测试 + composition check”无法复现某类故障时，才会扩展多插件状态归属和更新顺序的场景契约。
++官方 `dsh-v0.1.2-alpha.1` release 仍处于待发布 canary，因为 npm 没有对应包；`@deepseek-ai/dsh@0.1.2-alpha.2` 已可用，只进入一次性 canary matrix。两个 alpha 都不属于默认支持矩阵；正式支持仍需要经过审核的 adapter 变更与真实宿主证据。
+ 
+-实用的发布门禁可以在每次提交运行 Doctor 做低成本预检，并在发布 PR 或 tag 上运行 DSH Testkit 验证打包产物的真实宿主生命周期。两者都不是安全认证。
++### 通过意味着什么
++
++- 报告中标识的同一个打包制品完成了所有必需阶段。
++- row 来自 DSH `--dump-config`；service 和 tool schema 来自进程内 Cordis probe。
++- 声明的 exercise 通过真实 tool runtime 执行，不依赖模型选择。
++- 卸载后同一 profile 能重启，并且不存在目标 bundle、能力或可归属残留。
++- 必需 observer 均可用；缺少必需覆盖时返回 `unsupported`，不会伪造通过。
++
++通过不能证明任意可执行代码安全、模型输出质量良好，也不能证明未声明的行为有效。
+ 
+ ## 场景即代码
+ 
+-在插件项目中创建 `dsh-testkit.yaml`：
++`dsh-test init` 会生成一个小而明确的起始场景：
+ 
+ ```yaml
+ schemaVersion: 1
+@@ -107,9 +117,12 @@ observers:
+   canary: preferred
+ ```
+ 
+-如果要检查真实 DSH web surface，可以增加仅 Docker 可用的 route 断言：
++本地目录类型的目标以只读方式挂载，复制到 runner 自己的可写根目录后再打包。存在 `prepare`、`prepack` 或 `postpack` 时，Testkit 会在副本中按照 `packageManager` 和 lockfile 恢复依赖，再执行 `npm pack`；原始 checkout 不会被修改。
++
++检查公开 DSH web route 时，请设置 `profile: web` 并添加仅 Docker 可用的断言：
+ 
+ ```yaml
++profile: web
+ http:
+   routes:
+     - id: health
+@@ -121,76 +134,71 @@ http:
+           version: $subject.packageVersion
+ ```
+ 
+-使用 `http.routes` 时请在场景中设置 `profile: web`；route probe 会针对 DSH 的公开 web profile。
+-
+-[场景参考](docs/scenarios.md)包含更新目标、预期失败、恢复、单次尝试全局 watchdog、observer 策略、单阶段重跑、loopback HTTP route 和显式 `dsh web` TurnStatus browser smoke。HTTP 与浏览器检查只访问 runner 自己分配的 `127.0.0.1`；浏览器证据仅包含身份、选定文本和 screenshot，缺少 Chromium 时返回 `unsupported`。
++[场景参考](docs/scenarios.md)包含 `http.routes`、update 目标、预期失败和恢复、阶段重跑、observer 策略、覆盖整次尝试的 watchdog，以及显式 `dsh web` TurnStatus browser smoke。HTTP 和浏览器流量只访问 runner 分配的 `127.0.0.1`。缺少 Chromium 时返回 `unsupported`；已经存活但永久无响应的 DSH web 宿主或 watchdog 到期属于 host/infrastructure，不归为插件失败。
+ 
+-## CI 证据
++## 最小权限 CI
+ 
+-`dsh-test init` 会使用固定的滚动主版本 tag 生成以下 workflow：
++生成的 workflow 默认只需要只读 token，并显式写出该契约：
+ 
+ ```yaml
+-- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
+-  with:
+-    plugin: .
+-    dsh-version: 0.1.1-rc.2
++permissions:
++  contents: read
++
++steps:
++  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++    with:
++      plugin: .
++      dsh-version: 0.1.1-rc.2
++      config: dsh-testkit.yaml
++      publish-junit-check: 'false'
+ ```
+ 
+-Action 会发布 JUnit，并上传完整运行目录。artifact 名称、check 名称、输出路径和保留时间均可配置；artifact ID、URL 和 digest 可作为输出使用。由于 `actions/upload-artifact@v4+` 不支持 GHES，GitHub Enterprise Server 和其他 CI 可直接调用 CLI 并保留相同证据。
++默认模式会把 JUnit annotation 写入 job，上传完整证据目录，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。
+ 
+-对于嵌套 bundle，生成的 workflow 仍位于仓库根目录，并使用 `plugin: ./plugin` 与 `config: plugin/dsh-testkit.yaml`；GitHub 不需要发现插件目录内部的 workflow。
++受信任的 push 或 release workflow 可以选择发布命名 JUnit Check：
+ 
+-稳定退出码为：`0` 通过、`1` 生命周期失败、`2` 输入无效、`3` 基础设施错误、`4` 能力不支持、`5` 结果不稳定。JSON Schema 发布在 `dsh-testkit/schemas/report-v1.json` 和 `dsh-testkit/schemas/scenario-v1.json`。
++```yaml
++permissions:
++  contents: read
++  checks: write
++
++steps:
++  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
++    with:
++      plugin: .
++      dsh-version: 0.1.1-rc.2
++      publish-junit-check: 'true'
++```
+ 
+-## Agent Skill
++不要在不受信任的 fork pull request 上启用该选项。项目引用的外部 Action 全部固定到不可变 commit；滚动 `v0` tag 是消费者兼容通道。GitHub Enterprise Server 和其他 CI 可以直接调用 CLI。
+ 
+-项目级 `.agents/skills/dsh-testkit/SKILL.md` 会告诉兼容的 coding agent 应在何时、如何初始化 Testkit，怎样选择 quick 或 full 生命周期覆盖，如何解释证据，以及如何守住 Docker 信任边界。它和 DSH 原生 bundle 在宿主提供可选 Skills service 时注册的 Skill 来自同一个类型化定义。
++稳定退出码为：`0` 通过、`1` 生命周期失败、`2` 输入无效、`3` 基础设施错误、`4` 不支持、`5` 结果不稳定。已发布 schema 位于 `dsh-testkit/schemas/report-v1.json` 和 `dsh-testkit/schemas/scenario-v1.json`。
+ 
+-规范文件也随 npm 包发布，可通过 `dsh-testkit/skills/dsh-testkit/SKILL.md` 子路径访问。Skill 让 Agent 更稳定地使用 Testkit，但不会授予执行不受信任代码的权限，也不能替代人工审核或认证插件。
++## 原生入口与 Agent Skill
+ 
+-## DSH 原生工具
++项目级 Skill 和导出的 `dsh-testkit/skills/dsh-testkit/SKILL.md` 会告诉兼容 Agent 如何选择覆盖、解释证据并守住 Docker 边界。Skill 只指导使用，不授予信任，也不替代审核。
+ 
+-DSH Testkit 还提供一个可选的、由社区维护的 DSH-native Profile Bundle：
++DSH Testkit 还提供可选的、由社区维护的 DSH Profile Bundle：
+ 
+ ```bash
+-dsh plugin --profile web add dsh-testkit@0.4.0
++dsh plugin --profile web add dsh-testkit@0.4.1
+ dsh --profile web --dump-config
+ ```
+ 
+-该 bundle 注册 `dsh_test`，它只是同一个生命周期引擎的薄 adapter。工具默认测试当前 workspace，要求 `confirm: true`，始终使用 Docker，忽略仓库中的隐式配置，拒绝 workspace 之外的路径，也不暴露 unsafe-local 执行和任意 CLI 参数。
+-
+-当 DSH 已经健康运行时，这种入口更方便。外部 CLI 或 CI Action 仍应作为独立的恢复和发布门禁，因为宿主在 tool 注册前就启动失败时，宿主内工具无法诊断自己。
+-
+-## 社区验证
+-
+-维护者可以在明确确认信任边界后，对精确版本的公开插件运行 cohort：
+-
+-```bash
+-pnpm exec dsh-test-community \
+-  --acknowledge-untrusted-code \
+-  --dsh 0.1.1-rc.2 \
+-  --plugin example-plugin@1.2.3 \
+-  --output /tmp/dsh-testkit-cohort
+-```
+-
+-Runner 会从子进程中移除模型、npm、GitHub、云平台和 Docker registry 凭证。带名称的详细报告只保存在本地，另行生成不含插件身份的聚合摘要，用于负责任的公开报告。
+-
+-[v0.2.1 社区验证报告](docs/community-validation.md)记录了样本选择方法、聚合证据、限制条件和由此形成的产品决策。
+-
+-[dsh-shelf 案例](docs/case-study-dsh-shelf.md)展示了一个已发布 bundle 安装和组装成功、但在真实宿主注册阶段暴露兼容性问题，随后由维护者修复并等待用新制品做精确复跑的过程。
++它注册 `dsh_test`，作为同一引擎的需确认、仅 Docker adapter。外部 CLI 或 CI Action 仍是独立恢复门禁，因为宿主内工具无法诊断发生在 tool 注册之前的宿主故障。
+ 
+-## 安全边界
++## 安全与信任边界
+ 
+-插件是可执行代码：生命周期测试会运行 package script 和 runtime 代码。Docker 可以缩小默认影响范围，但它**不是经过强化的恶意代码沙箱**。测试未知代码时应使用一次性基础设施；绝不能对不受信任的插件使用 `--runner local --unsafe-local`。
++插件是可执行代码：生命周期会运行 package script 和 runtime 代码。Docker 通过只读根文件系统和源码挂载、一次性可写状态、移除 capabilities、资源限制和证据大小边界来缩小默认影响范围，但它**不是经过强化的恶意代码沙箱**。
+ 
+-原生工具需要访问 Docker daemon，并可能在 runner 内执行具有网络访问能力的 package script。确认执行是一项信任决策，不是安全认证。私有插件始终留在 CI runner；DSH Testkit 不依赖 SaaS，也不会上传源码或凭证。
++测试未知代码时请使用一次性基础设施。绝不能对不受信任的插件使用 `--runner local --unsafe-local`。原生工具需要访问 Docker daemon，确认执行是一项信任决策，不是认证。私有插件源码始终留在 runner 上；DSH Testkit 不依赖 SaaS，只上传 CI workflow 明确配置的证据。
+ 
+-更多信任边界见[架构说明](docs/architecture.md)，私密漏洞报告流程见[安全策略](SECURITY.md)。
++[架构说明](docs/architecture.md)记录完整信任边界；私密漏洞请按[安全策略](SECURITY.md)报告。
+ 
+-## 参与贡献
++## 社区
+ 
+-高质量故障报告应包含精确插件版本、DSH 版本、失败阶段、`report.json` 和脱敏日志。请先阅读[贡献指南](docs/contributing.md)，再使用 lifecycle-failure issue 模板提交可复现的宿主行为。
++[社区验证协议](docs/community-validation.md)定义了无凭证、精确版本的 cohort 运行和仅聚合公开报告。[dsh-shelf 案例](docs/case-study-dsh-shelf.md)说明为什么“安装成功”不足以证明真实宿主注册成功。[设计伙伴复测门禁](docs/design-partner-follow-up.md)记录不可变包基线，避免把只存在于源码的修复写成 package 复测结论。
+ 
+-可以在 DeepSeek Harness 官方 [Show & Tell 讨论](https://github.com/deepseek-ai/deepseek-harness/discussions/2038)了解项目并加入首批维护者协作。
++有效的故障报告应包含精确插件版本、DSH 版本、失败阶段、`report.json` 和脱敏日志。请从[贡献指南](docs/contributing.md)开始，或加入 DeepSeek Harness 官方 [Show & Tell 讨论](https://github.com/deepseek-ai/deepseek-harness/discussions/2038)。
+ 
+ DSH Testkit 是独立、非官方的社区项目，采用 [MIT License](LICENSE) 发布。
+diff --git a/assets/runner.Dockerfile b/assets/runner.Dockerfile
+index 822dc54..f2480fd 100644
+--- a/assets/runner.Dockerfile
++++ b/assets/runner.Dockerfile
+@@ -22,6 +22,7 @@ COPY dist/src ./dist/src
+ ENV DSH_TESTKIT_RUNNER=docker
+ ENV DSH_TESTKIT_IMAGE=dsh-testkit-runner:${TESTKIT_VERSION}
+ ENV DSH_TESTKIT_WORK_ROOT=/work/run
+-ENV DSH_TESTKIT_COREPACK_HOME=/opt/corepack
++ENV DSH_TESTKIT_COREPACK_HOME=/work/run/corepack
++ENV DSH_TESTKIT_COREPACK_SEED=/opt/corepack
+ ENV HOME=/work/user-home
+ ENTRYPOINT ["node", "/opt/dsh-testkit/dist/src/worker/main.js"]
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 2257bdc..6fbc559 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -18,7 +18,7 @@ flowchart LR
+   E --> M[Markdown and terminal]
+ ```
+ 
+-The controller validates the scenario, chooses a runner, and renders projections. It never imports plugin code. The worker owns a fresh DSH home, profile, workspace, package area, logs, and observer snapshots. Local directories are copied and packed before DSH installs the tarball. A Testkit-owned no-op bundle creates and removes the empty profile baseline first, so install-time and boot-time filesystem residue can be separated from DSH's own profile scaffolding.
++The controller validates the scenario, chooses a runner, and renders projections. It never imports plugin code. The worker owns a fresh DSH home, profile, workspace, package area, logs, and observer snapshots. Local directories remain read-only inputs: the worker copies them into its owned root, restores development dependencies when a pack lifecycle script requires them, and then runs `npm pack`. The declared `packageManager` and lockfile select the install command, while Corepack state lives in a writable run directory seeded from the immutable image. DSH only installs the resulting tarball. A Testkit-owned no-op bundle creates and removes the empty profile baseline first, so install-time and boot-time filesystem residue can be separated from DSH's own profile scaffolding.
+ 
+ The DSH adapter is the only version-sensitive layer. It invokes the real profile and plugin CLI, appends a Testkit-owned Cordis probe through `--patch`, and stops the host only after the probe writes its atomic result. The probe enumerates requested services and tool schemas and can call explicitly declared tools without a model.
+ 
+@@ -27,3 +27,5 @@ Docker is the security boundary for the default workflow. The worker runs as the
+ Observer results are capability-aware. Files under the owned root, process checkpoints, port checkpoints, and canary log scans disclose their limitations in every report. Network tracing is unavailable in v0.1, so a scenario that requires it receives `unsupported`, never a synthetic pass.
+ 
+ Command output is sanitized before persistence and bounded to 8 MiB per stream. Exceeding that limit fails the owning stage instead of silently claiming complete evidence.
++
++The Composite Action keeps reporting and repository mutation separate. Its default `publish-junit-check: 'false'` mode emits annotations and uploads evidence with `contents: read`. Only a trusted workflow that explicitly opts into a named JUnit Check needs `checks: write`.
+diff --git a/docs/case-study-dsh-shelf.md b/docs/case-study-dsh-shelf.md
+index d0f454b..036daf1 100644
+--- a/docs/case-study-dsh-shelf.md
++++ b/docs/case-study-dsh-shelf.md
+@@ -43,9 +43,11 @@ This is the useful lifecycle boundary in one sequence:
+ 4. the fix is made against the host contract;
+ 5. the release gate is rerun against the published fix, rather than trusting source-only tests.
+ 
+-The next rerun will use `dsh-testkit@0.3.3`, an explicit DSH version, and the
+-new immutable package artifact once it is available. Publication of the final
+-pass result requires the maintainer's release and the exact rerun evidence.
++The next rerun uses the current Testkit release, an explicit supported DSH
++version, and a package version higher than `dsh-shelf@0.7.0` once it is
++available. The [design-partner follow-up gate](design-partner-follow-up.md)
++records the required package identity and prevents a source-only fix from
++being reported as a package pass.
+ 
+ ## Scope boundary
+ 
+diff --git a/docs/scenarios.md b/docs/scenarios.md
+index f2b1904..043a216 100644
+--- a/docs/scenarios.md
++++ b/docs/scenarios.md
+@@ -49,7 +49,7 @@ timeouts:
+   overallMs: 600000
+ ```
+ 
+-`subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. `updateFrom` installs the old artifact first and enables the update stage.
++`subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. The runner keeps the input mount read-only, copies the package into owned writable storage, and restores dependencies from the declared `packageManager` and lockfile before `npm pack` when `prepare`, `prepack`, or `postpack` is present. `updateFrom` installs the old artifact first and enables the update stage.
+ 
+ `suite: quick` executes one lifecycle attempt. `suite: full` executes five by default and classifies inconsistent semantic outcomes as `flaky`. `--repeat 2` through `--repeat 20` can repeat quick runs; full accepts only counts of five or greater.
+ 
+diff --git a/package.json b/package.json
+index 3fddd06..8268ac8 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "dsh-testkit",
+-  "version": "0.4.0",
+-  "description": "Real-host lifecycle testing for DeepSeek Harness plugins.",
++  "version": "0.4.1",
++  "description": "The real-host release gate for DeepSeek Harness plugins.",
+   "keywords": [
+     "deepseek",
+     "deepseek-harness",
+@@ -110,8 +110,8 @@
+   },
+   "devDependencies": {
+     "@deepseek-ai/cordis": "4.0.1",
+-    "@deepseek-ai/dsh-invariants": "0.1.0-rc.7",
+-    "@deepseek-ai/dsh-tools": "0.1.0-rc.7",
++    "@deepseek-ai/dsh-invariants": "0.1.0-rc.8",
++    "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
+     "@types/node": "24.13.3",
+     "@vitest/coverage-v8": "3.2.7",
+     "ajv": "8.20.0",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index a90754f..cf888f8 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -28,11 +28,11 @@ importers:
+         specifier: 4.0.1
+         version: 4.0.1
+       '@deepseek-ai/dsh-invariants':
+-        specifier: 0.1.0-rc.7
+-        version: 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++        specifier: 0.1.0-rc.8
++        version: 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+       '@deepseek-ai/dsh-tools':
+-        specifier: 0.1.0-rc.7
+-        version: 0.1.0-rc.7(28939dec9cf51eb6f456d0117c12b0c5)
++        specifier: 0.1.0-rc.8
++        version: 0.1.0-rc.8(461db586780e4a4cfde31f525cdf2a87)
+       '@types/node':
+         specifier: 24.13.3
+         version: 24.13.3
+@@ -124,8 +124,8 @@ packages:
+       '@deepseek-ai/cordis': ^4.0.1
+       '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
+ 
+-  '@deepseek-ai/dsh-invariants@0.1.0-rc.7':
+-    resolution: {integrity: sha512-PnO1F4aZGUmqZPyuPJpBUfQ4DZmjCGCNGr0yuN2iURTP/e6h0kGnTNTYgR2NqMvAtpP66WNiHhvH2LMqumk1+A==}
++  '@deepseek-ai/dsh-invariants@0.1.0-rc.8':
++    resolution: {integrity: sha512-u0lYqyxOYwfsVnbsfGXZos5vFvA4cqFnBEW3/ezgljNwkYwzeUP/Y5wjPnQjP+ZzBn3CnVeIF6s2N2Vk3iA5mQ==}
+     peerDependencies:
+       '@deepseek-ai/cordis': ^4.0.1
+ 
+@@ -168,18 +168,18 @@ packages:
+       '@deepseek-ai/cordis': ^4.0.1
+       '@deepseek-ai/dsh-invariants': ^0.1.0-rc.6
+ 
+-  '@deepseek-ai/dsh-tools@0.1.0-rc.7':
+-    resolution: {integrity: sha512-7Kq3EEv354aNcxbS0NRfxxyJiZhCsvFV/03a3MdkYO/gG2eM9+E4xQum0N2FL5bw7JiGlgw8jdLMkcNGmavEaA==}
++  '@deepseek-ai/dsh-tools@0.1.0-rc.8':
++    resolution: {integrity: sha512-tvuGAVUS4yoPW9zH7CGWJgMlAzGjfu2UlRiricldlcwSKAaJZPZx/K/YfTivUyDTER6aK1DJUnIpVG7RD/DoHQ==}
+     peerDependencies:
+       '@deepseek-ai/cordis': ^4.0.1
+-      '@deepseek-ai/dsh-agent': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-code-runtime': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-llm': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-scope': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-session': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.7
+-      '@deepseek-ai/dsh-user-approval': ^0.1.0-rc.7
++      '@deepseek-ai/dsh-agent': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-code-runtime': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-invariants': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-llm': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-scope': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-session': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.8
++      '@deepseek-ai/dsh-user-approval': ^0.1.0-rc.8
+ 
+   '@deepseek-ai/dsh-typert-protocol@0.1.0-rc.6':
+     resolution: {integrity: sha512-weWzN8r01YCkoDCAM7BsKw2YhRrD4zL8N2SAZu9hovYtXSq8xHXsP4Zh8RLYIlYcuotjyff/6hic+0TJPd14YA==}
+@@ -1092,101 +1092,101 @@ snapshots:
+ 
+   '@deepseek-ai/cosmokit@1.8.2': {}
+ 
+-  '@deepseek-ai/dsh-agent@0.1.0-rc.6(c43b57ca6230f5210edc9103bd170714)':
++  '@deepseek-ai/dsh-agent@0.1.0-rc.6(a071e343e3366661b4ebb76c933b0ec0)':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-session': 0.1.0-rc.6(0a274c36cceb0ea87f94cbf2f86f203c)
+-      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(2e54626e06f783e52dd67a1eaacf7895)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
+ 
+-  '@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-code-runtime@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-code-runtime@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)':
++  '@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+       '@deepseek-ai/schemastery': 3.18.1
+ 
+-  '@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))':
++  '@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-attachment': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-timeout': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-attachment': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-timeout': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
+       '@deepseek-ai/schemastery': 3.18.1
+ 
+-  '@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-session@0.1.0-rc.6(0a274c36cceb0ea87f94cbf2f86f203c)':
++  '@deepseek-ai/dsh-session@0.1.0-rc.6(2e54626e06f783e52dd67a1eaacf7895)':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-typert-protocol': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
+ 
+-  '@deepseek-ai/dsh-system-prompt@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))':
++  '@deepseek-ai/dsh-system-prompt@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
+       '@deepseek-ai/schemastery': 3.18.1
+ 
+-  '@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-tools@0.1.0-rc.7(28939dec9cf51eb6f456d0117c12b0c5)':
++  '@deepseek-ai/dsh-tools@0.1.0-rc.8(461db586780e4a4cfde31f525cdf2a87)':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(c43b57ca6230f5210edc9103bd170714)
+-      '@deepseek-ai/dsh-code-runtime': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-session': 0.1.0-rc.6(0a274c36cceb0ea87f94cbf2f86f203c)
+-      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-user-approval': 0.1.0-rc.6(e9b11011fd745e1b655d38680534a8e7)
++      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(a071e343e3366661b4ebb76c933b0ec0)
++      '@deepseek-ai/dsh-code-runtime': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(2e54626e06f783e52dd67a1eaacf7895)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-user-approval': 0.1.0-rc.6(7ea264e4a6040e413a1bcff6e6348ce7)
+       '@deepseek-ai/schemastery': 3.18.1
+ 
+-  '@deepseek-ai/dsh-typert-protocol@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))':
++  '@deepseek-ai/dsh-typert-protocol@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
+ 
+-  '@deepseek-ai/dsh-user-approval@0.1.0-rc.6(e9b11011fd745e1b655d38680534a8e7)':
++  '@deepseek-ai/dsh-user-approval@0.1.0-rc.6(7ea264e4a6040e413a1bcff6e6348ce7)':
+     dependencies:
+       '@deepseek-ai/cordis': 4.0.1
+-      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(c43b57ca6230f5210edc9103bd170714)
+-      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-invariants': 0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)
+-      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
+-      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))
+-      '@deepseek-ai/dsh-session': 0.1.0-rc.6(0a274c36cceb0ea87f94cbf2f86f203c)
+-      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.7(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-agent': 0.1.0-rc.6(a071e343e3366661b4ebb76c933b0ec0)
++      '@deepseek-ai/dsh-brand': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-invariants': 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)
++      '@deepseek-ai/dsh-llm': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
++      '@deepseek-ai/dsh-scope': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
++      '@deepseek-ai/dsh-session': 0.1.0-rc.6(2e54626e06f783e52dd67a1eaacf7895)
++      '@deepseek-ai/dsh-system-prompt': 0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-llm@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-attachment@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-brand@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-timeout@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))))(@deepseek-ai/dsh-scope@0.1.0-rc.6(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))
+       '@deepseek-ai/schemastery': 3.18.1
+ 
+   '@deepseek-ai/schemastery@3.18.1':
+diff --git a/scripts/check-dsh-release-train.mjs b/scripts/check-dsh-release-train.mjs
+index 76d5fa6..1f4eb08 100644
+--- a/scripts/check-dsh-release-train.mjs
++++ b/scripts/check-dsh-release-train.mjs
+@@ -6,26 +6,51 @@ import { discoverDshReleaseTrain } from '../dist/src/adapters/dsh/release-train.
+ import { SUPPORTED_DSH_NPM_VERSIONS } from '../dist/src/adapters/dsh/support.js'
+ 
+ const { values } = parseArgs({
+-  options: { metadata: { type: 'string' } },
++  options: {
++    metadata: { type: 'string' },
++    releases: { type: 'string' },
++  },
+   strict: true,
+ })
+ 
+-const metadata = values.metadata === undefined
+-  ? await fetch('https://registry.npmjs.org/@deepseek-ai%2fdsh', {
++async function fetchJson(url, headers = {}) {
++  return await fetch(url, {
+       signal: AbortSignal.timeout(30_000),
++      headers,
+     }).then(async response => {
+-      if (!response.ok) throw new Error(`npm registry returned HTTP ${response.status}`)
++      if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`)
+       return await response.json()
+     })
++}
++
++const metadata = values.metadata === undefined
++  ? await fetchJson('https://registry.npmjs.org/@deepseek-ai%2fdsh')
+   : JSON.parse(await readFile(values.metadata, 'utf8'))
++const githubHeaders = {
++  Accept: 'application/vnd.github+json',
++  'X-GitHub-Api-Version': '2022-11-28',
++  'User-Agent': 'dsh-testkit-release-watch',
++  ...(process.env.GITHUB_TOKEN === undefined
++    ? {}
++    : { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }),
++}
++const releases = values.releases === undefined
++  ? await fetchJson(
++      'https://api.github.com/repos/deepseek-ai/deepseek-harness/releases?per_page=30',
++      githubHeaders,
++    )
++  : JSON.parse(await readFile(values.releases, 'utf8'))
+ 
+-const result = discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS)
++const result = discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS, releases)
+ process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+ if (process.env.GITHUB_OUTPUT !== undefined) {
+   await writeFile(process.env.GITHUB_OUTPUT, [
+     `tagged_versions=${JSON.stringify(result.taggedVersions)}`,
++    `upstream_versions=${JSON.stringify(result.upstreamVersions)}`,
+     `canary_versions=${JSON.stringify(result.canaryVersions)}`,
+     `has_canaries=${String(result.canaryVersions.length > 0)}`,
++    `pending_npm_versions=${JSON.stringify(result.pendingNpmVersions)}`,
++    `has_pending_npm=${String(result.pendingNpmVersions.length > 0)}`,
+     '',
+   ].join('\n'), { flag: 'a' })
+ }
+diff --git a/scripts/check-release-readiness.mjs b/scripts/check-release-readiness.mjs
+index 39ebe30..625387a 100644
+--- a/scripts/check-release-readiness.mjs
++++ b/scripts/check-release-readiness.mjs
+@@ -1,5 +1,7 @@
+ import { access, readFile } from 'node:fs/promises'
+ 
++import { parse as parseYaml } from 'yaml'
++
+ const manifest = JSON.parse(await readFile('package.json', 'utf8'))
+ const requiredFields = ['repository', 'homepage', 'bugs', 'author', 'publishConfig', 'types']
+ const missingFields = requiredFields.filter(field => manifest[field] === undefined)
+@@ -74,9 +76,31 @@ if (!dockerfile.includes('dev.dsh-testkit.context-sha256')) {
+ if (!dockerfile.includes('COPY assets/runner-pnpm-lock.yaml ./pnpm-lock.yaml')) {
+   throw new Error('runner.Dockerfile must consume the generated runner lockfile')
+ }
++for (const required of [
++  'DSH_TESTKIT_COREPACK_HOME=/work/run/corepack',
++  'DSH_TESTKIT_COREPACK_SEED=/opt/corepack',
++]) {
++  if (!dockerfile.includes(required)) {
++    throw new Error(`runner.Dockerfile is missing writable Corepack control: ${required}`)
++  }
++}
+ if (!manifest.scripts?.build?.includes('scripts/prepare-runner-lock.mjs')) {
+   throw new Error('build must generate the runner lockfile from the canonical root lock')
+ }
++const action = parseYaml(await readFile('.github/actions/dsh-test/action.yml', 'utf8'))
++if (action.inputs?.['publish-junit-check']?.default !== 'false') {
++  throw new Error('Composite Action must default publish-junit-check to false')
++}
++const junitStep = action.runs?.steps?.find(step => step.name === 'Publish JUnit')
++if (junitStep?.with?.annotate_only !== "${{ inputs.publish-junit-check != 'true' }}") {
++  throw new Error('Composite Action must use annotate-only JUnit reporting by default')
++}
++const ciWorkflow = parseYaml(await readFile('.github/workflows/ci.yml', 'utf8'))
++for (const jobName of ['action-smoke', 'action-smoke-compat']) {
++  if (JSON.stringify(ciWorkflow.jobs?.[jobName]?.permissions) !== JSON.stringify({ contents: 'read' })) {
++    throw new Error(`${jobName} must prove the read-only Composite Action contract`)
++  }
++}
+ const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
+ for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'pnpm test:bundle-e2e', 'npm publish --access public']) {
+   if (!releaseWorkflow.includes(required)) {
+diff --git a/scripts/enable-dsh-canary.mjs b/scripts/enable-dsh-canary.mjs
+index aa6bc6c..58d5353 100644
+--- a/scripts/enable-dsh-canary.mjs
++++ b/scripts/enable-dsh-canary.mjs
+@@ -33,8 +33,20 @@ if (versions === undefined) throw new Error(`${values.file} does not declare SUP
+ if (versions.elements.some(element => ts.isStringLiteral(element) && element.text === version)) process.exit(0)
+ 
+ const multiline = sourceText.slice(versions.getStart(source), versions.end).includes('\n')
+-const insertion = versions.elements.length === 0
+-  ? `'${version}'`
+-  : multiline ? `,\n  '${version}'` : `, '${version}'`
+-const updated = `${sourceText.slice(0, versions.end - 1)}${insertion}${sourceText.slice(versions.end - 1)}`
++const last = versions.elements.at(-1)
++let insertionPosition = versions.end - 1
++let insertion
++if (last === undefined) {
++  insertion = `'${version}'`
++} else if (multiline && versions.elements.hasTrailingComma) {
++  insertion = `  '${version}',\n`
++} else if (multiline) {
++  insertionPosition = last.end
++  insertion = `,\n  '${version}'`
++} else if (versions.elements.hasTrailingComma) {
++  insertion = ` '${version}',`
++} else {
++  insertion = `, '${version}'`
++}
++const updated = `${sourceText.slice(0, insertionPosition)}${insertion}${sourceText.slice(insertionPosition)}`
+ await writeFile(values.file, updated)
+diff --git a/src/adapters/dsh/npm-adapter.ts b/src/adapters/dsh/npm-adapter.ts
+index b2ed6e5..214efc9 100644
+--- a/src/adapters/dsh/npm-adapter.ts
++++ b/src/adapters/dsh/npm-adapter.ts
+@@ -22,6 +22,7 @@ import { pathToFileURL } from 'node:url'
+ import { parse as parseYaml } from 'yaml'
+ import { z } from 'zod'
+ 
++import { isExactSemver } from '../../community/validation.js'
+ import { StageFailure } from '../../domain/lifecycle.js'
+ import { AssertionSchema } from '../../domain/report.js'
+ import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
+@@ -123,6 +124,84 @@ export function classifyRemoteSource(input: string): ResolvedSource {
+   return { input, kind: 'npm', mutable: !EXACT_VERSION.test(input), gitCommit: null }
+ }
+ 
++export interface LocalPackageInstallPlan {
++  executable: 'corepack' | 'npm' | 'pnpm' | 'yarn'
++  args: string[]
++  packageManager: string
++}
++
++const PACK_LIFECYCLE_SCRIPTS = ['prepare', 'prepack', 'postpack'] as const
++
++export function buildLocalPackageInstallPlan(
++  manifest: unknown,
++  entries: readonly string[],
++): LocalPackageInstallPlan | null {
++  if (typeof manifest !== 'object' || manifest === null) {
++    throw new StageFailure('Local package package.json must contain an object', { failureKind: 'subject' })
++  }
++  const record = manifest as Record<string, unknown>
++  const scripts = typeof record.scripts === 'object' && record.scripts !== null
++    ? record.scripts as Record<string, unknown>
++    : {}
++  const needsDependencies = PACK_LIFECYCLE_SCRIPTS.some(name => (
++    typeof scripts[name] === 'string' && scripts[name].trim() !== ''
++  ))
++  if (!needsDependencies) return null
++
++  const files = new Set(entries)
++  let manager: 'npm' | 'pnpm' | 'yarn'
++  let packageManager: string
++  let exactPackageManager: string | null = null
++  if (record.packageManager !== undefined) {
++    if (typeof record.packageManager !== 'string') {
++      throw new StageFailure('Local package packageManager must be a string', { failureKind: 'subject' })
++    }
++    const match = record.packageManager.match(/^([a-z][a-z0-9-]*)@(.+)$/i)
++    const name = match?.[1]?.toLowerCase()
++    const version = match?.[2]
++    if (name !== 'npm' && name !== 'pnpm' && name !== 'yarn') {
++      throw new StageFailure(`Unsupported packageManager for local package preparation: ${record.packageManager}`, {
++        failureKind: 'subject',
++      })
++    }
++    if (version === undefined || !isExactSemver(version)) {
++      throw new StageFailure(`Local package packageManager must pin an exact semantic version: ${record.packageManager}`, {
++        failureKind: 'subject',
++      })
++    }
++    manager = name
++    packageManager = record.packageManager
++    exactPackageManager = record.packageManager
++  } else if (files.has('pnpm-lock.yaml')) {
++    manager = 'pnpm'
++    packageManager = 'pnpm (inferred from pnpm-lock.yaml)'
++  } else if (files.has('package-lock.json') || files.has('npm-shrinkwrap.json')) {
++    manager = 'npm'
++    packageManager = 'npm (inferred from lockfile)'
++  } else if (files.has('yarn.lock')) {
++    throw new StageFailure('A local Yarn package with pack lifecycle scripts must declare an exact packageManager', {
++      failureKind: 'subject',
++    })
++  } else {
++    manager = 'npm'
++    packageManager = 'npm (default)'
++  }
++
++  const plan = (args: string[]): LocalPackageInstallPlan => ({
++    executable: exactPackageManager === null ? manager : 'corepack',
++    args: exactPackageManager === null ? args : [exactPackageManager, ...args],
++    packageManager,
++  })
++  if (manager === 'pnpm') {
++    return plan(['install', files.has('pnpm-lock.yaml') ? '--frozen-lockfile' : '--no-frozen-lockfile'])
++  }
++  if (manager === 'yarn') {
++    const yarnVersion = packageManager.match(/^yarn@(\d+)/)?.[1]
++    return plan(['install', yarnVersion === '1' ? '--frozen-lockfile' : '--immutable'])
++  }
++  return plan([files.has('package-lock.json') || files.has('npm-shrinkwrap.json') ? 'ci' : 'install'])
++}
++
+ function safeProcessEnvironment(): NodeJS.ProcessEnv {
+   const allowed = [
+     'PATH', 'SHELL', 'LANG', 'LC_ALL', 'TERM', 'CI',
+@@ -333,11 +412,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
+       mkdir(this.workspaceDir, { recursive: true }),
+       mkdir(this.packagesDir, { recursive: true }),
+       mkdir(join(this.runRoot, 'tmp'), { recursive: true }),
+-      mkdir(join(this.runRoot, 'corepack'), { recursive: true }),
++      mkdir(this.corepackHome, { recursive: true }),
+       mkdir(join(this.runRoot, 'user-home'), { recursive: true }),
+       mkdir(this.logsDir, { recursive: true }),
+       mkdir(this.evidenceDir, { recursive: true }),
+     ])
++    const corepackSeed = process.env.DSH_TESTKIT_COREPACK_SEED
++    if (
++      corepackSeed !== undefined
++      && resolve(corepackSeed) !== resolve(this.corepackHome)
++      && await exists(corepackSeed)
++    ) {
++      await cp(corepackSeed, this.corepackHome, { recursive: true, force: false })
++    }
+     await writeFile(join(this.runRoot, 'package.json'), `${JSON.stringify({
+       name: 'dsh-testkit-owned-run-root',
+       private: true,
+@@ -940,6 +1027,24 @@ export class DshNpmAdapter implements LifecycleAdapter {
+         filter: path => !['node_modules', '.git', '.dsh-testkit'].includes(basename(path)),
+       })
+       spec = '.'
++      let manifest: unknown
++      try {
++        manifest = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8'))
++      } catch (error) {
++        throw new StageFailure(`Unable to read local package.json: ${error instanceof Error ? error.message : String(error)}`, {
++          failureKind: 'subject',
++        })
++      }
++      const installPlan = buildLocalPackageInstallPlan(manifest, await readdir(cwd))
++      if (installPlan !== null) {
++        await this.command(
++          `package-dependencies-${label}`,
++          installPlan.executable,
++          installPlan.args,
++          cwd,
++          this.request.scenario.timeouts.installMs,
++        )
++      }
+     }
+     const result = await this.command(
+       `package-${label}`,
+diff --git a/src/adapters/dsh/release-train.ts b/src/adapters/dsh/release-train.ts
+index 448ec1b..31c1296 100644
+--- a/src/adapters/dsh/release-train.ts
++++ b/src/adapters/dsh/release-train.ts
+@@ -2,17 +2,77 @@ import { isExactSemver } from '../../community/validation.js'
+ 
+ export interface DshRegistryMetadata {
+   'dist-tags'?: Record<string, unknown>
++  versions?: Record<string, unknown>
++}
++
++export interface DshGitHubRelease {
++  tag_name?: unknown
++  draft?: unknown
++  immutable?: unknown
+ }
+ 
+ export interface DshReleaseTrain {
+   taggedVersions: string[]
++  upstreamVersions: string[]
+   supportedVersions: string[]
+   canaryVersions: string[]
++  pendingNpmVersions: string[]
++}
++
++function sortedUnique(values: Iterable<string>): string[] {
++  return [...new Set(values)].sort(compareExactSemver)
++}
++
++function compareExactSemver(left: string, right: string): number {
++  const parse = (value: string): [number, number, number, string[]] => {
++    const buildSeparator = value.indexOf('+')
++    const withoutBuild = buildSeparator === -1 ? value : value.slice(0, buildSeparator)
++    const prereleaseSeparator = withoutBuild.indexOf('-')
++    const core = prereleaseSeparator === -1 ? withoutBuild : withoutBuild.slice(0, prereleaseSeparator)
++    const prerelease = prereleaseSeparator === -1 ? '' : withoutBuild.slice(prereleaseSeparator + 1)
++    const [major = 0, minor = 0, patch = 0] = core.split('.').map(Number)
++    return [major, minor, patch, prerelease === '' ? [] : prerelease.split('.')]
++  }
++  const [leftMajor, leftMinor, leftPatch, leftPrerelease] = parse(left)
++  const [rightMajor, rightMinor, rightPatch, rightPrerelease] = parse(right)
++  const corePairs: Array<readonly [number, number]> = [
++    [leftMajor, rightMajor],
++    [leftMinor, rightMinor],
++    [leftPatch, rightPatch],
++  ]
++  for (const [leftPart, rightPart] of corePairs) {
++    if (leftPart !== rightPart) return leftPart - rightPart
++  }
++  if (leftPrerelease.length === 0 || rightPrerelease.length === 0) {
++    return leftPrerelease.length === rightPrerelease.length ? 0 : leftPrerelease.length === 0 ? 1 : -1
++  }
++  for (let index = 0; index < Math.max(leftPrerelease.length, rightPrerelease.length); index += 1) {
++    const leftPart = leftPrerelease[index]
++    const rightPart = rightPrerelease[index]
++    if (leftPart === undefined || rightPart === undefined) return leftPart === undefined ? -1 : 1
++    if (leftPart === rightPart) continue
++    const leftNumeric = /^\d+$/.test(leftPart)
++    const rightNumeric = /^\d+$/.test(rightPart)
++    if (leftNumeric && rightNumeric) return Number(leftPart) - Number(rightPart)
++    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1
++    return leftPart.localeCompare(rightPart)
++  }
++  return 0
++}
++
++function officialReleaseVersions(releases: readonly DshGitHubRelease[]): string[] {
++  return sortedUnique(releases.flatMap(release => {
++    if (release.draft === true || release.immutable !== true || typeof release.tag_name !== 'string') return []
++    const match = /^dsh-v(.+)$/.exec(release.tag_name)
++    if (match?.[1] === undefined || !isExactSemver(match[1])) return []
++    return [match[1]]
++  }))
+ }
+ 
+ export function discoverDshReleaseTrain(
+   metadata: DshRegistryMetadata,
+   supportedVersions: readonly string[],
++  releases: readonly DshGitHubRelease[] = [],
+ ): DshReleaseTrain {
+   const tags = metadata['dist-tags'] ?? {}
+   for (const tag of ['latest', 'next']) {
+@@ -21,14 +81,25 @@ export function discoverDshReleaseTrain(
+       throw new Error(`DSH npm dist-tag ${tag} is not an exact semantic version`)
+     }
+   }
+-  const taggedVersions = [...new Set(['latest', 'next'].flatMap(tag => {
++  const taggedVersions = sortedUnique(['latest', 'next'].flatMap(tag => {
+     const value = tags[tag]
+     return typeof value === 'string' && isExactSemver(value) ? [value] : []
+-  }))].sort((left, right) => left.localeCompare(right))
+-  const supported = [...new Set(supportedVersions)].sort((left, right) => left.localeCompare(right))
++  }))
++  const upstreamVersions = officialReleaseVersions(releases)
++  const supported = sortedUnique(supportedVersions)
++  const publishedVersions = new Set([
++    ...taggedVersions,
++    ...Object.keys(metadata.versions ?? {}).filter(isExactSemver),
++  ])
++  const newestSupported = supported.at(-1)
++  const candidates = sortedUnique([...taggedVersions, ...upstreamVersions])
++    .filter(version => !supported.includes(version)
++      && (newestSupported === undefined || compareExactSemver(version, newestSupported) > 0))
+   return {
+     taggedVersions,
++    upstreamVersions,
+     supportedVersions: supported,
+-    canaryVersions: taggedVersions.filter(version => !supported.includes(version)),
++    canaryVersions: candidates.filter(version => publishedVersions.has(version)),
++    pendingNpmVersions: candidates.filter(version => !publishedVersions.has(version)),
+   }
+ }
+diff --git a/src/scaffold/init.ts b/src/scaffold/init.ts
+index f6d6b01..7588b8f 100644
+--- a/src/scaffold/init.ts
++++ b/src/scaffold/init.ts
+@@ -220,6 +220,7 @@ jobs:
+           dsh-version: '${dshVersion}'
+           config: ${workflowScalar(configPath)}
+           check-name: DSH lifecycle
++          publish-junit-check: 'false'
+ `
+ }
+ 
+diff --git a/src/version.ts b/src/version.ts
+index 911225d..c59b5f4 100644
+--- a/src/version.ts
++++ b/src/version.ts
+@@ -1,3 +1,3 @@
+-export const TESTKIT_VERSION = '0.4.0'
++export const TESTKIT_VERSION = '0.4.1'
+ export const SCENARIO_SCHEMA_VERSION = 1 as const
+ export const REPORT_SCHEMA_VERSION = 1 as const
+diff --git a/tests/contracts/ci-required-checks.test.ts b/tests/contracts/ci-required-checks.test.ts
+index acc0dd3..829e460 100644
+--- a/tests/contracts/ci-required-checks.test.ts
++++ b/tests/contracts/ci-required-checks.test.ts
+@@ -21,4 +21,36 @@ describe('required CI checks', () => {
+     expect(executionSteps.length).toBeGreaterThan(0)
+     expect(executionSteps.every((step: Record<string, unknown>) => step.if === runLifecycle)).toBe(true)
+   })
++
++  it('runs Composite Action smoke with a read-only token', async () => {
++    const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
++
++    for (const jobName of ['action-smoke', 'action-smoke-compat']) {
++      expect(workflow.jobs[jobName].permissions).toEqual({ contents: 'read' })
++    }
++  })
++
++  it('runs both Action smoke subjects across every compatibility host', async () => {
++    const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
++    const entries = workflow.jobs['action-smoke-compat'].strategy.matrix.include
++
++    expect(entries).toHaveLength(6)
++    for (const dshVersion of ['0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']) {
++      expect(entries).toEqual(expect.arrayContaining([
++        { plugin: 'fixtures/healthy-plugin', 'dsh-version': dshVersion },
++        { plugin: 'fixtures/boot-failure-plugin', 'dsh-version': dshVersion },
++      ]))
++    }
++  })
++
++  it('defaults JUnit publication to annotations without Checks API permission', async () => {
++    const action = parse(await readFile('.github/actions/dsh-test/action.yml', 'utf8'))
++
++    expect(action.inputs['publish-junit-check']).toMatchObject({
++      required: false,
++      default: 'false',
++    })
++    const junit = action.runs.steps.find((step: Record<string, unknown>) => step.name === 'Publish JUnit')
++    expect(junit.with.annotate_only).toBe("${{ inputs.publish-junit-check != 'true' }}")
++  })
+ })
+diff --git a/tests/contracts/documentation.test.ts b/tests/contracts/documentation.test.ts
+index 8e83f21..4762e74 100644
+--- a/tests/contracts/documentation.test.ts
++++ b/tests/contracts/documentation.test.ts
+@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
+     const english = await readFile(resolve(root, 'README.md'), 'utf8')
+     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
+ 
+-    expect(manifest.version).toBe('0.4.0')
++    expect(manifest.version).toBe('0.4.1')
+     expect(manifest.files).toContain('README.zh-CN.md')
+     expect(english).toContain('[简体中文](README.zh-CN.md)')
+     expect(chinese).toContain('[English](README.md)')
+     for (const contents of [english, chinese]) {
+-      expect(contents).toContain('dsh-testkit@0.4.0')
++      expect(contents).toContain('dsh-testkit@0.4.1')
+       expect(contents).toContain('dsh-test init')
+       expect(contents).toContain('--repo-root')
+       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
+@@ -24,6 +24,7 @@ describe('bilingual project entrypoints', () => {
+       expect(contents).toContain('0.1.0-rc.8')
+       expect(contents).toContain('0.1.0-rc.7')
+       expect(contents).toContain('0.1.0-rc.6')
++      expect(contents).toContain('0.1.2-alpha.1')
+       expect(contents).toContain('dsh-composition-check')
+       expect(contents).toContain('dsh-plugin-doctor')
+       expect(contents).toContain('http.routes')
+@@ -31,20 +32,33 @@ describe('bilingual project entrypoints', () => {
+       expect(contents).toContain('profile: web')
+       expect(contents).toContain('browser smoke')
+       expect(contents).toContain('watchdog')
++      expect(contents).toContain('publish-junit-check')
++      expect(contents).toContain('docs/design-partner-follow-up.md')
+       expect(contents).toMatch(/resolve.*install-dsh.*package.*install-plugin.*assemble.*boot.*register.*exercise.*uninstall.*reboot.*cleanup/s)
+     }
+     expect(english).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
+     expect(chinese).toContain('[dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor)')
+     expect(english).toContain('not a hardened malware sandbox')
+     expect(chinese).toContain('不是经过强化的恶意代码沙箱')
++    expect(english).toContain('real-host release gate')
++    expect(chinese).toContain('真实宿主发布门禁')
++  })
++
++  it('keeps design-partner reruns behind higher immutable package identities', async () => {
++    const followUp = await readFile(resolve(root, 'docs/design-partner-follow-up.md'), 'utf8')
++
++    expect(followUp).toContain('dsh-shelf@0.7.0')
++    expect(followUp).toContain('@0xsline/dsh-spotlight@0.0.2')
++    expect(followUp).toContain('Waiting_For_Immutable_Package')
++    expect(followUp).not.toContain('#main')
+   })
+ 
+   it('records the minor release in the changelog and security support table', async () => {
+     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
+     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
+ 
+-    expect(changelog).toContain('## [0.4.0] - 2026-08-28')
+-    expect(changelog).toContain('[0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0')
++    expect(changelog).toContain('## [0.4.1] - 2026-08-31')
++    expect(changelog).toContain('[0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1')
+     expect(security).toContain('| 0.4.x | Yes |')
+     expect(security).toContain('| 0.3.x | No |')
+   })
+diff --git a/tests/contracts/dsh-bundle.test.ts b/tests/contracts/dsh-bundle.test.ts
+index 6e757f2..2859582 100644
+--- a/tests/contracts/dsh-bundle.test.ts
++++ b/tests/contracts/dsh-bundle.test.ts
+@@ -10,7 +10,7 @@ describe('published DSH bundle contract', () => {
+     const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+     const patch = parse(await readFile(resolve(root, 'cordis.patch.yml'), 'utf8'))
+ 
+-    expect(manifest.version).toBe('0.4.0')
++    expect(manifest.version).toBe('0.4.1')
+     expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
+     expect(manifest.exports['.']).toMatchObject({
+       types: './dist/src/index.d.ts',
+@@ -33,8 +33,8 @@ describe('published DSH bundle contract', () => {
+       '@deepseek-ai/dsh-tools': { optional: true },
+     })
+     expect(manifest.devDependencies).toMatchObject({
+-      '@deepseek-ai/dsh-invariants': '0.1.0-rc.7',
+-      '@deepseek-ai/dsh-tools': '0.1.0-rc.7',
++      '@deepseek-ai/dsh-invariants': '0.1.0-rc.8',
++      '@deepseek-ai/dsh-tools': '0.1.0-rc.8',
+     })
+     expect(patch).toEqual([{ insert: [{ id: 'tool-dsh-testkit', name: 'dsh-testkit' }] }])
+   })
+diff --git a/tests/e2e/real-dsh.test.ts b/tests/e2e/real-dsh.test.ts
+index bc92f1f..bc7eaa3 100644
+--- a/tests/e2e/real-dsh.test.ts
++++ b/tests/e2e/real-dsh.test.ts
+@@ -107,6 +107,29 @@ describe.sequential('real DSH lifecycle fixtures', () => {
+       .toContain('evidence/probe-boot.json')
+   }, 900_000)
+ 
++  it('builds a prepare-based source package entirely inside the Docker worker', async () => {
++    const result = await runFixture('prepare-plugin', [
++      '--expect-row', 'fixture-prepare',
++    ], 'docker')
++
++    expect(result.code).toBe(0)
++    expect(result.report).toMatchObject({
++      verdict: 'passed',
++      subject: {
++        kind: 'local-directory',
++        packageName: '@dsh-testkit/fixture-prepare',
++        packageVersion: '1.0.0',
++      },
++    })
++    expect(result.report.stages.find(stage => stage.id === 'package')).toMatchObject({
++      status: 'passed',
++    })
++    expect(result.report.artifacts).toEqual(expect.arrayContaining([
++      'logs/package-dependencies-primary.stdout.log',
++      'logs/package-primary.stdout.log',
++    ]))
++  }, 900_000)
++
+   it('fails at registration when an expected tool is missing', async () => {
+     const result = await runFixture('registration-failure-plugin', [
+       '--expect-row', 'fixture-registration-failure',
+diff --git a/tests/fixtures/dsh-registry-candidate.json b/tests/fixtures/dsh-registry-candidate.json
+index 20b5724..135a777 100644
+--- a/tests/fixtures/dsh-registry-candidate.json
++++ b/tests/fixtures/dsh-registry-candidate.json
+@@ -2,5 +2,9 @@
+   "dist-tags": {
+     "latest": "0.1.1-rc.2",
+     "next": "0.1.1-rc.3"
++  },
++  "versions": {
++    "0.1.1-rc.2": {},
++    "0.1.1-rc.3": {}
+   }
+ }
+diff --git a/tests/fixtures/dsh-registry-current.json b/tests/fixtures/dsh-registry-current.json
+index b022196..11362d1 100644
+--- a/tests/fixtures/dsh-registry-current.json
++++ b/tests/fixtures/dsh-registry-current.json
+@@ -2,5 +2,9 @@
+   "dist-tags": {
+     "latest": "0.1.1-rc.2",
+     "next": "0.1.1-rc.2"
++  },
++  "versions": {
++    "0.1.1-rc.1": {},
++    "0.1.1-rc.2": {}
+   }
+ }
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 61c4e29..fd5bc15 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -299,7 +299,7 @@ describe('CLI integration', () => {
+ 
+     expect(exitCode).toBe(0)
+     expect(factoryCalled).toBe(false)
+-    expect(stdout.join('')).toBe('0.4.0\n')
++    expect(stdout.join('')).toBe('0.4.1\n')
+   })
+ 
+   it('initializes a DSH bundle without constructing a lifecycle runner', async () => {
+diff --git a/tests/unit/dsh-release-train.test.ts b/tests/unit/dsh-release-train.test.ts
+index 80afe87..2c92f0a 100644
+--- a/tests/unit/dsh-release-train.test.ts
++++ b/tests/unit/dsh-release-train.test.ts
+@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
+ import { describe, expect, it } from 'vitest'
+ 
+ import { discoverDshReleaseTrain } from '../../src/adapters/dsh/release-train.js'
++import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+ 
+ const fixtures = resolve(import.meta.dirname, '../fixtures')
+ const root = resolve(import.meta.dirname, '../..')
+@@ -18,8 +19,10 @@ describe('DSH release-train discovery', () => {
+ 
+     expect(discoverDshReleaseTrain(metadata, ['0.1.1-rc.2', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
+       taggedVersions: ['0.1.1-rc.2'],
++      upstreamVersions: [],
+       supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
+       canaryVersions: [],
++      pendingNpmVersions: [],
+     })
+   })
+ 
+@@ -28,8 +31,34 @@ describe('DSH release-train discovery', () => {
+ 
+     expect(discoverDshReleaseTrain(metadata, ['0.1.1-rc.2', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6'])).toEqual({
+       taggedVersions: ['0.1.1-rc.2', '0.1.1-rc.3'],
++      upstreamVersions: [],
+       supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
+       canaryVersions: ['0.1.1-rc.3'],
++      pendingNpmVersions: [],
++    })
++  })
++
++  it('tracks an immutable official alpha release without adding an unavailable npm package to support', async () => {
++    const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-current.json'), 'utf8'))
++    const releases = JSON.parse(await readFile(resolve(fixtures, 'dsh-github-releases-alpha.json'), 'utf8'))
++
++    expect(discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS, releases)).toEqual({
++      taggedVersions: ['0.1.1-rc.2'],
++      upstreamVersions: ['0.1.1-rc.1', '0.1.2-alpha.1', '0.1.2-alpha.2'],
++      supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
++      canaryVersions: [],
++      pendingNpmVersions: ['0.1.2-alpha.1', '0.1.2-alpha.2'],
++    })
++    expect(SUPPORTED_DSH_NPM_VERSIONS).not.toContain('0.1.2-alpha.1')
++  })
++
++  it('promotes an official release to a runnable canary once its exact npm version exists', async () => {
++    const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-alpha-published.json'), 'utf8'))
++    const releases = JSON.parse(await readFile(resolve(fixtures, 'dsh-github-releases-alpha.json'), 'utf8'))
++
++    expect(discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS, releases)).toMatchObject({
++      canaryVersions: ['0.1.2-alpha.2'],
++      pendingNpmVersions: ['0.1.2-alpha.1'],
+     })
+   })
+ 
+@@ -44,15 +73,17 @@ describe('DSH release-train discovery', () => {
+     const support = resolve(temporary, 'support.ts')
+     const rootSupport = await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')
+     try {
+-      await writeFile(support, "export const SUPPORTED_DSH_NPM_VERSIONS = ['0.1.0-rc.7', '0.1.0-rc.6'] as const\n")
++      await writeFile(support, rootSupport)
+ 
+       await executeFile(process.execPath, [
+         resolve(root, 'scripts/enable-dsh-canary.mjs'),
+         '--file', support,
+-        '0.1.0-rc.8',
++        '0.1.2-alpha.2',
+       ], { cwd: root })
+ 
+-      expect(await readFile(support, 'utf8')).toContain("['0.1.0-rc.7', '0.1.0-rc.6', '0.1.0-rc.8']")
++      const updated = await readFile(support, 'utf8')
++      expect(updated).toContain("  '0.1.0-rc.6',\n  '0.1.2-alpha.2',\n]")
++      expect(updated).not.toContain('\n,\n')
+       expect(await readFile(resolve(root, 'src/adapters/dsh/support.ts'), 'utf8')).toBe(rootSupport)
+     } finally {
+       await rm(temporary, { recursive: true, force: true })
+diff --git a/tests/unit/npm-adapter.test.ts b/tests/unit/npm-adapter.test.ts
+index e357155..762e8ee 100644
+--- a/tests/unit/npm-adapter.test.ts
++++ b/tests/unit/npm-adapter.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it } from 'vitest'
+ 
+ import {
++  buildLocalPackageInstallPlan,
+   classifyBootFailure,
+   DshNpmAdapter,
+ } from '../../src/adapters/dsh/npm-adapter.js'
+@@ -35,3 +36,48 @@ describe('DshNpmAdapter verdict boundaries', () => {
+     })
+   })
+ })
++
++describe('local-directory package preparation', () => {
++  it('uses the declared pnpm release and frozen lockfile for pack lifecycle scripts', () => {
++    expect(buildLocalPackageInstallPlan({
++      packageManager: 'pnpm@10.17.0',
++      scripts: { prepare: 'pnpm run build' },
++    }, ['package.json', 'pnpm-lock.yaml'])).toEqual({
++      executable: 'corepack',
++      args: ['pnpm@10.17.0', 'install', '--frozen-lockfile'],
++      packageManager: 'pnpm@10.17.0',
++    })
++  })
++
++  it('uses npm ci for a locked npm package with a prepack script', () => {
++    expect(buildLocalPackageInstallPlan({
++      packageManager: 'npm@11.5.2',
++      scripts: { prepack: 'npm run build' },
++    }, ['package-lock.json', 'package.json'])).toEqual({
++      executable: 'corepack',
++      args: ['npm@11.5.2', 'ci'],
++      packageManager: 'npm@11.5.2',
++    })
++  })
++
++  it('does not install a package that has no pack lifecycle script', () => {
++    expect(buildLocalPackageInstallPlan({
++      packageManager: 'pnpm@10.17.0',
++      devDependencies: { typescript: '5.9.2' },
++    }, ['package.json', 'pnpm-lock.yaml'])).toBeNull()
++  })
++
++  it('rejects an unsupported package manager before running plugin scripts', () => {
++    expect(() => buildLocalPackageInstallPlan({
++      packageManager: 'bun@1.2.0',
++      scripts: { prepare: 'bun run build' },
++    }, ['bun.lock', 'package.json'])).toThrow(/unsupported packageManager/i)
++  })
++
++  it('rejects a mutable package manager version before running plugin scripts', () => {
++    expect(() => buildLocalPackageInstallPlan({
++      packageManager: 'pnpm@latest',
++      scripts: { prepare: 'pnpm run build' },
++    }, ['package.json', 'pnpm-lock.yaml'])).toThrow(/exact semantic version/i)
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index ad56a10..7cf762d 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -47,7 +47,7 @@ describe('Docker runner command planning', () => {
+ 
+   it('keys the runner image name by the immutable build-context digest', () => {
+     const digest = `sha256:${'a'.repeat(64)}`
+-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.4.0-aaaaaaaaaaaa')
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.4.1-aaaaaaaaaaaa')
+   })
+ 
+   it('uses the explicit attempt-wide watchdog budget', () => {
+diff --git a/tests/unit/scaffold.test.ts b/tests/unit/scaffold.test.ts
+index 1f4024f..afec7ad 100644
+--- a/tests/unit/scaffold.test.ts
++++ b/tests/unit/scaffold.test.ts
+@@ -84,8 +84,9 @@ describe('one-command project scaffold', () => {
+     expect(workflow).toContain('permissions:\n  contents: read')
+     expect(workflow).toContain('iiwish/dsh-testkit/.github/actions/dsh-test@v0')
+     expect(workflow).toContain('check-name: DSH lifecycle')
++    expect(workflow).toContain("publish-junit-check: 'false'")
+     expect(workflow).toContain('config: dsh-testkit.yaml')
+-    expect(workflow).not.toMatch(/write-all|contents: write/)
++    expect(workflow).not.toMatch(/write-all|contents: write|checks: write/)
+ 
+     await expect(readFile(
+       join(root, '.agents/skills/dsh-testkit/SKILL.md'),
+diff --git a/.ai-platform/evidence/T013/summary.md b/.ai-platform/evidence/T013/summary.md
+new file mode 100644
+index 0000000..e79db90
+--- /dev/null
++++ b/.ai-platform/evidence/T013/summary.md
+@@ -0,0 +1,17 @@
++# T013 Evidence Summary
++
++Status: Accepted
++
++DSH Testkit v0.4.1 packages source plugins entirely inside its owned Docker worker, including package-manager dependency setup and `prepare` scripts. Generated workflows remain read-only and the Composite Action publishes JUnit annotations by default; Checks API publication is an explicit trusted-workflow option.
++
++The development contract now pins both `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-invariants` to `0.1.0-rc.8`. The supported real-host matrix passed on DSH `0.1.1-rc.2`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`; both Action smoke subjects passed on the default and all compatibility hosts.
++
++Release discovery joins official immutable GitHub releases with exact npm availability. `0.1.2-alpha.1` remains pending because its npm artifact is absent. `0.1.2-alpha.2` appeared during execution with an exact npm artifact, entered only a disposable canary, and is not supported: its full real-host run passed 6 of 11 cases and its native bundle lifecycle report failed. Neither alpha is in the default support registry.
++
++The design-partner register retains `dsh-shelf@0.7.0` and `@0xsline/dsh-spotlight@0.0.2` as immutable baselines. No higher public package exists, so no partner lifecycle rerun or compatibility conclusion was produced.
++
++The English and Chinese README files describe the same quick start, proof boundaries, canary policy, and partner gate. v1 schemas, exit codes, Docker-default isolation, and the accepted T010-T012 behavior remain unchanged.
++
++Spec-compliance review mapped every T013 acceptance criterion to focused tests or the retained matrix evidence. Maintainer review found one P2 before release: mutable `packageManager` tags were accepted and explicit npm versions were not guaranteed. The fix rejects non-semver versions and dispatches every explicit manager through Corepack at the declared version; its RED/GREEN tests and real Docker prepare fixture pass. Bug and quality review also covered the worker-only package boundary, Corepack state, read-only Action default, semantic release ordering, official-release filtering, disposable support-file editing, and support-registry isolation. No finding remains. QA review confirms that every supported row is green and that alpha failures cannot be reported as compatibility.
++
++Residual risk: DSH alpha.2 creates new profile-owned credential/fallback paths and changes the observed TurnStatus transition. These are recorded as canary incompatibilities rather than normalized into the stable adapter without review. Publication, commit, and partner package releases remain outside this task.
+diff --git a/.ai-platform/evidence/T013/test-results.md b/.ai-platform/evidence/T013/test-results.md
+new file mode 100644
+index 0000000..9ce9bb0
+--- /dev/null
++++ b/.ai-platform/evidence/T013/test-results.md
+@@ -0,0 +1,89 @@
++# T013 Test Results
++
++## RED
++
++The focused contract suite failed before implementation on the expected boundaries: both DSH tool packages were still pinned to rc.7, compatibility Action smoke contained only two rows, and release discovery had no official-release, pending-npm, or runnable-canary states.
++
++```text
++pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts
++```
++
++## GREEN And Validation
++
++The focused suite passed after implementation. Fresh frozen installation and full validation passed:
++
++```text
++CI=1 pnpm install --frozen-lockfile
++pnpm validate
++Test Files 25 passed (25)
++Tests 159 passed (159)
++Coverage: 63.82% statements, 76.59% branches, 74.79% functions
++```
++
++Packaging, workflow syntax, Action pins, release readiness, type checking, and build all passed. The packaged consumer installed and exercised `dsh-testkit-0.4.1.tgz` successfully.
++
++```text
++go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml .github/workflows/dsh-release-watch.yml
++pnpm test:pack
++packed consumer smoke passed: dsh-testkit-0.4.1.tgz
++```
++
++The Composite Action YAML is covered by the repository Action-pin and permission contracts; actionlint accepts workflow files rather than composite Action manifests.
++
++## Maintainer Review Fix
++
++Review constructed two package-manager counterexamples: `pnpm@latest` was accepted as reproducible, and `npm@11.5.2` selected the runner's bundled npm rather than the declared release. The new tests failed on both paths before the fix, then passed after explicit managers were routed through Corepack and their versions were validated as exact semantic versions.
++
++```text
++pnpm vitest run tests/unit/npm-adapter.test.ts
++RED: 3 failed, 4 passed
++GREEN: 7 passed
++```
++
++The exact pnpm `prepare` fixture passed in the real Docker worker after the fix. Its first attempt exhausted the global budget while the cold image was still installing Chromium; the warm retry reached the package lifecycle and passed in 346.473 seconds.
++
++## Supported Real-Host Matrix
++
++Every complete 11-case real-host suite passed:
++
++```text
++0.1.1-rc.2  11/11 passed  1188s
++0.1.0-rc.8  11/11 passed   618s
++0.1.0-rc.7  11/11 passed   869s
++0.1.0-rc.6  11/11 passed   763s
++```
++
++The first cold rc.8 attempt had five infrastructure failures while npm installation and the runner image exceeded cold-path budgets. Each failed row passed on retry, and the final complete rc.8 suite above passed without a retry exception. Local controller installation used `https://registry.npmmirror.com` after public-registry slowness; Docker lifecycle jobs retained their isolated in-container setup.
++
++The native DSH bundle passed on all supported hosts:
++
++```text
++0.1.1-rc.2  passed  182s
++0.1.0-rc.8  passed  374s
++0.1.0-rc.7  passed  152s
++0.1.0-rc.6  passed  139s
++```
++
++The local Composite Action entry passed all eight rows: healthy and boot-failure subjects on default `0.1.1-rc.2`, plus both subjects on compatibility hosts rc.8, rc.7, and rc.6. Every row returned exit code 0 and produced JSON and JUnit reports.
++
++## Alpha Canary
++
++Live release discovery returned:
++
++```json
++{
++  "canaryVersions": ["0.1.2-alpha.2"],
++  "pendingNpmVersions": ["0.1.2-alpha.1"],
++  "supportedVersions": ["0.1.0-rc.6", "0.1.0-rc.7", "0.1.0-rc.8", "0.1.1-rc.2"]
++}
++```
++
++The disposable alpha.2 support copy typechecked, then ran the actual exact version with `DSH_TESTKIT_DSH_VERSION=0.1.2-alpha.2`. The full real-host suite passed 6 of 11 cases. Five cases failed: healthy, prepare-source, observer, HTTP route, and browser status. Four reports identified new unexplained uninstall residue at `dsh-home/.credentials.yaml` and `dsh-home/profiles/web/.dsh-module-fallback/`; the browser case also observed `Deep diving...` instead of the fixture TurnStatus text.
++
++The alpha.2 native bundle installed, registered, and invoked `dsh_test`, but the nested lifecycle report verdict was `failed`, so the bundle contract correctly failed. The initial disposable bundle attempt was discarded because a symlinked `node_modules` directory polluted `npm pack --json`; the recorded rerun used a copied dependency tree and reached the lifecycle assertion.
++
++These failures are canary evidence, not failures of the supported matrix. Alpha.2 remains outside `SUPPORTED_DSH_NPM_VERSIONS`; alpha.1 cannot run until its exact npm artifact exists.
++
++## Design Partners
++
++The public registry returned 404 for `dsh-shelf`, and its repository tags end at `v0.6.0`; neither provides a package higher than the recorded `dsh-shelf@0.7.0` baseline. `@0xsline/dsh-spotlight` remains npm latest `0.0.2` with latest tag `v0.0.2` at `dd7ef5ed160aa1a624559de16eafd4ea9406d7ed`. The immutable package gates therefore stayed closed and no partner rerun was performed.
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T013.yaml b/.ai-platform/specs/lifecycle-runner/packets/T013.yaml
+new file mode 100644
+index 0000000..4d8d16e
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T013.yaml
+@@ -0,0 +1,115 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T013
++task_id: T013
++feature_id: lifecycle-runner
++mode: direct_execute
++adapter: codex
++
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  product_design: .ai-platform/docs/product-design.md
++  checklist: .ai-platform/specs/lifecycle-runner/checklists/requirements.md
++  plan: .ai-platform/specs/lifecycle-runner/plan.md
++  analysis: .ai-platform/specs/lifecycle-runner/analysis.md
++  work_graph: .ai-platform/specs/lifecycle-runner/tasks.md
++  approval: User explicitly requested coordinated rc.8 contracts, official alpha canary tracking, and immutable design-partner rerun gates on 2026-08-30, extending the approved v0.4.1 work.
++
++work_unit:
++  title: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
++  goal: Make source packages reproducibly testable inside Docker, keep generated CI read-only, align rc.8 tool contracts, and classify release and partner canaries without widening support.
++  requirements: [US-007, US-013, FR-026, FR-027, FR-048, FR-049, FR-050, FR-051, FR-052, FR-053, FR-054, NFR-024, NFR-025, NFR-026, NFR-027, NFR-028]
++  depends_on: [T012]
++  blocks: [v0.4.1-release-readiness]
++
++codebase_context:
++  relevant_files:
++    - src/adapters/dsh/npm-adapter.ts
++    - src/adapters/dsh/release-train.ts
++    - src/adapters/dsh/support.ts
++    - src/scaffold/init.ts
++    - assets/runner.Dockerfile
++    - .github/actions/dsh-test/action.yml
++    - .github/workflows/ci.yml
++    - .github/workflows/dsh-release-watch.yml
++  patterns:
++    - Exact DSH versions are centralized in src/adapters/dsh/support.ts.
++    - The controller resolves immutable source identity; package scripts execute only in the owned worker.
++    - CI contracts are enforced by Vitest YAML/documentation tests and pinned-action checks.
++  invariants:
++    - Docker remains the default isolation boundary.
++    - v1 schemas and exit-code meanings remain stable.
++    - Official releases require exact npm artifacts before disposable canary execution.
++    - Design partners require a package identity higher than the recorded immutable baseline.
++
++execution_constraints:
++  adapter: codex
++  isolation: current_worktree
++  direct_execute_reason: The user did not authorize delegation; the task continues in the existing explainable T013 worktree.
++  allowed_files: [.ai-platform/**, src/adapters/dsh/npm-adapter.ts, src/adapters/dsh/release-train.ts, src/scaffold/init.ts, src/version.ts, assets/runner.Dockerfile, .github/actions/dsh-test/action.yml, .github/workflows/ci.yml, .github/workflows/dsh-release-watch.yml, fixtures/prepare-plugin/**, tests/**, scripts/check-release-readiness.mjs, scripts/check-dsh-release-train.mjs, scripts/enable-dsh-canary.mjs, package.json, pnpm-lock.yaml, CHANGELOG.md, README.md, README.zh-CN.md, docs/**]
++  forbidden_changes:
++    - Do not modify the user-owned untracked AGENTS.md.
++    - Do not run plugin package scripts on the controller host.
++    - Do not add an alpha release to default support without reviewed adapter evidence.
++    - Do not rerun a design partner from a mutable branch, commit, or existing package.
++    - Do not publish, commit, or mark the task Accepted without explicit user approval.
++
++tdd_plan:
++  red:
++    command: pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts
++    expected_signal: New package-manager, permission, rc.8, release and partner contracts fail against the pre-T013 implementation.
++  green:
++    command: pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts
++    expected_signal: Focused contracts pass without weakening stable lifecycle behavior.
++  refactor: Consolidate package-manager and release classification logic only while focused and full validation stay green.
++  exception: none
++
++validation_loop:
++  retry_budget: 2
++  commands:
++    - CI=1 pnpm install --frozen-lockfile
++    - pnpm validate
++    - pnpm test:e2e
++    - pnpm test:bundle-e2e
++    - pnpm test:pack
++    - go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml .github/workflows/dsh-release-watch.yml
++    - pnpm check:actions
++  expected_signals:
++    - Frozen rc.8 tool contracts resolve together.
++    - All supported real-host, native bundle and Action smoke rows pass.
++    - Alpha canaries remain disposable and design-partner gates remain immutable.
++  failure_handling: Classify network or cold-image infrastructure separately, rerun only the affected supported row, then require one complete green matrix before review. Record alpha incompatibility without promoting support.
++
++evidence_contract:
++  paths:
++    - .ai-platform/evidence/T013/summary.md
++    - .ai-platform/evidence/T013/test-results.md
++    - .ai-platform/evidence/T013/diff.patch
++  required:
++    - RED and GREEN results
++    - Supported real-host, bundle and Action smoke matrices
++    - Official release plus npm availability classification
++    - Design-partner immutable package checks
++    - Full validation, package and workflow evidence
++    - Residual risks
++
++review_contract:
++  spec_compliance: Confirm every T013 acceptance criterion has implementation and evidence.
++  bug_and_quality: Review package execution boundary, permission defaults, semver classification, support registry isolation and canary-enabler syntax.
++  qa_acceptance: Verify supported matrices are green and alpha or partner failures cannot become support claims.
++  acceptance_authority: user
++
++handoff:
++  status: Accepted
++  acceptance: User authorized publication after a clean maintainer review on 2026-08-31; the review finding was fixed and revalidated before handoff.
++  issue: null
++  pull_request: null
++  commit: not_requested
++  finish_options: [user_acceptance, requested_follow_up, release_preparation]
++
++stop_conditions:
++  - Plugin packaging runs on the controller host.
++  - Generated workflow requires write permission by default.
++  - A release-only alpha enters default support.
++  - A design partner is rerun without a higher immutable package.
++  - v1 schema or exit-code semantics change.
++  - User-owned AGENTS.md is modified.
+diff --git a/docs/design-partner-follow-up.md b/docs/design-partner-follow-up.md
+new file mode 100644
+index 0000000..220b9ae
+--- /dev/null
++++ b/docs/design-partner-follow-up.md
+@@ -0,0 +1,22 @@
++# Design-Partner Follow-Up Gate
++
++This register keeps design-partner lifecycle conclusions tied to immutable package identities. A source commit, mutable branch, local patch, or repeated run of the existing package does not satisfy the rerun gate.
++
++## Current State
++
++| Partner | Immutable baseline | State | Next eligible input |
++|---|---|---|---|
++| `dsh-shelf` | `dsh-shelf@0.7.0`, source identity `3787414102b160950a0859b77e9c0d59e7da0e6e` | `Waiting_For_Immutable_Package` | A published package version higher than `0.7.0`, resolved to an exact tarball and integrity digest |
++| `dsh-spotlight` | `@0xsline/dsh-spotlight@0.0.2`, tag identity `dd7ef5ed160aa1a624559de16eafd4ea9406d7ed` | `Waiting_For_Immutable_Package` | A published npm version higher than `0.0.2`, resolved to an exact tarball and integrity digest |
++
++The `dsh-shelf` fix commit `b5a34e83cb83607b44b4a04b4657da2d9692e18e` is useful maintainer evidence but is not a package rerun input. The public npm registry currently exposes no `dsh-shelf` package identity. The current `@0xsline/dsh-spotlight` npm latest remains `0.0.2`.
++
++## Rerun Contract
++
++1. Resolve the package from the public npm registry by exact version and retain its integrity and tarball URL.
++2. Confirm the version is higher than the baseline in this register and that the package name matches the partner identity.
++3. Run the declared real-host scenario in Docker against an exact supported DSH version.
++4. Retain the Testkit version, scenario digest, runner image, package integrity, DSH identity and complete local report.
++5. Publish a named conclusion only after the maintainer can review the exact reproduction evidence.
++
++Until both steps 1 and 2 pass, the correct action is no lifecycle rerun and no compatibility conclusion.
+diff --git a/fixtures/prepare-plugin/cordis.patch.yml b/fixtures/prepare-plugin/cordis.patch.yml
+new file mode 100644
+index 0000000..1ffb779
+--- /dev/null
++++ b/fixtures/prepare-plugin/cordis.patch.yml
+@@ -0,0 +1,3 @@
++- insert:
++    - id: fixture-prepare
++      name: '@dsh-testkit/fixture-prepare'
+diff --git a/fixtures/prepare-plugin/package.json b/fixtures/prepare-plugin/package.json
+new file mode 100644
+index 0000000..82085ed
+--- /dev/null
++++ b/fixtures/prepare-plugin/package.json
+@@ -0,0 +1,23 @@
++{
++  "name": "@dsh-testkit/fixture-prepare",
++  "version": "1.0.0",
++  "type": "module",
++  "packageManager": "pnpm@10.17.0",
++  "main": "lib/index.js",
++  "files": [
++    "lib",
++    "cordis.patch.yml"
++  ],
++  "scripts": {
++    "build": "tsc -p tsconfig.json",
++    "prepare": "pnpm run build"
++  },
++  "dsh": {
++    "bundle": {
++      "patch": "./cordis.patch.yml"
++    }
++  },
++  "devDependencies": {
++    "typescript": "5.9.2"
++  }
++}
+diff --git a/fixtures/prepare-plugin/pnpm-lock.yaml b/fixtures/prepare-plugin/pnpm-lock.yaml
+new file mode 100644
+index 0000000..289b101
+--- /dev/null
++++ b/fixtures/prepare-plugin/pnpm-lock.yaml
+@@ -0,0 +1,24 @@
++lockfileVersion: '9.0'
++
++settings:
++  autoInstallPeers: true
++  excludeLinksFromLockfile: false
++
++importers:
++
++  .:
++    devDependencies:
++      typescript:
++        specifier: 5.9.2
++        version: 5.9.2
++
++packages:
++
++  typescript@5.9.2:
++    resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
++    engines: {node: '>=14.17'}
++    hasBin: true
++
++snapshots:
++
++  typescript@5.9.2: {}
+diff --git a/fixtures/prepare-plugin/src/index.ts b/fixtures/prepare-plugin/src/index.ts
+new file mode 100644
+index 0000000..3648f01
+--- /dev/null
++++ b/fixtures/prepare-plugin/src/index.ts
+@@ -0,0 +1,3 @@
++export const name = 'fixture-prepare'
++
++export function apply(): void {}
+diff --git a/fixtures/prepare-plugin/tsconfig.json b/fixtures/prepare-plugin/tsconfig.json
+new file mode 100644
+index 0000000..ee272a9
+--- /dev/null
++++ b/fixtures/prepare-plugin/tsconfig.json
+@@ -0,0 +1,14 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "NodeNext",
++    "moduleResolution": "NodeNext",
++    "rootDir": "src",
++    "outDir": "lib",
++    "strict": true,
++    "declaration": true
++  },
++  "include": [
++    "src/**/*.ts"
++  ]
++}
+diff --git a/tests/fixtures/dsh-github-releases-alpha.json b/tests/fixtures/dsh-github-releases-alpha.json
+new file mode 100644
+index 0000000..7009939
+--- /dev/null
++++ b/tests/fixtures/dsh-github-releases-alpha.json
+@@ -0,0 +1,20 @@
++[
++  {
++    "tag_name": "dsh-v0.1.1-rc.1",
++    "draft": false,
++    "prerelease": true,
++    "immutable": true
++  },
++  {
++    "tag_name": "dsh-v0.1.2-alpha.1",
++    "draft": false,
++    "prerelease": true,
++    "immutable": true
++  },
++  {
++    "tag_name": "dsh-v0.1.2-alpha.2",
++    "draft": false,
++    "prerelease": true,
++    "immutable": true
++  }
++]
+diff --git a/tests/fixtures/dsh-registry-alpha-published.json b/tests/fixtures/dsh-registry-alpha-published.json
+new file mode 100644
+index 0000000..7cd8ca8
+--- /dev/null
++++ b/tests/fixtures/dsh-registry-alpha-published.json
+@@ -0,0 +1,10 @@
++{
++  "dist-tags": {
++    "latest": "0.1.1-rc.2",
++    "next": "0.1.1-rc.2"
++  },
++  "versions": {
++    "0.1.1-rc.2": {},
++    "0.1.2-alpha.2": {}
++  }
++}

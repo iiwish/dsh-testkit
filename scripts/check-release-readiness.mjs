@@ -1,5 +1,7 @@
 import { access, readFile } from 'node:fs/promises'
 
+import { parse as parseYaml } from 'yaml'
+
 const manifest = JSON.parse(await readFile('package.json', 'utf8'))
 const requiredFields = ['repository', 'homepage', 'bugs', 'author', 'publishConfig', 'types']
 const missingFields = requiredFields.filter(field => manifest[field] === undefined)
@@ -74,8 +76,30 @@ if (!dockerfile.includes('dev.dsh-testkit.context-sha256')) {
 if (!dockerfile.includes('COPY assets/runner-pnpm-lock.yaml ./pnpm-lock.yaml')) {
   throw new Error('runner.Dockerfile must consume the generated runner lockfile')
 }
+for (const required of [
+  'DSH_TESTKIT_COREPACK_HOME=/work/run/corepack',
+  'DSH_TESTKIT_COREPACK_SEED=/opt/corepack',
+]) {
+  if (!dockerfile.includes(required)) {
+    throw new Error(`runner.Dockerfile is missing writable Corepack control: ${required}`)
+  }
+}
 if (!manifest.scripts?.build?.includes('scripts/prepare-runner-lock.mjs')) {
   throw new Error('build must generate the runner lockfile from the canonical root lock')
+}
+const action = parseYaml(await readFile('.github/actions/dsh-test/action.yml', 'utf8'))
+if (action.inputs?.['publish-junit-check']?.default !== 'false') {
+  throw new Error('Composite Action must default publish-junit-check to false')
+}
+const junitStep = action.runs?.steps?.find(step => step.name === 'Publish JUnit')
+if (junitStep?.with?.annotate_only !== "${{ inputs.publish-junit-check != 'true' }}") {
+  throw new Error('Composite Action must use annotate-only JUnit reporting by default')
+}
+const ciWorkflow = parseYaml(await readFile('.github/workflows/ci.yml', 'utf8'))
+for (const jobName of ['action-smoke', 'action-smoke-compat']) {
+  if (JSON.stringify(ciWorkflow.jobs?.[jobName]?.permissions) !== JSON.stringify({ contents: 'read' })) {
+    throw new Error(`${jobName} must prove the read-only Composite Action contract`)
+  }
 }
 const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8')
 for (const required of ['id-token: write', 'environment: npm', 'package-manager-cache: false', 'pnpm test:bundle-e2e', 'npm publish --access public']) {

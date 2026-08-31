@@ -121,7 +121,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -149,7 +148,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -157,7 +155,15 @@ jobs:
           - plugin: fixtures/healthy-plugin
             dsh-version: 0.1.0-rc.8
           - plugin: fixtures/boot-failure-plugin
+            dsh-version: 0.1.0-rc.8
+          - plugin: fixtures/healthy-plugin
             dsh-version: 0.1.0-rc.7
+          - plugin: fixtures/boot-failure-plugin
+            dsh-version: 0.1.0-rc.7
+          - plugin: fixtures/healthy-plugin
+            dsh-version: 0.1.0-rc.6
+          - plugin: fixtures/boot-failure-plugin
+            dsh-version: 0.1.0-rc.6
     steps:
       - name: Preserve compatibility check for documentation-only changes
         if: github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'

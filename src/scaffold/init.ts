@@ -220,6 +220,7 @@ jobs:
           dsh-version: '${dshVersion}'
           config: ${workflowScalar(configPath)}
           check-name: DSH lifecycle
+          publish-junit-check: 'false'
 `
 }
 

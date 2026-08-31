@@ -107,6 +107,29 @@ describe.sequential('real DSH lifecycle fixtures', () => {
       .toContain('evidence/probe-boot.json')
   }, 900_000)
 
+  it('builds a prepare-based source package entirely inside the Docker worker', async () => {
+    const result = await runFixture('prepare-plugin', [
+      '--expect-row', 'fixture-prepare',
+    ], 'docker')
+
+    expect(result.code).toBe(0)
+    expect(result.report).toMatchObject({
+      verdict: 'passed',
+      subject: {
+        kind: 'local-directory',
+        packageName: '@dsh-testkit/fixture-prepare',
+        packageVersion: '1.0.0',
+      },
+    })
+    expect(result.report.stages.find(stage => stage.id === 'package')).toMatchObject({
+      status: 'passed',
+    })
+    expect(result.report.artifacts).toEqual(expect.arrayContaining([
+      'logs/package-dependencies-primary.stdout.log',
+      'logs/package-primary.stdout.log',
+    ]))
+  }, 900_000)
+
   it('fails at registration when an expected tool is missing', async () => {
     const result = await runFixture('registration-failure-plugin', [
       '--expect-row', 'fixture-registration-failure',

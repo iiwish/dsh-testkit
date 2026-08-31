@@ -43,9 +43,11 @@ This is the useful lifecycle boundary in one sequence:
 4. the fix is made against the host contract;
 5. the release gate is rerun against the published fix, rather than trusting source-only tests.
 
-The next rerun will use `dsh-testkit@0.3.3`, an explicit DSH version, and the
-new immutable package artifact once it is available. Publication of the final
-pass result requires the maintainer's release and the exact rerun evidence.
+The next rerun uses the current Testkit release, an explicit supported DSH
+version, and a package version higher than `dsh-shelf@0.7.0` once it is
+available. The [design-partner follow-up gate](design-partner-follow-up.md)
+records the required package identity and prevents a source-only fix from
+being reported as a package pass.
 
 ## Scope boundary
 

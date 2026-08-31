@@ -1,9 +1,9 @@
 # DSH Testkit Spec Consistency Analysis
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Completed
-Scope: lifecycle-runner, native DSH bundle, adoption workflow and loopback route assertions
-Last updated: 2026-08-26
+Scope: lifecycle-runner, native DSH bundle, adoption workflow, source packaging and release-train canaries
+Last updated: 2026-08-30
 
 ## Inputs
 
@@ -48,6 +48,13 @@ Last updated: 2026-08-26
 - Medium: Automatic Git-root discovery can widen the write boundary. TDR-024 requires the nearest real non-symlink marker, plugin containment and an explicit override; cross-root writes remain one transaction.
 - Medium: A volunteer's repositories do not establish market demand. The pilot is classified only as technical compatibility evidence and receives a fixed two-plugin scope.
 - Low: The partner has not yet confirmed deterministic exercise expectations. Scaffold and boot/register evidence can proceed; named capability claims wait for maintainer confirmation.
+
+## T013 Risk Check
+
+- Critical/High findings: None.
+- Medium: An official GitHub release may exist without a matching npm package. The release train records it as pending and excludes it from both `SUPPORTED_DSH_NPM_VERSIONS` and the runnable canary matrix.
+- Medium: `dsh-tools` and `dsh-invariants` can resolve from different preview trains. The package contract pins both exact rc.8 versions and the lockfile is regenerated as one operation.
+- Low: Design-partner source fixes can look retestable before publication. The follow-up record requires a higher immutable package identity and forbids mutable-source substitution.
 
 ## Findings
 

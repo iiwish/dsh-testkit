@@ -1,8 +1,8 @@
 # DSH Testkit Implementation Plan
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Confirmed
-Last updated: 2026-08-26
+Last updated: 2026-08-30
 Source: confirmed Product Design and Technology Decision Record
 
 ## Goal
@@ -113,6 +113,16 @@ Status: Completed; T011 and T012 were accepted after production-adapter review, 
 - Return `unsupported` when the browser runner or executable is unavailable; retain only bounded DOM/browser identity and screenshot evidence.
 - Add a scenario-level attempt budget enforced by both Docker and local controllers, with owned-container removal after expiry.
 - Classify unresponsive DSH web HTTP/browser behavior as host/infrastructure while preserving assertion failure semantics for completed responses and DOM mismatches.
+
+### Slice 10: Source Packaging, Compatibility And Release Canaries
+
+Status: Completed and accepted under T013; protected-branch publication remains the release operation.
+
+- Restore build dependencies only inside the disposable worker and keep generated CI read-only by default.
+- Compile the native bundle against the coordinated rc.8 `dsh-tools` and `dsh-invariants` pair.
+- Run every supported real-host row and healthy/expected-failure Action smoke row after the rc.8 contract upgrade.
+- Discover official immutable DSH releases alongside npm dist-tags; keep release-only versions pending until an exact npm package exists.
+- Keep design-partner reruns closed until `dsh-shelf` or `dsh-spotlight` publishes a higher immutable package version.
 
 ## Validation Strategy
 

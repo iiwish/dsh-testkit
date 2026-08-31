@@ -1,10 +1,10 @@
 # DSH Testkit Product Design Contract
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Confirmed
 Source: 2026-08-14 至 2026-08-15 用户讨论、DSH 生态调研与竞品源码核查
-Last updated: 2026-08-26
-Review: User authorized continuation after SSOT review on 2026-08-15
+Last updated: 2026-08-30
+Review: User authorized v0.4.1 packaging, least-privilege CI, rc.8 contract alignment, official alpha canary tracking and immutable design-partner rerun gates
 
 ## 1. 产品定位
 
@@ -86,7 +86,7 @@ As an AI-assisted plugin maintainer, I want one reproducible real-host gate acro
 Scenario:
 1. 维护者在不携带模型密钥、npm token 或用户 Docker 凭证的一次性环境中，对精确版本的社区插件运行 quick suite。
 2. 公开报告仅声明已执行的环境、阶段、聚合 verdict 和发现类型；未复现并通知维护者的单一插件失败不做命名披露。
-3. 新 DSH dist-tag 出现时，自动化先识别未支持版本，再在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
+3. 新 DSH npm dist-tag 或官方不可变 GitHub Release 出现时，自动化先识别候选；只有对应精确 npm 包存在时才在一次性 CI checkout 中运行 canary lifecycle matrix，不放宽已发布 CLI 的支持声明。
 
 ### US-008: 插件作者和开发 Agent 一键接入生命周期门禁
 
@@ -135,6 +135,16 @@ Scenario:
 2. `dsh web` 仍监听但 loopback HTTP 无法完成时，结果归类为 DSH host/infrastructure failure。
 3. 插件断言失败、HTTP 非预期 status 和 browser DOM 不匹配仍保持 subject/assertion failure。
 
+### US-013: 现代插件源码获得可复现打包与只读 CI 门禁
+
+As a DSH plugin maintainer, I want source packages with build-time dependencies to pack inside the isolated runner and generated CI to work with a read-only token, so that adopting Testkit does not require host-side prebuild workarounds or unnecessary write permissions.
+
+Scenario:
+1. 插件通过精确 `packageManager`、lockfile、devDependencies 与 `prepare`/`prepack` 脚本构建发布文件。
+2. Testkit 在 disposable worker 内恢复打包依赖并生成 tarball，宿主不预先执行插件脚本或提供 `node_modules`。
+3. `dsh-test init` 生成的 workflow 只授予 `contents: read`，默认把 JUnit 作为 annotation/job summary；只有可信 workflow 显式选择时才创建需要 `checks: write` 的独立 Check。
+4. README 首屏直接说明问题、目标用户、核心价值与边界，中英文在定位和采用路径上保持一致。
+
 ## 4. 核心用户旅程
 
 1. 用户提供本地目录、tarball、npm spec 或固定 Git ref。
@@ -173,8 +183,8 @@ Scenario:
 - FR-023: 英文 `README.md` 与简体中文 `README.zh-CN.md` 必须共享定位、支持版本、安装命令、生命周期、安全边界和文档入口。
 - FR-024: README 必须明确区分 Testkit 与单元测试、plugin doctor/preflight 和 composition check，不抢占静态诊断或市场定位。
 - FR-025: 社区验证工具必须只接受精确 npm 版本，强制 Docker，从子进程环境移除凭证，输出不包含插件名称的聚合报告，并保留本地详细证据供复核。
-- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag，并将未进入支持注册表的精确版本作为可机器消费的 canary matrix 输入。
-- FR-027: Canary 可在一次性 CI checkout 中临时启用候选 DSH 版本并运行真实宿主测试，但不得修改发布包的支持列表或将 canary 通过宣称为正式支持。
+- FR-026: 仓库必须定期读取 npm 的 DSH `latest`/`next` dist-tag 和官方不可变 GitHub Release；未进入支持注册表的精确版本必须按 npm 可用性分为可运行 canary 与待发布候选。
+- FR-027: Canary 只对已存在精确 npm 包的候选在一次性 CI checkout 中临时启用并运行真实宿主测试；待发布候选不得进入默认支持矩阵，canary 通过也不得表述为正式支持。
 - FR-028: v0.2.1 必须从受保护分支的 reviewed merge commit 发布，并验证 tag、GitHub Release、npm provenance、公共安装与 DSH bundle 运行身份。
 - FR-029: CLI 必须提供 `dsh-test init [directory]`，只接受真实目录中的 DSH bundle，结构化读取 `package.json` 的 `dsh.bundle.patch` 并解析可确定的 patch row ID。
 - FR-030: `init` 必须生成 `dsh-testkit.yaml`、`.github/workflows/dsh-lifecycle.yml` 和 `.agents/skills/dsh-testkit/SKILL.md`；相同内容重跑必须幂等，冲突内容必须在任何写入前失败，只有显式 `--force` 才可替换目标文件。
@@ -195,6 +205,13 @@ Scenario:
 - FR-045: Browser runner 或 browser executable 不可用时，register 阶段必须产生 `unsupported` assertion 和总体 `unsupported` verdict，不得把缺失能力报告为 pass 或插件失败。
 - FR-046: 每个 runner attempt 必须有场景级 `overallMs` 总预算；controller 超时后必须终止 owned process group/container，并以 exit code `3` 报告 host/infrastructure failure。
 - FR-047: `dsh web` 在 loopback port 存活但 HTTP/browser 导航无法在有界时间内完成时，必须归类为 DSH host/infrastructure failure；收到 HTTP response 后的 status/JSON/DOM mismatch 仍归类为插件断言失败。
+- FR-048: local-directory 源声明 `prepare`、`prepack` 或 `postpack` 时，Docker worker 必须根据精确 `packageManager` 或 lockfile 在复制后的 owned source 中恢复开发依赖，再执行标准 pack 生命周期；Corepack cache 必须可写且不得依赖宿主 `node_modules` 或预构建 tarball。
+- FR-049: Composite Action 默认必须在 `contents: read` 下发布 JUnit annotations/job summary 与完整 artifact；创建 GitHub Checks API check 必须由显式输入启用，并声明只适用于授予 `checks: write` 的可信 workflow。
+- FR-050: `dsh-test init` 生成 workflow 必须保持只读最小权限、默认关闭 Checks 写入、固定 Action 入口并在外部 pull request 上可执行。
+- FR-051: 英文与中文 README 必须先回答项目解决什么问题、适合谁、为何不同于 unit/doctor/composition check，再进入安装、场景、CI、原生工具、社区验证和安全边界。
+- FR-052: Testkit 的 DSH tool 编译契约必须把 `@deepseek-ai/dsh-tools` 与 `@deepseek-ai/dsh-invariants` 固定在同一已验证 release train；rc.8 支持必须使用两者的精确 `0.1.0-rc.8` 组合。
+- FR-053: 默认与兼容 real-host matrix 必须覆盖支持注册表中的全部 DSH npm 版本；Action smoke 必须对每个兼容宿主覆盖 healthy 与预期 boot-failure 两类制品。
+- FR-054: `dsh-shelf` 与 `dsh-spotlight` 设计伙伴复测只接受高于已记录基线的新不可变包版本；mutable branch、未发布修复 commit 和既有包不得产生新的复测结论。
 
 ## 6. Non-Functional Requirements
 
@@ -221,6 +238,11 @@ Scenario:
 - NFR-021 HTTP safety: route assertion 不接受任意 base URL、query credential、custom header 或非 GET method；仅请求 runner-owned `127.0.0.1`，并限制 response evidence 大小。
 - NFR-022 Browser safety: browser smoke 只允许 runner-owned loopback origin、固定 TurnStatus contract、无任意脚本输入；context 在每次检查后关闭，并阻止非 loopback 请求。
 - NFR-023 Watchdog reliability: 默认 attempt 总预算不超过 quick suite 的 10 分钟目标；watchdog 必须有 SIGTERM 后的强制终止与 Docker container removal fallback。
+- NFR-024 Packaging isolation: local-directory 依赖恢复和全部 package lifecycle script 必须留在默认 Docker worker；失败属于 package/subject stage 并保留脱敏日志，不能在 controller 宿主执行。
+- NFR-025 Least privilege: 默认生成 workflow 和 Action smoke 不需要任何 GitHub write permission；显式 JUnit Check 模式的权限升级必须可见、可关闭且不用于外部 PR 默认路径。
+- NFR-026 Positioning clarity: README 首个 screenful 必须包含一句明确品类定义、静态检查遗漏的真实问题、三个核心结果与三条命令的采用路径；详细参考下沉到 docs，避免功能清单取代产品定位。
+- NFR-027 Release-train integrity: GitHub Release 身份、npm 精确版本与支持声明必须分层记录；release-only 候选、可运行 canary 和正式支持不得混为同一状态。
+- NFR-028 Partner evidence integrity: 设计伙伴结论必须绑定 package name、精确版本和 registry identity；未满足新不可变包 gate 时只记录等待状态，不执行源码替代复测。
 
 ## 7. 功能范围
 
@@ -250,6 +272,17 @@ Scenario:
 - 发布一份规范化 `dsh-testkit` Agent Skill，并同时提供项目文件与可选 DSH 运行时注册。
 - 通过官方 Ideas 讨论和公开插件模板 PR 争取把生命周期测试放入插件开发默认路径。
 - 支持单个 DSH bundle 位于 Git 仓库子目录的一键接入，并把 workflow 与项目 Skill 放在仓库可发现位置。
+
+### v0.4 范围
+
+- 增加 runner-owned loopback HTTP route 和受限 TurnStatus browser smoke，同时保持 v1 scenario/report contract。
+- 以 attempt-wide watchdog 限制永久无响应，并把已有 live-loopback 证据的宿主挂死归为 infrastructure。
+- 让带 package manager、lockfile、devDependencies 和打包生命周期脚本的本地源码在 Docker 内可靠生成发布候选制品。
+- 让 scaffold 与 Composite Action 默认在只读 GitHub token 下工作，JUnit Checks 写入成为可信 workflow 的显式选择。
+- 用清晰的双语入口把产品定义为 DSH 插件的真实宿主发布门禁，而不是通用测试框架或安全认证。
+- 将 rc.8 tool/invariants 编译契约作为一个协调版本升级，并对每个兼容宿主运行完整 real-host 与 Action smoke 证据。
+- 跟踪官方不可变 alpha release；精确 npm 包可用前保持待发布 canary 状态，不进入默认支持矩阵。
+- 设计伙伴只在高于既有基线的新不可变包发布后复测。
 
 ### 后续候选
 
@@ -292,6 +325,9 @@ Scenario:
 - bundle patch 缺失、位于仓库外、经过 symlink 逃逸、没有可确定 row，或采用当前 scaffold 不支持的结构。
 - 目标 scaffold 文件部分存在、内容被维护者修改，或 `.github`/`.agents` 路径组件是 symlink。
 - DSH profile 没有挂载 `skills` service；`dsh_test` 仍必须注册且运行时 Skill 明确不可用。
+- 官方 GitHub Release 已存在，但相同精确版本尚未发布到 npm。
+- DSH tool 与 invariants 的 release train 不一致，导致类型契约或 peer resolution 偏离目标宿主。
+- 设计伙伴 source fix 已合并，但没有高于既有基线的新不可变 package identity。
 
 ## 10. 约束与假设
 
@@ -329,13 +365,16 @@ Scenario:
 - SC-012: tool 调用的被测插件执行只发生在 Docker 中，workspace 越界、本地 symlink 逃逸、缺少确认和取消均有自动化回归测试。
 - SC-013: 至少 10 个精确版本的公开社区 bundle 在无凭证的 Docker cohort 中完成 quick suite，公开报告包含样本选择、环境、聚合 verdict 和首个失败阶段分布。
 - SC-014: 英文和中文 README 经过版本/链接/安全契约检查，打包消费者可读取两份文档。
-- SC-015: DSH dist-tag 发现器对“全部已支持”和“出现新候选”均有固定 fixture，新候选能启动真实宿主 canary matrix。
+- SC-015: DSH release-train 发现器对“全部已支持”“官方 release 等待 npm”“npm 包可运行 canary”均有固定 fixture；只有可运行候选能启动真实宿主 canary matrix。
 - SC-016: 多插件完整生命周期是否进入下一版本，必须以 10 插件 cohort 和社区失败类型为证据做明确 TDR，不以功能完整性直觉扩张。
 - SC-017: 干净 bundle fixture 的 `dsh-test init` 在无网络条件下生成可解析的场景、workflow 和 Skill；第二次运行字节不变，冲突文件使整次操作零写入。
 - SC-018: 单元测试、打包消费者和真实 DSH bundle E2E 分别证明 Skill 文件身份、项目级发现契约和可选运行时注册，且 `skills` 缺失不阻塞 `dsh_test`。
 - SC-019: v0.3.0 发布后，官方 Ideas 区存在可直接采纳的 vendor-neutral Agent Skill 建议，至少一个公开插件模板 PR 使用 released `v0` Action 和生成场景。
 - SC-020: 首批采用阶段以 5 个外部插件仓库运行 lifecycle Action、3 个持续 check 和至少 1 个上游/模板引用为目标；该 field metric 不阻塞 v0.3.0 发布。
 - SC-021: root bundle、自动识别 Git root 的嵌套 bundle 和显式 `--repo-root` 的嵌套 bundle 均生成可解析场景与正确 workflow 路径；跨根目录冲突和越界测试证明零部分写入。
+- SC-022: `dsh-tools` 与 `dsh-invariants` 的 rc.8 精确契约、lockfile resolution、全部支持宿主 real-host matrix 和兼容 Action smoke matrix 同时通过。
+- SC-023: 官方 `dsh-v0.1.2-alpha.1` 在 npm 包缺失时出现在 `pendingNpmVersions`；已存在 npm 包的后续不可变 alpha 只进入可运行 canary，二者都不出现在 `SUPPORTED_DSH_NPM_VERSIONS`。
+- SC-024: `dsh-shelf@0.7.0` 与 `@0xsline/dsh-spotlight@0.0.2` 保持复测基线；没有更高不可变 package identity 时不产生新 lifecycle run。
 
 ## 13. 验收标准
 
@@ -354,6 +393,7 @@ Scenario:
 - `dsh-test init plugin/` 将场景留在 `plugin/`，将 workflow 与 Skill 放在仓库根目录，并输出可从仓库根目录直接运行的验证命令。
 - Agent Skill 的路由描述、正文大小、安全约束和生成文件通过契约测试，真实 DSH profile 可同时观察 `dsh_test` 和 `dsh-testkit` Skill。
 - v0.3.0 公共 npm 包、GitHub Release、Show & Tell 更新、官方 Ideas 建议和插件模板 PR 均引用同一个发布身份。
+- rc.8 的编译依赖与宿主兼容矩阵使用一致的 tool/invariants release train；官方 alpha 和设计伙伴等待状态有机器可读或文档证据，且不会扩大默认支持声明。
 
 ## 14. Clarifications
 
@@ -384,5 +424,5 @@ None blocking product review. 技术栈、runner 后端、模块布局和首批 
 
 ## 16. User Review Gate
 
-- Approval: Approved on 2026-08-16
-- Reviewer notes: 用户明确批准发布官方双语 Show & Tell、完成 v0.3.0 一键接入和 Agent Skill，并按官方贡献政策争取进入官方开发 Skill 与公开插件模板；2026-08-16 进一步批准首位设计伙伴受控试点和嵌套插件 repo-root 修复。既有 lifecycle、schema 和安全边界保持不变。
+- Approval: Approved on 2026-08-30
+- Reviewer notes: 用户明确批准 rc.8 tool/invariants 协调升级、完整 real-host/Action smoke、官方 `v0.1.2-alpha.1` 非默认 canary 跟踪，以及仅在 `dsh-shelf`、`dsh-spotlight` 发布新不可变包后的设计伙伴复测。既有 lifecycle、schema 和安全边界保持不变。

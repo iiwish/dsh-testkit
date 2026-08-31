@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-prepare
+      name: '@dsh-testkit/fixture-prepare'

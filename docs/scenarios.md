@@ -49,7 +49,7 @@ timeouts:
   overallMs: 600000
 ```
 
-`subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. `updateFrom` installs the old artifact first and enables the update stage.
+`subject.source` accepts a local directory, tarball, exact npm spec, or Git spec pinned to a full 40-character commit SHA. Local directories are tested as packed artifacts, not links. The runner keeps the input mount read-only, copies the package into owned writable storage, and restores dependencies from the declared `packageManager` and lockfile before `npm pack` when `prepare`, `prepack`, or `postpack` is present. `updateFrom` installs the old artifact first and enables the update stage.
 
 `suite: quick` executes one lifecycle attempt. `suite: full` executes five by default and classifies inconsistent semantic outcomes as `flaky`. `--repeat 2` through `--repeat 20` can repeat quick runs; full accepts only counts of five or greater.
 

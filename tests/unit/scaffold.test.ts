@@ -84,8 +84,9 @@ describe('one-command project scaffold', () => {
     expect(workflow).toContain('permissions:\n  contents: read')
     expect(workflow).toContain('iiwish/dsh-testkit/.github/actions/dsh-test@v0')
     expect(workflow).toContain('check-name: DSH lifecycle')
+    expect(workflow).toContain("publish-junit-check: 'false'")
     expect(workflow).toContain('config: dsh-testkit.yaml')
-    expect(workflow).not.toMatch(/write-all|contents: write/)
+    expect(workflow).not.toMatch(/write-all|contents: write|checks: write/)
 
     await expect(readFile(
       join(root, '.agents/skills/dsh-testkit/SKILL.md'),

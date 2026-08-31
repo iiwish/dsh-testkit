@@ -23,6 +23,10 @@ inputs:
     description: JUnit check name. A subject-specific name is derived when empty.
     required: false
     default: ''
+  publish-junit-check:
+    description: 'Publish a Checks API result. Requires checks: write and should only be enabled for trusted workflows.'
+    required: false
+    default: 'false'
   artifact-retention-days:
     description: Number of days to retain lifecycle evidence.
     required: false
@@ -98,6 +102,7 @@ runs:
         report_paths: ${{ github.workspace }}/${{ steps.paths.outputs.output }}/junit.xml
         check_name: ${{ steps.paths.outputs.check-name }}
         fail_on_failure: false
+        annotate_only: ${{ inputs.publish-junit-check != 'true' }}
     - name: Upload lifecycle evidence
       id: evidence
       if: always()
