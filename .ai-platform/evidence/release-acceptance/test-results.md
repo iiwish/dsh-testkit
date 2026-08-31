@@ -7,7 +7,7 @@ Result: GO; protected publication and public verification passed
 
 | Check | Result |
 |---|---|
-| Release identity | Local `main`, `origin/main`, `v0.4.1` and `v0` resolve to `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41` at release closeout |
+| Release identity | `v0.4.1` and `v0` resolve to protected-main publication commit `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41`, which remains an ancestor of current `main` |
 | `git diff --check` | Passed |
 | T013 delivery validator | Passed without warnings or errors |
 | Frozen install | `CI=1 pnpm install --frozen-lockfile` passed with pnpm 11.1.3 |
