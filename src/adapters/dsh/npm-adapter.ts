@@ -22,6 +22,7 @@ import { pathToFileURL } from 'node:url'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
+import { isExactSemver } from '../../community/validation.js'
 import { StageFailure } from '../../domain/lifecycle.js'
 import { AssertionSchema } from '../../domain/report.js'
 import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
@@ -121,6 +122,84 @@ export function classifyRemoteSource(input: string): ResolvedSource {
     return { input, kind: 'tarball', mutable: true, gitCommit: null }
   }
   return { input, kind: 'npm', mutable: !EXACT_VERSION.test(input), gitCommit: null }
+}
+
+export interface LocalPackageInstallPlan {
+  executable: 'corepack' | 'npm' | 'pnpm' | 'yarn'
+  args: string[]
+  packageManager: string
+}
+
+const PACK_LIFECYCLE_SCRIPTS = ['prepare', 'prepack', 'postpack'] as const
+
+export function buildLocalPackageInstallPlan(
+  manifest: unknown,
+  entries: readonly string[],
+): LocalPackageInstallPlan | null {
+  if (typeof manifest !== 'object' || manifest === null) {
+    throw new StageFailure('Local package package.json must contain an object', { failureKind: 'subject' })
+  }
+  const record = manifest as Record<string, unknown>
+  const scripts = typeof record.scripts === 'object' && record.scripts !== null
+    ? record.scripts as Record<string, unknown>
+    : {}
+  const needsDependencies = PACK_LIFECYCLE_SCRIPTS.some(name => (
+    typeof scripts[name] === 'string' && scripts[name].trim() !== ''
+  ))
+  if (!needsDependencies) return null
+
+  const files = new Set(entries)
+  let manager: 'npm' | 'pnpm' | 'yarn'
+  let packageManager: string
+  let exactPackageManager: string | null = null
+  if (record.packageManager !== undefined) {
+    if (typeof record.packageManager !== 'string') {
+      throw new StageFailure('Local package packageManager must be a string', { failureKind: 'subject' })
+    }
+    const match = record.packageManager.match(/^([a-z][a-z0-9-]*)@(.+)$/i)
+    const name = match?.[1]?.toLowerCase()
+    const version = match?.[2]
+    if (name !== 'npm' && name !== 'pnpm' && name !== 'yarn') {
+      throw new StageFailure(`Unsupported packageManager for local package preparation: ${record.packageManager}`, {
+        failureKind: 'subject',
+      })
+    }
+    if (version === undefined || !isExactSemver(version)) {
+      throw new StageFailure(`Local package packageManager must pin an exact semantic version: ${record.packageManager}`, {
+        failureKind: 'subject',
+      })
+    }
+    manager = name
+    packageManager = record.packageManager
+    exactPackageManager = record.packageManager
+  } else if (files.has('pnpm-lock.yaml')) {
+    manager = 'pnpm'
+    packageManager = 'pnpm (inferred from pnpm-lock.yaml)'
+  } else if (files.has('package-lock.json') || files.has('npm-shrinkwrap.json')) {
+    manager = 'npm'
+    packageManager = 'npm (inferred from lockfile)'
+  } else if (files.has('yarn.lock')) {
+    throw new StageFailure('A local Yarn package with pack lifecycle scripts must declare an exact packageManager', {
+      failureKind: 'subject',
+    })
+  } else {
+    manager = 'npm'
+    packageManager = 'npm (default)'
+  }
+
+  const plan = (args: string[]): LocalPackageInstallPlan => ({
+    executable: exactPackageManager === null ? manager : 'corepack',
+    args: exactPackageManager === null ? args : [exactPackageManager, ...args],
+    packageManager,
+  })
+  if (manager === 'pnpm') {
+    return plan(['install', files.has('pnpm-lock.yaml') ? '--frozen-lockfile' : '--no-frozen-lockfile'])
+  }
+  if (manager === 'yarn') {
+    const yarnVersion = packageManager.match(/^yarn@(\d+)/)?.[1]
+    return plan(['install', yarnVersion === '1' ? '--frozen-lockfile' : '--immutable'])
+  }
+  return plan([files.has('package-lock.json') || files.has('npm-shrinkwrap.json') ? 'ci' : 'install'])
 }
 
 function safeProcessEnvironment(): NodeJS.ProcessEnv {
@@ -333,11 +412,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
       mkdir(this.workspaceDir, { recursive: true }),
       mkdir(this.packagesDir, { recursive: true }),
       mkdir(join(this.runRoot, 'tmp'), { recursive: true }),
-      mkdir(join(this.runRoot, 'corepack'), { recursive: true }),
+      mkdir(this.corepackHome, { recursive: true }),
       mkdir(join(this.runRoot, 'user-home'), { recursive: true }),
       mkdir(this.logsDir, { recursive: true }),
       mkdir(this.evidenceDir, { recursive: true }),
     ])
+    const corepackSeed = process.env.DSH_TESTKIT_COREPACK_SEED
+    if (
+      corepackSeed !== undefined
+      && resolve(corepackSeed) !== resolve(this.corepackHome)
+      && await exists(corepackSeed)
+    ) {
+      await cp(corepackSeed, this.corepackHome, { recursive: true, force: false })
+    }
     await writeFile(join(this.runRoot, 'package.json'), `${JSON.stringify({
       name: 'dsh-testkit-owned-run-root',
       private: true,
@@ -940,6 +1027,24 @@ export class DshNpmAdapter implements LifecycleAdapter {
         filter: path => !['node_modules', '.git', '.dsh-testkit'].includes(basename(path)),
       })
       spec = '.'
+      let manifest: unknown
+      try {
+        manifest = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8'))
+      } catch (error) {
+        throw new StageFailure(`Unable to read local package.json: ${error instanceof Error ? error.message : String(error)}`, {
+          failureKind: 'subject',
+        })
+      }
+      const installPlan = buildLocalPackageInstallPlan(manifest, await readdir(cwd))
+      if (installPlan !== null) {
+        await this.command(
+          `package-dependencies-${label}`,
+          installPlan.executable,
+          installPlan.args,
+          cwd,
+          this.request.scenario.timeouts.installMs,
+        )
+      }
     }
     const result = await this.command(
       `package-${label}`,

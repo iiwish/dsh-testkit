@@ -33,8 +33,20 @@ if (versions === undefined) throw new Error(`${values.file} does not declare SUP
 if (versions.elements.some(element => ts.isStringLiteral(element) && element.text === version)) process.exit(0)
 
 const multiline = sourceText.slice(versions.getStart(source), versions.end).includes('\n')
-const insertion = versions.elements.length === 0
-  ? `'${version}'`
-  : multiline ? `,\n  '${version}'` : `, '${version}'`
-const updated = `${sourceText.slice(0, versions.end - 1)}${insertion}${sourceText.slice(versions.end - 1)}`
+const last = versions.elements.at(-1)
+let insertionPosition = versions.end - 1
+let insertion
+if (last === undefined) {
+  insertion = `'${version}'`
+} else if (multiline && versions.elements.hasTrailingComma) {
+  insertion = `  '${version}',\n`
+} else if (multiline) {
+  insertionPosition = last.end
+  insertion = `,\n  '${version}'`
+} else if (versions.elements.hasTrailingComma) {
+  insertion = ` '${version}',`
+} else {
+  insertion = `, '${version}'`
+}
+const updated = `${sourceText.slice(0, insertionPosition)}${insertion}${sourceText.slice(insertionPosition)}`
 await writeFile(values.file, updated)

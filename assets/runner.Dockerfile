@@ -22,6 +22,7 @@ COPY dist/src ./dist/src
 ENV DSH_TESTKIT_RUNNER=docker
 ENV DSH_TESTKIT_IMAGE=dsh-testkit-runner:${TESTKIT_VERSION}
 ENV DSH_TESTKIT_WORK_ROOT=/work/run
-ENV DSH_TESTKIT_COREPACK_HOME=/opt/corepack
+ENV DSH_TESTKIT_COREPACK_HOME=/work/run/corepack
+ENV DSH_TESTKIT_COREPACK_SEED=/opt/corepack
 ENV HOME=/work/user-home
 ENTRYPOINT ["node", "/opt/dsh-testkit/dist/src/worker/main.js"]

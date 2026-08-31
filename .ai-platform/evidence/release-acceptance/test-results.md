@@ -1,75 +1,63 @@
-# DSH Testkit v0.4.0 Release Acceptance Test Results
+# DSH Testkit v0.4.1 Release Acceptance Test Results
 
-Date: 2026-08-28
-Result: Passed release gate
-Release commit: `c25df9077825ab2cd7fe4ba2cb61023bfce70033`
+Date: 2026-08-31
+Result: Local release gate passed; protected publication pending
 
 ## Repository And Package
 
 | Check | Result |
 |---|---|
+| Base identity | Local base and `origin/main` both resolve to `d9118bbec66540664bf067fe009545e17736cc50` |
 | `git diff --check` | Passed |
-| Delivery artifact validator | Passed for T011 and T012 release work |
-| `pnpm validate` | Passed: 25 test files, 148 tests, typecheck, coverage and build |
-| Package dry run | Passed: `dsh-testkit@0.4.0`, 151 entries |
-| Public npm metadata | `latest` is `0.4.0`; 151 files; 821,715 unpacked bytes |
-| npm tarball identity | SHA-1 `4238703a0876b038e75a90186f5c205fba661537`; integrity `sha512-865EnsRfbcTw/nwRLz+E7hzs87v6MdDuDV6zV3J8+smmGkSjBTdaZfIl75FiXe3za99dNwbQIowi/2/VDspndw==` |
-| Production dependency audit | Fresh `pnpm audit --prod` found no known vulnerability |
-| Production license inventory | MIT, ISC, Apache-2.0 and Python-2.0 dependencies reviewed |
-| Version identity | Package, CLI, release tag, GitHub release, npm package and provenance identify v0.4.0 |
+| T013 delivery validator | Passed without warnings or errors |
+| Frozen install | `CI=1 pnpm install --frozen-lockfile` passed with pnpm 11.1.3 |
+| `pnpm validate` | Passed: 25 test files, 159 tests, typecheck, coverage and build |
+| Coverage | 63.82% statements, 76.59% branches, 74.79% functions |
+| `publint@0.3.23` | Passed with no finding |
+| Packed consumer | Passed with `dsh-testkit-0.4.1.tgz` |
+| npm publish dry run | Passed: 151 files, 199,843 packed bytes, 845,603 unpacked bytes |
+| Package allowlist | Contains runtime assets, schemas, bilingual README and license; contains no tests, fixtures, governance files, workflows or `AGENTS.md` |
+| Production audit | No known vulnerability |
+| Production licenses | Apache-2.0, ISC, MIT and Python-2.0 |
+| Public version check | `dsh-testkit@0.4.1` is absent before publication; npm `latest` remains `0.4.0` |
 
-## Contracts And Protected CI
+## Maintainer Review Regression
 
-| Check | Result |
-|---|---|
-| Scenario/report v1 and exit-code parity | Passed; v0.4.0 adds no breaking schema or exit-code change |
-| Documentation contract tests | Passed against the canonical v0.4.0 release state |
-| Implementation PR #25 | Required CI, real-host, compatibility and CodeQL checks passed before merge |
-| Implementation main CI | [Run 33137437612](https://github.com/iiwish/dsh-testkit/actions/runs/33137437612) passed |
-| Release PR #26 | [CI run 33138444470](https://github.com/iiwish/dsh-testkit/actions/runs/33138444470) passed before merge |
-| Release commit on protected main | [CI run 33138833339](https://github.com/iiwish/dsh-testkit/actions/runs/33138833339) and [CodeQL run 33138833308](https://github.com/iiwish/dsh-testkit/actions/runs/33138833308) passed |
-| Trusted release | [Run 33139219598](https://github.com/iiwish/dsh-testkit/actions/runs/33139219598) passed validation, real-host, native-bundle, packed-consumer, publish and public-registry verification |
-| npm provenance | SLSA v1 identifies `pkg:npm/dsh-testkit@0.4.0`, `refs/tags/v0.4.0`, the release workflow and commit `c25df90` |
-
-## Real Host, Web And Watchdog
-
-| Test | Result |
-|---|---|
-| Default protected real host | Passed on `@deepseek-ai/dsh@0.1.1-rc.2` |
-| Compatibility replays | Passed on exact `0.1.0-rc.8`, `0.1.0-rc.7` and `0.1.0-rc.6` |
-| Explicit `profile: web` fixture | Passed against the real DSH Web host and the fixed TurnStatus browser assertion |
-| Browser unavailable path | Production adapter retains `unsupported`; it is not promoted to registration failure |
-| Browser safety boundary | Disposable context, loopback-only origin, blocked service workers/non-loopback HTTP and WebSocket, bounded retained evidence |
-| Host classification boundary | Pre-probe boot timeout stays generic `timeout`; route/navigation failure after live-loopback evidence is infrastructure |
-| Cold runner-image reproduction | Expired at `600000ms` during slow Chromium dependency download; exit 3, host/infrastructure classification, zero owned containers afterward |
-| Warm full-suite cleanup | Five attempts completed with zero owned containers afterward |
-
-## Fresh Full Repeatability Record
-
-Command:
+RED proved that the pre-review implementation accepted mutable package-manager tags and did not execute explicit npm versions through Corepack:
 
 ```text
-node dist/src/cli.js fixtures/healthy-plugin --config fixtures/healthy-plugin/dsh-testkit.yaml --dsh 0.1.1-rc.2 --suite full --runner docker --output <fresh-run-root>
+pnpm vitest run tests/unit/npm-adapter.test.ts
+3 failed, 4 passed
 ```
 
-The exact v0.4.0 runner image was built once before the warm-run gate. All five attempts used:
+GREEN rejects `pnpm@latest`, retains inferred lockfile behavior, and dispatches exact npm/pnpm/Yarn identities through Corepack:
 
-- Run: `20260828043957-c2cfc3c9`
-- Subject: `@dsh-testkit/fixture-healthy@1.0.0`
-- Subject digest: `sha256:420728ef7835c2d216d3dc4b18098608ba00327186209e57a168950769879e75`
-- DSH integrity: `sha256:bf9d4cf18b53489dacb94ebd32ad3de663edaebb2da1c5517ad69e4fc75d862a`
-- Scenario digest: `sha256:bf7a181994e4d5d9df0da6f6067718e0815e7b5affe05d1450df3da21f049f45`
-- Semantic digest: `sha256:f1749a1d60d06ae50c4067060298dbac4808f25a2d529d6672a31ad157f9d0aa`
-- Runner image: `dsh-testkit-runner:0.4.0-7ccc65787e39`
-- Runner image ID: `sha256:88d010ddf2a6f681f76edeefb591a661818d06667a8f32c594092bfb9bc7b17c`
-- Environment: Linux arm64 container, Node `v22.23.2`, pnpm `11.1.3`
+```text
+pnpm vitest run tests/unit/npm-adapter.test.ts
+7 passed
+pnpm typecheck
+passed
+```
 
-Attempt durations were 262.783, 188.659, 187.809, 159.449 and 165.295 seconds. The root report verdict is `passed`, `completedRuns` is 5, `consistent` is `true`, and every attempt carries the same semantic digest.
+The exact `pnpm@10.17.0` prepare fixture passed inside the real Docker worker in 346.473 seconds. The preceding cold attempt expired while the runner image was still installing Chromium and never reached plugin code; the watchdog returned infrastructure exit code 3 and left no owned container.
 
-## Publication Verification
+## Supported Real-Host Evidence
 
-- GitHub release: [`v0.4.0`](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.0)
-- npm package: [`dsh-testkit@0.4.0`](https://www.npmjs.com/package/dsh-testkit/v/0.4.0)
-- npm provenance: [SLSA v1 attestation](https://registry.npmjs.org/-/npm/v1/attestations/dsh-testkit@0.4.0)
-- Official updates: [Show & Tell #2038](https://github.com/deepseek-ai/deepseek-harness/discussions/2038#discussioncomment-18183335) and [Ideas #2088](https://github.com/deepseek-ai/deepseek-harness/discussions/2088#discussioncomment-18183338)
-- Ecosystem intake: [Blue-Whale-Harness #135](https://github.com/leenkcool/Blue-Whale-Harness/issues/135)
+| DSH version | Complete real host | Native bundle |
+|---|---:|---:|
+| `0.1.1-rc.2` | 11/11 passed | Passed |
+| `0.1.0-rc.8` | 11/11 passed | Passed |
+| `0.1.0-rc.7` | 11/11 passed | Passed |
+| `0.1.0-rc.6` | 11/11 passed | Passed |
+
+The local Composite Action entry passed healthy and expected boot-failure subjects on the default host and all three compatibility hosts. All eight rows returned exit code 0 and produced JSON and JUnit reports. Workflow actionlint and pinned-reference checks pass.
+
+## Release Train And Partner Gates
+
+Live discovery classifies `0.1.2-alpha.1` as waiting for npm and `0.1.2-alpha.2` as a runnable disposable canary. Supported versions remain rc.6, rc.7, rc.8 and rc.2. The alpha.2 real-host canary passed 6 of 11 cases and its native bundle lifecycle report failed, so no alpha support claim exists.
+
+The public registry exposes no `dsh-shelf` package higher than the `0.7.0` baseline, and `@0xsline/dsh-spotlight` remains `0.0.2`. No design-partner rerun was performed.
+
+## Protected Publication Checks
+
+The repository requires strict protected-main status checks for validation, real host and both default Action smoke subjects. Compatibility real-host and Action-smoke matrices also run in CI. Their candidate run IDs, merge commit, release workflow, public tarball integrity and npm provenance are recorded after the protected merge and trusted publication complete.

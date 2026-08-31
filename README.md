@@ -2,7 +2,7 @@
 
 # DSH Testkit
 
-**Deterministic, real-host lifecycle testing for DeepSeek Harness plugins.**
+**The real-host release gate for DeepSeek Harness plugins.**
 
 [简体中文](README.zh-CN.md) · [Scenario reference](docs/scenarios.md) · [Architecture](docs/architecture.md) · [Contributing](docs/contributing.md)
 
@@ -13,12 +13,19 @@
 
 </div>
 
-DSH Testkit packs your plugin, installs it beside an exact DSH version in a disposable environment, boots the real host, exercises deterministic capabilities, uninstalls the plugin, reboots the same profile, and retains reviewable evidence. No model call or model API key is required.
+A plugin can compile, pass unit tests, and still fail after publication because files are missing from the tarball, its bundle does not register in DSH, or uninstall leaves the profile broken. DSH Testkit closes that gap: it tests the artifact a user actually installs against an exact, real DSH host and retains evidence a maintainer can review.
 
-```text
-resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
-        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
-```
+It makes no model call and needs no model API key.
+
+## At A Glance
+
+| Release question | Evidence from one isolated run |
+|---|---|
+| Does the publishable artifact install and register? | `npm pack`, exact DSH installation, bundle assembly, config rows, services, and tool schemas |
+| Does its promised behavior work? | Deterministic runtime probes, declared tool calls, optional loopback HTTP routes, and explicit browser smoke |
+| Can a user remove it cleanly? | Uninstall, same-profile reboot, capability checks, owned-path residue, processes, and ports |
+
+Use DSH Testkit when you maintain a DSH plugin, review a release PR, operate a plugin template, or need a reproducible host-level bug report. It is intentionally a release gate, not another unit-test framework, static linter, model-output evaluator, or security certification.
 
 ## Quick Start
 
@@ -30,58 +37,61 @@ pnpm dsh-test init
 pnpm dsh-test
 ```
 
-If the DSH bundle is below the repository root, point `init` at the plugin directory:
+For a bundle below the repository root:
 
 ```bash
 pnpm dsh-test init plugin/
 pnpm dsh-test --config plugin/dsh-testkit.yaml
 ```
 
-`init` detects the nearest Git worktree offline. For an exported tree without `.git` metadata, pass `--repo-root .` explicitly. It reads the bundle's declared patch and creates exactly three reviewable files:
+`dsh-test init` works offline, finds the nearest Git worktree, and creates three reviewable files:
 
-- `<plugin-root>/dsh-testkit.yaml` with the exact supported DSH version and detected row expectations
-- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a least-privilege lifecycle check and correct plugin/config paths
-- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so coding agents can apply the same release gate
+- `<plugin-root>/dsh-testkit.yaml` with the exact DSH version and detected row expectations
+- `<repository-root>/.github/workflows/dsh-lifecycle.yml` with a read-only default token contract and correct nested paths
+- `<repository-root>/.agents/skills/dsh-testkit/SKILL.md` so compatible coding agents apply the same gate
 
-For a root-level bundle, plugin root and repository root are the same and the existing paths stay unchanged. Review the detected rows and add only service, tool, update, and exercise expectations proved by the plugin contract. Re-running `init` is byte-idempotent; conflicting files in either root stop the command before any target is written unless `--force` is explicit.
+For an exported tree without `.git`, pass `--repo-root .`. Generation is byte-idempotent and preflights every target; conflicts stop all writes unless `--force` is explicit. Review detected rows and add only services, tools, exercises, and update behavior that the plugin contract promises.
 
-Docker is the default runner. A successful run produces `report.json`, `junit.xml`, `report.md`, sanitized command logs, and stage evidence in `.dsh-testkit/runs/`.
+Docker is the default runner. Reports land under `.dsh-testkit/runs/` as canonical `report.json`, CI-ready `junit.xml`, readable `report.md`, sanitized command logs, and bounded stage evidence.
 
-The current adapter supports the exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6` (compatibility replays). Unknown versions stop before runner creation with exit code `4`, so host drift is not misreported as a plugin failure.
+## Where It Fits
 
-## What It Proves
-
-| Signal | How it is tested |
-|---|---|
-| Package integrity | Local directories go through `npm pack`; links and unpublished files cannot hide packaging defects. |
-| Real registration | Rows come from DSH `--dump-config`; services and tool schemas come from an in-process Cordis probe. |
-| Deterministic exercise | The baseline runtime probe and declared tool calls run through the real tool runtime without model selection. |
-| Clean removal | The same profile is rebooted after uninstall and checked for bundles, capabilities, processes, ports, and owned-path residue. |
-| Repeatability | `--suite full` runs five isolated attempts and returns `flaky` when semantic outcomes disagree. |
-| Observer limits | Unavailable coverage is disclosed; a required unavailable observer returns `unsupported`, never a false pass. |
-| Web smoke and watchdog | An explicit TurnStatus browser smoke uses disposable Chromium; missing browser support is `unsupported`, while an unresponsive DSH web host and attempt-wide watchdog expiry are infrastructure errors. |
-
-It does **not** prove that arbitrary executable code is safe or that a plugin produces high-quality model output.
-
-## Choose The Right Check
-
-These tools are complementary, not competing replacements.
+DSH quality needs several complementary checks:
 
 | Need | Best fit |
 |---|---|
-| Author-side static preflight (manifest/patch/build/pack) | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
-| User-side offline diagnostic (profile/session/env, before boot/install) | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
-| Conflicts among several bundles before or during assembly | `dsh-composition-check` |
-| Plugin-owned unit logic | Your test framework |
-| Install, boot, exercise, uninstall, reboot, recovery, residue, and repeatability on a real host | **DSH Testkit** |
+| Author-side manifest, patch, build, and pack preflight | [dsh-plugin-doctor](https://github.com/zoahdev/dsh-plugin-doctor) |
+| User-side offline profile, session, and environment diagnosis | [moonquake2004/dsh-doctor](https://github.com/moonquake2004/dsh-doctor) |
+| Conflicts among several bundles during composition | `dsh-composition-check` |
+| Plugin-owned logic | Your unit and integration test framework |
+| Packed-artifact install, boot, behavior, removal, recovery, and residue on a real host | **DSH Testkit** |
 
-DSH Testkit deliberately tests one subject plugin per isolated lifecycle. Multi-plugin state ownership and update order remain outside the current scenario contract until field evidence shows a failure that single-plugin lifecycle testing plus composition checks cannot reproduce.
+A practical pipeline runs cheap static checks on every commit and DSH Testkit on release PRs and tags. Testkit exercises one subject plugin per isolated lifecycle; multi-plugin ownership and update ordering remain composition concerns.
 
-A practical release gate runs Doctor on every commit for cheap preflight and DSH Testkit on release PRs or tags for the packed artifact's real-host lifecycle. Neither result is a security certification.
+## The Lifecycle
+
+```text
+resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> register
+        -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+```
+
+The adapter currently accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
+
+The official `dsh-v0.1.2-alpha.1` release remains a pending canary because its matching npm package is unavailable. `@deepseek-ai/dsh@0.1.2-alpha.2` is available and enters only the disposable canary matrix. Neither alpha is part of the default support matrix; a reviewed adapter change and real-host evidence are still required for formal support.
+
+### What A Pass Means
+
+- The same packed artifact identified in the report completed every required stage.
+- Requested rows came from DSH `--dump-config`; services and tool schemas came from an in-process Cordis probe.
+- Declared exercises ran through the real tool runtime without model selection.
+- The same profile rebooted after removal without the subject bundle, capabilities, or attributable residue.
+- Required observers were available. Missing required coverage is `unsupported`, never a synthetic pass.
+
+A pass does not prove that arbitrary executable code is safe, that model output is good, or that unasserted behavior works.
 
 ## Scenario As Code
 
-Create `dsh-testkit.yaml` in the plugin project:
+`dsh-test init` produces a small starting scenario:
 
 ```yaml
 schemaVersion: 1
@@ -107,9 +117,12 @@ observers:
   canary: preferred
 ```
 
-For a live DSH web surface, add an optional Docker-only route assertion:
+Local-directory subjects are mounted read-only, copied into the runner-owned writable root, and then packed. When `prepare`, `prepack`, or `postpack` is declared, Testkit restores dependencies in that copy using `packageManager` and its lockfile before `npm pack`; the original checkout is never modified.
+
+For a public DSH web route, set `profile: web` and add a Docker-only assertion:
 
 ```yaml
+profile: web
 http:
   routes:
     - id: health
@@ -121,76 +134,71 @@ http:
           version: $subject.packageVersion
 ```
 
-Set `profile: web` in the scenario when using `http.routes`; the route probe targets DSH's public web profile.
+The [Scenario Reference](docs/scenarios.md) covers `http.routes`, update targets, expected failure and recovery, stage reruns, observer policy, the attempt-wide watchdog, and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser traffic stays on runner-owned `127.0.0.1`. Missing Chromium is `unsupported`; a live but permanently unresponsive DSH web host or watchdog expiry is host/infrastructure, not a plugin failure.
 
-The [Scenario Reference](docs/scenarios.md) covers update targets, expected failures, recovery, the attempt-wide watchdog, observer policy, stage reruns, loopback HTTP routes and the explicit `dsh web` TurnStatus browser smoke. HTTP and browser checks stay on runner-owned `127.0.0.1`; browser evidence contains only identity, selected text and a screenshot, and missing Chromium returns `unsupported`.
+## Least-Privilege CI
 
-## CI Evidence
-
-`dsh-test init` generates this workflow using the stable moving major tag:
+The generated workflow uses a read-only token and makes that contract visible:
 
 ```yaml
-- uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
-  with:
-    plugin: .
-    dsh-version: 0.1.1-rc.2
+permissions:
+  contents: read
+
+steps:
+  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
+    with:
+      plugin: .
+      dsh-version: 0.1.1-rc.2
+      config: dsh-testkit.yaml
+      publish-junit-check: 'false'
 ```
 
-The Action publishes JUnit and uploads the complete run directory. `artifact-name`, `check-name`, `output`, and retention are configurable; artifact ID, URL, and digest are outputs. GitHub Enterprise Server and other CI systems can invoke the CLI directly because `actions/upload-artifact@v4+` is not available on GHES.
+This default writes JUnit annotations to the job, uploads the complete evidence directory, and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API.
 
-For a nested bundle, the generated workflow remains at repository root and uses `plugin: ./plugin` plus `config: plugin/dsh-testkit.yaml`; GitHub never needs to discover a workflow inside the plugin directory.
+A trusted push or release workflow may opt into a named JUnit Check:
 
-Stable exit codes are: `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported capability, and `5` flaky. Published JSON Schemas live at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
+```yaml
+permissions:
+  contents: read
+  checks: write
 
-## Agent Skill
+steps:
+  - uses: iiwish/dsh-testkit/.github/actions/dsh-test@v0
+    with:
+      plugin: .
+      dsh-version: 0.1.1-rc.2
+      publish-junit-check: 'true'
+```
 
-The project-local `.agents/skills/dsh-testkit/SKILL.md` teaches compatible coding agents when and how to initialize Testkit, choose quick or full lifecycle coverage, interpret evidence, and preserve the Docker trust boundary. It is generated from the same typed definition that the native DSH bundle registers when the host exposes the optional Skills service.
+Do not enable that option for untrusted fork pull requests. The repository's external Actions are pinned to immutable commits; the moving `v0` tag is the consumer compatibility channel. GitHub Enterprise Server and other CI systems can invoke the CLI directly.
 
-The canonical file also ships in npm at the exported subpath `dsh-testkit/skills/dsh-testkit/SKILL.md`. The Skill helps an agent use Testkit consistently; it does not grant permission to execute untrusted code, replace review, or certify a plugin.
+Stable exits are `0` passed, `1` lifecycle failure, `2` invalid input, `3` infrastructure error, `4` unsupported, and `5` flaky. Published schemas are available at `dsh-testkit/schemas/report-v1.json` and `dsh-testkit/schemas/scenario-v1.json`.
 
-## DSH-Native Tool
+## Native And Agent Entry Points
 
-DSH Testkit also ships an optional community-maintained DSH-native Profile Bundle:
+The project-local Skill and the exported `dsh-testkit/skills/dsh-testkit/SKILL.md` teach compatible agents how to select coverage, interpret evidence, and preserve the Docker boundary. A Skill guides usage; it does not grant trust or replace review.
+
+DSH Testkit also ships an optional, community-maintained DSH Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.4.0
+dsh plugin --profile web add dsh-testkit@0.4.1
 dsh --profile web --dump-config
 ```
 
-The bundle registers `dsh_test`, a thin adapter over the same lifecycle engine. It defaults to the active workspace, requires `confirm: true`, always uses Docker, ignores implicit repository configuration, rejects paths outside the workspace, and never exposes unsafe-local execution or arbitrary CLI arguments.
+It registers `dsh_test`, a confirmed, Docker-only adapter over the same engine. The external CLI or CI Action remains the independent recovery gate because an in-host tool cannot diagnose a host that fails before tool registration.
 
-This adapter is convenient when DSH is already healthy. Keep the external CLI or CI Action as the independent recovery and release gate because an in-host tool cannot diagnose a host that fails before tool registration.
+## Safety And Trust
 
-## Community Validation
+Plugins are executable code: package scripts and runtime code run during the lifecycle. Docker reduces the default blast radius with a read-only root filesystem and source mount, disposable writable state, dropped capabilities, resource limits, and bounded evidence. It is **not a hardened malware sandbox**.
 
-Maintainers can run an exact-version public cohort with an explicit trust acknowledgement:
+Use disposable infrastructure for unknown code. Never use `--runner local --unsafe-local` for an untrusted plugin. The native tool requires Docker daemon access, and confirmation is a trust decision rather than certification. Private plugin source remains on the runner; DSH Testkit has no SaaS dependency and uploads nothing except the evidence configured by your CI workflow.
 
-```bash
-pnpm exec dsh-test-community \
-  --acknowledge-untrusted-code \
-  --dsh 0.1.1-rc.2 \
-  --plugin example-plugin@1.2.3 \
-  --output /tmp/dsh-testkit-cohort
-```
+The [Architecture](docs/architecture.md) documents trust boundaries. Use the [Security Policy](SECURITY.md) for private vulnerability reports.
 
-The runner strips model, npm, GitHub, cloud, and Docker registry credentials from child processes. It keeps named reports locally and writes a subject-free aggregate summary for responsible public reporting.
+## Community
 
-See the [v0.2.1 community validation report](docs/community-validation.md) for the selection method, aggregate evidence, limitations, and the resulting product decision.
+The [community validation protocol](docs/community-validation.md) defines credential-free, exact-version cohort runs and aggregate-only reporting. The [dsh-shelf case study](docs/case-study-dsh-shelf.md) shows why install success alone is not proof of host registration. The [design-partner follow-up gate](docs/design-partner-follow-up.md) records the immutable package baselines and prevents source-only fixes from being reported as package reruns.
 
-The [dsh-shelf case study](docs/case-study-dsh-shelf.md) shows a released bundle that installed successfully but failed at host registration, followed by a maintainer fix and a pending exact-artifact rerun.
-
-## Safety
-
-Plugins are executable code: package scripts and runtime code run during a lifecycle test. Docker narrows the default blast radius but is **not a hardened malware sandbox**. Use disposable infrastructure for unknown code and never use `--runner local --unsafe-local` for an untrusted plugin.
-
-The native tool needs Docker daemon access and may execute package scripts with network access inside the runner. Confirmation is a trust decision, not a security certification. Private plugins stay on the CI runner; DSH Testkit has no SaaS dependency and does not upload source or credentials.
-
-See [Architecture](docs/architecture.md) for trust boundaries and [Security Policy](SECURITY.md) for private vulnerability reporting.
-
-## Contributing
-
-Bug reports are most useful with the exact plugin version, DSH version, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md), then use the lifecycle-failure issue template for reproducible host behavior.
-
-Meet the project and the first-maintainer cohort in the official DeepSeek Harness [Show & Tell discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/2038).
+Useful bug reports include the exact plugin and DSH versions, failing stage, `report.json`, and sanitized logs. Start with [Contributing](docs/contributing.md) or join the official DeepSeek Harness [Show & Tell discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/2038).
 
 DSH Testkit is an independent, unofficial community project released under the [MIT License](LICENSE).

@@ -1,10 +1,10 @@
 # DSH Testkit Release Acceptance Plan
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Current
 Release channel: Public preview
 Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
-Last updated: 2026-08-28
+Last updated: 2026-08-31
 
 ## 1. Acceptance Objective
 
@@ -159,6 +159,17 @@ Requirements: US-011, US-012, FR-043 through FR-047, NFR-022, NFR-023.
 - `timeouts.overallMs` bounds each local and Docker attempt, terminates the owned process tree and force-removes the deterministic container after expiry.
 - Pre-probe boot timeout remains generic timeout evidence; host/infrastructure classification requires live-loopback evidence.
 - Scenario schema v1, report schema v1 and exit-code meanings remain unchanged.
+
+### G13 Source Packaging, Least-Privilege CI And Release Canaries
+
+Requirements: US-007, US-013, FR-026, FR-027, FR-048 through FR-054, NFR-024 through NFR-028.
+
+- A source plugin with an exact `packageManager`, frozen lockfile, development dependency and `prepare` script builds entirely inside the owned Docker worker.
+- Explicit package-manager versions are immutable semantic versions and execute through Corepack at the declared version; mutable tags are rejected before plugin scripts run.
+- Generated CI and the Composite Action operate under `contents: read`; Checks API publication requires an explicit trusted-workflow input.
+- `dsh-tools` and `dsh-invariants` resolve together at rc.8, and every supported host passes real-host, native-bundle and both Action-smoke subjects.
+- Official immutable releases without npm artifacts remain pending; published candidates run only in a disposable canary and do not widen default support.
+- Design-partner reruns require a package identity higher than the recorded immutable baseline.
 
 ## 5. Public-Preview Field Gates
 

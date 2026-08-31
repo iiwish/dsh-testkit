@@ -4,6 +4,27 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-31
+
+### Added
+
+- Added a real Docker lifecycle fixture for a local plugin that declares an exact package manager and builds from development dependencies in `prepare`.
+- Added an explicit `publish-junit-check` Action input for trusted workflows that choose to grant `checks: write`.
+- Added official immutable DSH release discovery with a distinct pending-npm state; alpha.1 remains pending without an npm package, while alpha.2 enters only the disposable runnable canary matrix. Neither widens default support.
+- Added an immutable package gate for the `dsh-shelf` and `dsh-spotlight` design-partner follow-ups.
+
+### Fixed
+
+- Restored local-package dependencies inside the runner-owned source copy before `npm pack` when `prepare`, `prepack`, or `postpack` is present, using the declared package manager and frozen lockfile when available.
+- Moved runtime Corepack state to the writable run root and seeded it from the immutable runner image, preserving read-only source mounts and root filesystems.
+- Made generated workflows and the default Composite Action contract work with `contents: read`; JUnit annotations and evidence upload no longer require Checks API write access.
+- Aligned the native bundle development contract on exact rc.8 releases of both `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-invariants`.
+
+### Changed
+
+- Reframed the English and Simplified Chinese project entrypoints around the real-host release-gate problem, intended adopters, proof boundary, and least-privilege adoption path.
+- Expanded compatibility Action smoke to run healthy and expected boot-failure subjects across rc.8, rc.7 and rc.6.
+
 ## [0.4.0] - 2026-08-28
 
 ### Added
@@ -143,7 +164,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/iiwish/dsh-testkit/compare/v0.3.2...v0.3.3

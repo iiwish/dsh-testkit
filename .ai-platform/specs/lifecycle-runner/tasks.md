@@ -1,10 +1,10 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-28
+Last updated: 2026-08-31
 
 ## 状态定义
 
@@ -58,6 +58,7 @@ Tasks:
 - [x] T010 [US-010] Add deterministic Docker-only loopback HTTP route assertions without changing the v1 report schema.
 - [x] T011 [US-011] Add an explicit `dsh web` fixture and narrow TurnStatus browser smoke with `unsupported` fallback.
 - [x] T012 [US-012] Add an attempt-wide watchdog and classify unresponsive DSH web hosts as infrastructure.
+- [x] T013 [US-007, US-013] Make source packaging reproducible, generated CI read-only by default, align rc.8 contracts, and gate release/partner canaries.
 
 ### T010: Deterministic Loopback HTTP Route Assertions
 
@@ -215,6 +216,104 @@ Validation commands:
 
 Packet path:
 - `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
+
+### T013: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
+
+Status: Accepted
+Priority: P0
+Depends on: T012
+Blocks: v0.4.1 release readiness
+Story / Requirement: US-007, US-013, FR-026 through FR-027, FR-048 through FR-054, NFR-024 through NFR-028
+Parallel: No
+Conflicts with: None
+
+Goal:
+Make modern source plugins pack inside the disposable worker, keep generated CI read-only, align the rc.8 tool contracts, and classify official release and design-partner candidates without weakening immutable evidence.
+
+Allowed files:
+- `.ai-platform/**`
+- `src/adapters/dsh/npm-adapter.ts`
+- `src/adapters/dsh/release-train.ts`
+- `src/scaffold/init.ts`
+- `src/version.ts`
+- `assets/runner.Dockerfile`
+- `.github/actions/dsh-test/action.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/dsh-release-watch.yml`
+- `fixtures/prepare-plugin/**`
+- `tests/**`
+- `scripts/check-release-readiness.mjs`
+- `scripts/check-dsh-release-train.mjs`
+- `scripts/enable-dsh-canary.mjs`
+- `package.json`
+- `pnpm-lock.yaml`
+- `CHANGELOG.md`
+- `README.md`
+- `README.zh-CN.md`
+- `docs/**`
+
+Test targets:
+- `tests/unit/npm-adapter.test.ts`
+- `tests/unit/scaffold.test.ts`
+- `tests/unit/dsh-release-train.test.ts`
+- `tests/contracts/dsh-bundle.test.ts`
+- `tests/contracts/ci-required-checks.test.ts`
+- `tests/contracts/documentation.test.ts`
+- `tests/e2e/real-dsh.test.ts`
+- `tests/e2e/real-dsh-bundle.test.ts`
+
+Deliverables:
+- Worker-owned package-manager setup and source `prepare` packaging with retained evidence.
+- Read-only generated CI and opt-in trusted Checks API publication.
+- Coordinated rc.8 contracts plus complete supported real-host and Action smoke matrices.
+- Official-release/npm canary classification and immutable design-partner rerun register.
+- Canonical bilingual v0.4.1 product and adoption documentation.
+
+Acceptance criteria:
+- A local-directory fixture with `packageManager`, lockfile, devDependency and `prepare` builds and passes a Docker real-host lifecycle without host-side `node_modules` or a prebuilt tarball.
+- Package dependency setup and scripts execute only inside the owned worker; writable Corepack state stays under the run root and packaging failures retain subject-stage evidence.
+- The Composite Action defaults to annotation-only JUnit output under `contents: read`; an explicit trusted-workflow input enables a Checks API report and documents the required `checks: write` permission.
+- Generated root and nested workflows remain byte-idempotent, use only `contents: read`, and do not enable JUnit Check publication.
+- README opening, audience, value proposition, quick start, proof/boundary table and adoption guidance are semantically equivalent in English and Chinese.
+- `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-invariants` use the coordinated exact rc.8 development contract and frozen lockfile resolution.
+- Every supported compatibility host runs the full real-host gate; both Action smoke subjects run for rc.8, rc.7 and rc.6.
+- Official immutable alpha releases remain pending while their exact npm packages are absent, enter only the disposable canary matrix after publication, and stay excluded from the default support registry until reviewed adapter evidence exists.
+- Design-partner status names the last tested immutable package and performs no rerun until a higher package identity exists.
+- v1 schemas, exit codes and Docker default isolation remain unchanged.
+
+Definition of Done:
+- RED and GREEN evidence exists for source packaging, CI permissions, rc.8 contracts, release classification and partner gates.
+- Every supported DSH host passes the complete real-host, native bundle and Action smoke gates.
+- Alpha and design-partner decisions are tied to exact immutable identities and retain their non-support boundaries.
+- Full validation, packaged-consumer smoke, workflow lint and reviewed diff pass.
+- T013 evidence exists and the task is `Needs_Review`, pending explicit user acceptance.
+
+Validation commands:
+- `pnpm vitest run tests/unit/npm-adapter.test.ts tests/unit/scaffold.test.ts tests/unit/dsh-release-train.test.ts tests/contracts/dsh-bundle.test.ts tests/contracts/ci-required-checks.test.ts tests/contracts/documentation.test.ts`
+- `pnpm validate`
+- `pnpm test:e2e`
+- `pnpm test:bundle-e2e`
+- `pnpm test:pack`
+- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/ci.yml .github/workflows/dsh-release-watch.yml`
+- `pnpm check:actions`
+
+TDD plan:
+- RED: add package-manager/pack-lifecycle, read-only CI, coordinated rc.8, complete Action matrix and official-alpha pending-state contracts before implementation.
+- GREEN: seed writable Corepack state, align tool contracts, classify release-only candidates, and default JUnit reporting to annotation-only.
+- REFACTOR: consolidate package-manager and release-train detection, preserve immutable design-partner gates, and run every release gate.
+
+Packet path:
+- `.ai-platform/specs/lifecycle-runner/packets/T013.yaml`
+
+Evidence required:
+- RED/GREEN results and real Docker fixture report.
+- Generated workflow and Action permission review.
+- README parity and packaged-consumer proof.
+- rc.8 package/lock contract plus full supported real-host and Action smoke results.
+- Official alpha release identity, npm absence and pending-canary output.
+- Design-partner registry/tag check proving no eligible rerun.
+- Full validation, E2E, pack/install and actionlint results.
+- Changed files, reviewed diff and residual risks.
 
 ## Task Details
 

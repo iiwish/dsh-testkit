@@ -1,8 +1,8 @@
 # DSH Testkit Delivery Index
 
-Version: v0.4.0
+Version: v0.4.1
 Status: Confirmed
-Last updated: 2026-08-28
+Last updated: 2026-08-31
 
 ## Active Release
 
@@ -12,7 +12,7 @@ Last updated: 2026-08-28
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 
-The v0.4.0 release scope is T010 through T012. T010, T011 and T012 are accepted with task evidence. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
+The v0.4.1 release scope is T013 and is accepted for protected-branch publication. T010, T011 and T012 remain accepted v0.4.0 history. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
 
 ## Release Gate
 
@@ -135,3 +135,9 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T011.yaml`
 Status: Accepted
 Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t012-attempt-wide-watchdog-and-host-hang-classification`
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T012.yaml`
+
+#### Work Item T013: Source Packaging, Least-Privilege CI And v0.4.1 Positioning
+
+Status: Accepted
+Source: `.ai-platform/specs/lifecycle-runner/tasks.md#t013-source-packaging-least-privilege-ci-and-v041-positioning`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T013.yaml`

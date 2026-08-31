@@ -448,7 +448,7 @@ Task impact:
 ## TDR-019: Dist-Tag Watch With Ephemeral Canary Enablement
 
 Decision:
-Discover exact DSH versions from the npm `latest` and `next` dist-tags. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become canary matrix inputs. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
+Discover exact DSH versions from the npm `latest` and `next` dist-tags and immutable releases from the official `deepseek-ai/deepseek-harness` GitHub repository. Versions outside `SUPPORTED_DSH_NPM_VERSIONS` become runnable canary inputs only when the exact npm version exists. Official releases without an npm package remain `pendingNpmVersions`. The canary job may update the support array only in its disposable checkout before building and running real-host tests; the committed registry and published package remain unchanged until a reviewed adapter change lands.
 
 Requirement mapping:
 - FR-026, FR-027, SC-015
@@ -458,11 +458,11 @@ Rationale:
 - A separate ephemeral canary provides early evidence without silently widening the product's support promise.
 
 Risks:
-- npm dist-tags can move or omit a release line.
+- npm dist-tags can move or omit a release line, while an official GitHub release can precede its npm package.
 - Canary failures can be infrastructure failures rather than adapter incompatibility.
 
 Mitigations:
-- Record the resolved exact version and dist-tag metadata, keep verdict categories separate, and require reviewed real-host evidence before changing support.
+- Record the resolved exact version, dist-tag, official release and npm availability metadata; keep pending, canary and supported states separate; require reviewed real-host evidence before changing support.
 
 Task impact:
 - T007 adds release discovery fixtures, canary preparation and the scheduled workflow.

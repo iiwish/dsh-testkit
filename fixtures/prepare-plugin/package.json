@@ -1,0 +1,23 @@
+{
+  "name": "@dsh-testkit/fixture-prepare",
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.17.0",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "pnpm run build"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}
