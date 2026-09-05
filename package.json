@@ -112,7 +112,7 @@
     "@deepseek-ai/cordis": "4.0.1",
     "@deepseek-ai/dsh-invariants": "0.1.0-rc.8",
     "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
-    "@types/node": "24.13.3",
+    "@types/node": "26.4.1",
     "@vitest/coverage-v8": "3.2.7",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
