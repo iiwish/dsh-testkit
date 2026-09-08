@@ -15,7 +15,7 @@ The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in
 
 ## Validation
 
-The [baseline main Release Watch](https://github.com/iiwish/dsh-testkit/actions/runs/34201769307) passes all six pre-promotion candidates in independent lifecycle and native-bundle lanes. Source support promotion requires the full formal matrix, including installed-package Docker execution and positive/negative Action smoke cases. The T015 evidence record holds the promotion checks and main-branch monitoring result.
+The [formal Linux CI](https://github.com/iiwish/dsh-testkit/actions/runs/34203974329) passes all five supported hosts through lifecycle, native bundle, installed-package Docker execution and positive/negative Action smoke cases. The [main candidate monitor](https://github.com/iiwish/dsh-testkit/actions/runs/34205717065) passes discovery, both independent `0.1.3-alpha.2` lanes and its terminal summary at merge commit `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`. The T015 evidence record holds the checked artifact manifests and monitoring receipts.
 
 The adapter establishes a subject-free runtime baseline before taking subject snapshots. Changes to existing host paths remain subject-attributable; host filenames are not a blanket exemption. Browser smoke waits for the Connection service and uses the disposable host's own root-token exchange without disabling its authentication fence. Logs and process snapshots redact launch tokens. The T014 evidence record tracks validation and artifact review.
 
