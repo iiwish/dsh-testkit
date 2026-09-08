@@ -31,5 +31,5 @@ evidence_contract:
   paths: [.ai-platform/evidence/T014/summary.md, .ai-platform/evidence/T014/test-results.md]
   required: [RED and GREEN results, source attribution, runtime matrix, residual risks]
 handoff:
-  status: In_Progress
+  status: Needs_Review
   acceptance_authority: user

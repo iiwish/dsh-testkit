@@ -24,10 +24,20 @@ Environment: macOS arm64, Node `24.15.0`, project pnpm `11.1.3`, Docker `29.4.0`
 - Docker browser E2E: failed before lifecycle execution when the cold Debian image build exceeded the 600000ms attempt watchdog. No browser verdict exists. Controller build logs are retained in `/tmp/dsh-t014-green-rc1/dsh-testkit-e2e-web-status-plugin-MPMuHV/logs/`.
 - `pnpm test:pack`: all sequential checks preceding its Docker build completed, including clean install, optional-peer absence, CLI help, API import, published artifacts and scaffold. The Docker build was canceled after confirming the same cold-image network bottleneck; the overall test did not pass.
 
-## Pending
+## Final Linux Matrix
 
-- Real-host candidate and supported-host regressions.
-- Native-bundle and packaged-consumer evidence.
+Implementation SHA: `8d602cf399f19e738a3e8ea98eaa80016481e059`.
+
+| Versions | Lifecycle | Native bundle | Packaged Docker consumer | Action smoke |
+| --- | --- | --- | --- | --- |
+| `0.1.1-rc.2`, `0.1.0-rc.8`, `0.1.0-rc.7`, `0.1.0-rc.6` | Passed | Passed | Passed | Healthy and boot-failure passed |
+| `0.1.2-alpha.2`, `0.1.2-alpha.3`, `0.1.2-alpha.4`, `0.1.2-alpha.5`, `0.1.2-rc.1`, `0.1.3-alpha.2` | Passed | Passed | Not run; promotion prerequisite | Not in canary scope |
+
+- [CI run 34185912844](https://github.com/iiwish/dsh-testkit/actions/runs/34185912844): 14 successful jobs.
+- [Release Watch run 34185918263](https://github.com/iiwish/dsh-testkit/actions/runs/34185918263): discovery plus 12 successful candidate jobs.
+- Downloaded all 12 final archives to `/tmp/dsh-t014-final-artifacts`; recursive launch-token pattern scan found no unredacted value. Archive inventory contains no private auth handoff or durable credential file. Browser evidence records `Fixture status ready` in the authenticated host.
+- Final local validation: 26 files / 175 tests passed; typecheck passed after adding the real-browser artifact scan.
+- Formal support is unchanged. Local macOS Docker/network limitations do not invalidate the completed Linux matrix; cross-platform Docker parity and candidate support promotion remain separate work.
 
 ## Linux CI Iteration
 
