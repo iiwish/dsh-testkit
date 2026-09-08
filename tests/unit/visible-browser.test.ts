@@ -25,6 +25,7 @@ describe('independent visible-host interaction', () => {
     const result = await exerciseVisibleHost(page)
     expect(get('button:Continue').click).toHaveBeenCalledWith({ timeout: 20000 })
     expect(get('button:Configure later').click).toHaveBeenCalledWith({ timeout: 20000 })
+    expect(get('textbox:').click).toHaveBeenCalledWith({ timeout: 20000 })
     expect(get('textbox:').fill).toHaveBeenCalledWith('DSH Testkit visible input', { timeout: 20000 })
     expect(result).toMatchObject({ noticeAcknowledged: true, providerSkipped: true, draftText: 'DSH Testkit visible input', submitted: false })
   })

@@ -13,6 +13,7 @@ export async function exerciseVisibleHost(page) {
   assert.equal(await page.locator('#root').evaluate(root => !root.inert), true, 'Application remains inert')
   const editor = page.getByRole('textbox')
   const draftText = 'DSH Testkit visible input'
+  await editor.click({ timeout })
   await editor.fill(draftText, { timeout })
   assert.equal(await editor.innerText(), draftText, 'Native editor did not retain the draft')
   return { noticeAcknowledged: true, providerSkipped: true, draftText, submitted: false }
