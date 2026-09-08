@@ -1,6 +1,6 @@
 # T016 Adoption And Release Readiness
 
-Status: Running
+Status: Needs_Review
 Executor: Codex, direct execution; no delegation authorized.
 Base: `59773eae27043154945954f6e03938218d8d9021`
 Branch: `feat/t016-adoption-readiness`
@@ -20,7 +20,11 @@ Focused GREEN: 4 tests passed after implementation.
 Initial full validation exposed an omitted explicit `include-hidden-files: false` on the new upload. The existing safety contract failed and the upload was corrected rather than weakening the test.
 Actionlint 1.7.12 passes the CI workflow.
 
-Linux real-host, external consumer/Action and visual review are required before merge; results belong in `test-results.md`.
+Implementation `785a37b7a90724037b5baf35184476240c51e124` passes 228 local tests and all 18 Linux CI jobs in run `34213179544`, including five supported hosts, installed external consumer, intentional failure/correction, source Action and independent desktop/mobile interaction. CodeQL passes. Both screenshots were visually inspected. Exact identities and artifact replay receipts are in `test-results.md`.
+
+Spec and code-quality review found no remaining actionable issue: execution stays in owned Docker profiles, external source remains pinned and isolated, negative verdicts remain intact, and public runtime/schema/default-host contracts are unchanged. Test-only browser ownership and asynchronous editor readiness failures have focused regression coverage.
+
+Release preparation is complete without publication. The bounded read-only schedule follow-up `dsh` is active; the first post-T015 natural schedule is an explicitly pending external event. T016 awaits user acceptance.
 
 ## Review Boundaries
 

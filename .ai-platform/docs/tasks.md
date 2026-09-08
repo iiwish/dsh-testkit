@@ -22,7 +22,7 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ### T016: Adoption And Release Readiness
 
-Status: Running
+Status: Needs_Review
 Priority: P1
 Depends on: T015
 Parallel: No

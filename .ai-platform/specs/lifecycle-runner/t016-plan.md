@@ -15,7 +15,7 @@ One sequential task covers US-007/US-008 and the approved browser evidence impro
 
 ## Task T016
 
-Status: Ready
+Status: Needs_Review
 Priority: P1
 Depends on: T015
 Blocks: Publication review
