@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 // @ts-expect-error The independent browser harness is JavaScript.
 import { exerciseVisibleHost } from '../e2e/visible-browser.mjs'
 
+const editorSelector = '[data-composer-input][contenteditable="true"]'
+
 function mockPage() {
   const nodes = new Map<string, ReturnType<typeof node>>()
   function node() {
@@ -29,8 +31,9 @@ describe('independent visible-host interaction', () => {
     expect(get('textbox:Edit path').fill).toHaveBeenCalledWith('/work/run/workspace', { timeout: 20000 })
     expect(get('textbox:Edit path').press).toHaveBeenCalledWith('Enter', { timeout: 20000 })
     expect(get('button:Open').click).toHaveBeenCalledWith({ timeout: 20000 })
-    expect(get('textbox:').click).toHaveBeenCalledWith({ timeout: 20000 })
-    expect(get('textbox:').fill).toHaveBeenCalledWith('DSH Testkit visible input', { timeout: 20000 })
+    expect(get(editorSelector).waitFor).toHaveBeenCalledWith({ state: 'visible', timeout: 20000 })
+    expect(get(editorSelector).click).toHaveBeenCalledWith({ timeout: 20000 })
+    expect(get(editorSelector).fill).toHaveBeenCalledWith('DSH Testkit visible input', { timeout: 20000 })
     expect(result).toMatchObject({ noticeAcknowledged: true, providerSkipped: true, draftText: 'DSH Testkit visible input', submitted: false })
   })
 
@@ -38,7 +41,7 @@ describe('independent visible-host interaction', () => {
     const { page, get } = mockPage()
     get('button:Continue').click.mockRejectedValue(new Error('intercepts pointer events'))
     await expect(exerciseVisibleHost(page)).rejects.toThrow('intercepts pointer events')
-    expect(get('textbox:').fill).not.toHaveBeenCalled()
+    expect(get(editorSelector).fill).not.toHaveBeenCalled()
   })
 
   it('fails if the app remains inert or text entry does not reach the actual editor', async () => {
@@ -46,7 +49,7 @@ describe('independent visible-host interaction', () => {
     first.get('#root').evaluate.mockResolvedValue(false)
     await expect(exerciseVisibleHost(first.page)).rejects.toThrow('inert')
     const second = mockPage()
-    second.get('textbox:').innerText.mockResolvedValue('')
+    second.get(editorSelector).innerText.mockResolvedValue('')
     await expect(exerciseVisibleHost(second.page)).rejects.toThrow('draft')
   })
 })

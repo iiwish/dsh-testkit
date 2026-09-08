@@ -7,6 +7,7 @@ import { DshNpmAdapter } from '../../dist/src/adapters/dsh/npm-adapter.js'
 import { validateBrowserLaunchUrl } from '../../dist/src/adapters/dsh/browser-smoke.js'
 import { LifecycleWorker } from '../../dist/src/worker/lifecycle-worker.js'
 import { WorkerRequestSchema } from '../../dist/src/worker/protocol.js'
+import { sanitizeCommand } from '../../dist/src/process/command.js'
 import { exerciseVisibleHost } from './visible-browser.mjs'
 
 assert.equal(process.env.DSH_TESTKIT_RUNNER, 'docker', 'Visible acceptance must run in Docker')
@@ -53,9 +54,10 @@ adapter.captureBrowserSmoke = async function (label, authentication) {
       await page.screenshot({ path: join(request.outputDir, screenshot) })
       this.addArtifact(join(request.outputDir, screenshot))
     }
-  } catch {
-    // Playwright errors can include DOM or authenticated navigation details.
-    observation = { completed: false, error: 'Visible host interaction did not complete; inspect the bounded screenshot' }
+  } catch (error) {
+    // Retain only the first bounded diagnostic line, never Playwright's DOM call log.
+    const diagnostic = sanitizeCommand([String(error.message).split('\n')[0]], [url])[0].slice(0, 240)
+    observation = { completed: false, error: diagnostic }
   } finally {
     await browser?.close()
   }

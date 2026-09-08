@@ -23,10 +23,13 @@ export async function exerciseVisibleHost(page, onStep = () => {}) {
   await page.getByRole('button', { name: 'Open', exact: true }).click({ timeout })
   await picker.waitFor({ state: 'hidden', timeout })
   onStep('owned-workspace-selected')
-  const editor = page.getByRole('textbox')
+  const editor = page.locator('[data-composer-input][contenteditable="true"]')
+  await editor.waitFor({ state: 'visible', timeout })
   const draftText = 'DSH Testkit visible input'
   await editor.click({ timeout })
+  onStep('editor-focused')
   await editor.fill(draftText, { timeout })
+  onStep('draft-filled')
   assert.equal(await editor.innerText(), draftText, 'Native editor did not retain the draft')
   onStep('draft-entered')
   return { noticeAcknowledged: true, providerSkipped: true, workspaceSelected: '/work/run/workspace', draftText, submitted: false }
