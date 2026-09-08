@@ -4,6 +4,20 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-08
+
+### Fixed
+
+- Establish a subject-free host runtime baseline before plugin snapshots, without exempting plugin changes to host-owned filenames.
+- Wait for the Connection service and exchange the owned host's browser launch token before web smoke assertions.
+- Keep browser credentials in a private handoff and redact launch URLs from command logs and process snapshots.
+- Run candidate lifecycle and native-bundle checks independently and retain bounded diagnostic artifacts on failure.
+
+### Changed
+
+- Update Zod to `4.5.4`, development Cordis to `4.0.2`, and development-only `fast-uri` to `3.1.7` for security fixes.
+- Document green Linux lifecycle and bundle canaries through DSH `0.1.3-alpha.2`; formal support and the default host remain unchanged.
+
 ## [0.4.1] - 2026-08-31
 
 ### Added
@@ -164,7 +178,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/iiwish/dsh-testkit/compare/v0.3.3...v0.3.4

@@ -181,7 +181,7 @@ The project-local Skill and the exported `dsh-testkit/skills/dsh-testkit/SKILL.m
 DSH Testkit also ships an optional, community-maintained DSH Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.4.1
+dsh plugin --profile web add dsh-testkit@0.4.2
 dsh --profile web --dump-config
 ```
 

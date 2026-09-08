@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
     const english = await readFile(resolve(root, 'README.md'), 'utf8')
     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
 
-    expect(manifest.version).toBe('0.4.1')
+    expect(manifest.version).toBe('0.4.2')
     expect(manifest.files).toContain('README.zh-CN.md')
     expect(english).toContain('[简体中文](README.zh-CN.md)')
     expect(chinese).toContain('[English](README.md)')
     for (const contents of [english, chinese]) {
-      expect(contents).toContain('dsh-testkit@0.4.1')
+      expect(contents).toContain('dsh-testkit@0.4.2')
       expect(contents).toContain('dsh-test init')
       expect(contents).toContain('--repo-root')
       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
@@ -53,12 +53,12 @@ describe('bilingual project entrypoints', () => {
     expect(followUp).not.toContain('#main')
   })
 
-  it('records the minor release in the changelog and security support table', async () => {
+  it('records the patch release in the changelog and security support table', async () => {
     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
 
-    expect(changelog).toContain('## [0.4.1] - 2026-08-31')
-    expect(changelog).toContain('[0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1')
+    expect(changelog).toContain('## [0.4.2] - 2026-09-08')
+    expect(changelog).toContain('[0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2')
     expect(security).toContain('| 0.4.x | Yes |')
     expect(security).toContain('| 0.3.x | No |')
   })

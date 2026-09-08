@@ -3,7 +3,7 @@ packet_id: EP-LIFECYCLE-T014
 task_id: T014
 feature_id: lifecycle-runner
 mode: direct_execute
-approval: User approved ordered remediation and explicitly authorized commits, push and PR creation for Linux CI on 2026-09-08.
+approval: User accepted the verified fixes and explicitly authorized merge and publication on 2026-09-08.
 work_unit:
   title: Canary evidence and DSH 0.1.2 compatibility maintenance
   depends_on: [T013]
@@ -12,14 +12,16 @@ work_unit:
     - Reproduce and fix host filesystem attribution and web fixture loading.
     - Regress all supported hosts before considering support promotion.
     - Review dependency updates and synchronize support documentation.
+    - Publish patch release v0.4.2 from green protected main using the existing trusted workflow.
 execution_constraints:
   direct_execute_reason: User requested sequential fixes, not delegation.
-  allowed_files: [.ai-platform/**, .github/workflows/dsh-release-watch.yml, tests/**, src/adapters/dsh/**, src/probe/runtime.ts, src/process/command.ts, fixtures/**, package.json, pnpm-lock.yaml, assets/runner-pnpm-lock.yaml, README.md, README.zh-CN.md, docs/**]
+  allowed_files: [.ai-platform/**, .github/workflows/dsh-release-watch.yml, tests/**, src/adapters/dsh/**, src/probe/runtime.ts, src/process/command.ts, src/version.ts, fixtures/**, package.json, pnpm-lock.yaml, assets/runner-pnpm-lock.yaml, README.md, README.zh-CN.md, CHANGELOG.md, docs/**]
   invariants:
     - Preserve Docker isolation, v1 schemas and stable exit codes.
     - Never suppress residue merely by adding runtime filenames to a whitelist.
     - Keep new hosts as canaries until reviewed real-host evidence supports promotion.
-    - Do not publish, merge PRs or mark Accepted.
+    - Merge only green reviewed commits; publish v0.4.2 through trusted npm publishing, without bypassing required checks.
+    - Keep immutable release tags fixed; advance the existing v0 channel only to the verified release commit.
     - Authenticate only to the owned loopback host; keep launch tokens out of published evidence.
 tdd_plan:
   red: Add failing CI contracts and reproduce candidate failures before fixes.
@@ -31,5 +33,5 @@ evidence_contract:
   paths: [.ai-platform/evidence/T014/summary.md, .ai-platform/evidence/T014/test-results.md]
   required: [RED and GREEN results, source attribution, runtime matrix, residual risks]
 handoff:
-  status: Needs_Review
+  status: Accepted
   acceptance_authority: user
