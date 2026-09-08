@@ -29,4 +29,10 @@ Environment: macOS arm64, Node `24.15.0`, project pnpm `11.1.3`, Docker `29.4.0`
 - Real-host candidate and supported-host regressions.
 - Native-bundle and packaged-consumer evidence.
 
-The canonical build overwrote disposable local canary activation after the focused worker processes had started. No new host is enabled in source or claimed supported. No GitHub push, PR creation, merge or release has occurred.
+The canonical build overwrote disposable local canary activation after the focused worker processes had started. No new host is enabled in source or claimed supported. PR #37 is open; merge, release and user acceptance are pending.
+
+## Dependency Security
+
+- GitHub reported four open advisories against development-only `fast-uri@3.1.5` through AJV. The lockfile pins `3.1.7`, above the reported fixed floor `3.1.6`; unrelated transitive resolutions are unchanged.
+- `pnpm validate`: 26 files / 172 tests passed with the security update.
+- `pnpm audit --audit-level high --registry https://registry.npmjs.org`: no known vulnerabilities. The configured mirror has no audit endpoint, so the audit used the official npm registry.
