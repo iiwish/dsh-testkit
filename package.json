@@ -85,7 +85,7 @@
     "playwright-core": "1.62.1",
     "xmlbuilder2": "4.0.3",
     "yaml": "2.9.0",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -109,7 +109,7 @@
     }
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis": "4.0.2",
     "@deepseek-ai/dsh-invariants": "0.1.0-rc.8",
     "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
     "@types/node": "24.13.3",

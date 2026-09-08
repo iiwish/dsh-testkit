@@ -1,17 +1,15 @@
-import { execFile } from 'node:child_process'
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_DSH_NPM_VERSION } from '../../src/adapters/dsh/support.js'
 import { RunReportSchema } from '../../src/domain/report.js'
 import { runCommand } from '../../src/process/command.js'
+import type { CommandOptions } from '../../src/process/command.js'
 
-const executeFile = promisify(execFile)
 const root = resolve(import.meta.dirname, '../..')
 const enabled = process.env.DSH_TESTKIT_E2E === '1'
 
@@ -26,6 +24,18 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
     const logs = join(temporary, 'logs')
     const profile = 'testkit-bundle-e2e'
     const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? DEFAULT_DSH_NPM_VERSION
+    const executeLogged = async (
+      logName: string,
+      executable: string,
+      args: string[],
+      options: Pick<CommandOptions, 'cwd' | 'env' | 'timeoutMs'>,
+    ) => {
+      const result = await runCommand({ ...options, executable, args, logDir: logs, logName })
+      if (result.exitCode !== 0 || result.timedOut || result.stdoutTruncated || result.stderrTruncated) {
+        throw new Error(`${logName} failed; see retained bundle logs\n${result.stdout}\n${result.stderr}`)
+      }
+      return result
+    }
 
     try {
       await Promise.all([
@@ -50,16 +60,14 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
       ].join('\n'))
       await cp(join(root, 'fixtures', 'healthy-plugin'), join(workspace, 'healthy-plugin'), { recursive: true })
 
-      await executeFile('pnpm', ['add', '--save-exact', `@deepseek-ai/dsh@${dshVersion}`], {
+      await executeLogged('install-dsh', 'pnpm', ['add', '--save-exact', `@deepseek-ai/dsh@${dshVersion}`], {
         cwd: harness,
-        timeout: 300_000,
-        maxBuffer: 16 * 1024 * 1024,
+        timeoutMs: 300_000,
         env: { ...process.env, NPM_CONFIG_AUDIT: 'false', NPM_CONFIG_FUND: 'false' },
       })
-      const packed = await executeFile('npm', ['pack', '--json', '--pack-destination', packDirectory], {
+      const packed = await executeLogged('pack-testkit', 'npm', ['pack', '--json', '--pack-destination', packDirectory], {
         cwd: root,
-        timeout: 180_000,
-        maxBuffer: 16 * 1024 * 1024,
+        timeoutMs: 180_000,
       })
       const packMetadata = JSON.parse(packed.stdout) as Array<{ filename?: string }>
       const filename = packMetadata[0]?.filename
@@ -77,18 +85,16 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
         PNPM_CONFIG_DANGEROUSLY_ALLOW_ALL_BUILDS: 'true',
       }
 
-      const installed = await executeFile(dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
+      const installed = await executeLogged('install-testkit', dsh, ['plugin', '--profile', profile, 'add', tarball, '--save-exact'], {
         cwd: workspace,
         env: dshEnvironment,
-        timeout: 300_000,
-        maxBuffer: 16 * 1024 * 1024,
+        timeoutMs: 300_000,
       })
       expect(`${installed.stdout}\n${installed.stderr}`).not.toMatch(/peer dependenc|missing peer|unmet peer/i)
-      const dumped = await executeFile(dsh, ['--profile', profile, '--dump-config'], {
+      const dumped = await executeLogged('dump-config', dsh, ['--profile', profile, '--dump-config'], {
         cwd: workspace,
         env: dshEnvironment,
-        timeout: 60_000,
-        maxBuffer: 16 * 1024 * 1024,
+        timeoutMs: 60_000,
       })
       expect(dumped.stdout).toContain('# == dsh-testkit')
       expect(dumped.stdout).toContain('id: tool-dsh-testkit')
@@ -161,16 +167,33 @@ describe.skipIf(!enabled).sequential('native DSH bundle', () => {
         environment: { isolation: 'docker-container', unsafeLocal: false },
       })
 
-      await executeFile(dsh, ['plugin', '--profile', profile, 'remove', 'dsh-testkit'], {
+      await executeLogged('remove-testkit', dsh, ['plugin', '--profile', profile, 'remove', 'dsh-testkit'], {
         cwd: workspace,
         env: dshEnvironment,
-        timeout: 300_000,
-        maxBuffer: 16 * 1024 * 1024,
+        timeoutMs: 300_000,
       })
       const removedManifest = JSON.parse(await readFile(join(home, 'profiles', profile, 'package.json'), 'utf8'))
       expect(removedManifest.dsh.profile.bundles).not.toContain('dsh-testkit')
     } finally {
-      await rm(temporary, { recursive: true, force: true })
+      try {
+        const evidenceRoot = process.env.DSH_TESTKIT_E2E_OUTPUT
+        if (evidenceRoot !== undefined) {
+          await mkdir(evidenceRoot, { recursive: true })
+          const evidence = await mkdtemp(join(evidenceRoot, 'bundle-'))
+          // Retain diagnostics, never the host home, credentials, dependencies or package cache.
+          for (const [source, target] of [
+            [logs, join(evidence, 'logs')],
+            [join(temporary, 'probe.json'), join(evidence, 'probe.json')],
+            [join(workspace, '.dsh-testkit', 'runs'), join(evidence, 'runs')],
+          ] as const) {
+            await cp(source, target, { recursive: true }).catch((error: NodeJS.ErrnoException) => {
+              if (error.code !== 'ENOENT') throw error
+            })
+          }
+        }
+      } finally {
+        await rm(temporary, { recursive: true, force: true })
+      }
     }
   }, 1_200_000)
 })

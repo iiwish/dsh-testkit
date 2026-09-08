@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,6 +14,24 @@ afterEach(() => {
 })
 
 describe('runtime probe', () => {
+  it.each([true, false])('keeps browser authentication out of the public probe (API available: %s)', async (available) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-probe-auth-'))
+    const output = join(root, 'probe.json')
+    const privateOutput = join(root, 'private-auth.json')
+    process.env.DSH_TESTKIT_PROBE_CONFIG = JSON.stringify({
+      schemaVersion: 1, output, mode: 'present', services: [], tools: [], exercise: [], settleMs: 1,
+      browserAuth: { origin: 'http://127.0.0.1:1234', output: privateOutput },
+    })
+    await apply({ get: name => name === 'connection' && available ? {
+      authenticatedUrl: (origin: string) => `${origin}/?token=private-launch-token`,
+    } : undefined })
+    expect(JSON.parse(await readFile(privateOutput, 'utf8'))).toEqual({
+      url: available ? 'http://127.0.0.1:1234/?token=private-launch-token' : null,
+    })
+    expect((await stat(privateOutput)).mode & 0o777).toBe(0o600)
+    expect(await readFile(output, 'utf8')).not.toContain('private-launch-token')
+  })
+
   it('observes services and tools and executes declared deterministic calls', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-probe-'))
     const output = join(root, 'probe.json')

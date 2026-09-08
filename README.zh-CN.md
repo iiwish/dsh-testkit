@@ -77,7 +77,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 当前 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
 
-官方 `dsh-v0.1.2-alpha.1` release 仍处于待发布 canary，因为 npm 没有对应包；`@deepseek-ai/dsh@0.1.2-alpha.2` 已可用，只进入一次性 canary matrix。两个 alpha 都不属于默认支持矩阵；正式支持仍需要经过审核的 adapter 变更与真实宿主证据。
+一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，npm 提供 `0.1.2-alpha.2` 至 `0.1.2-alpha.5`、`0.1.2-rc.1` 和 `0.1.3-alpha.2`；官方 `0.1.2-alpha.1`、`0.1.3-alpha.1` release 等待对应 npm 包。这些候选版本均未纳入正式支持。已知失败、验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
 
 ### 通过意味着什么
 

@@ -43,7 +43,8 @@ function redact(value: string, redactions: readonly string[]): string {
   for (const secret of [...redactions].filter(Boolean).sort((left, right) => right.length - left.length)) {
     result = result.replaceAll(secret, '[REDACTED]')
   }
-  return result
+  // DSH prints per-process browser launch URLs before the runtime probe exists.
+  return result.replace(/([?&]token=)[^&\s"'<>)]*/g, '$1[REDACTED]')
 }
 
 function terminateProcess(pid: number | undefined, signal: NodeJS.Signals): void {
@@ -220,7 +221,7 @@ export async function runCommand(options: CommandOptions): Promise<CommandResult
           signal,
           timedOut,
           stoppedAfterCompletion,
-          redactionApplied: matchedIndexes.length > 0,
+          redactionApplied: matchedIndexes.length > 0 || redact(stdout, redactions) !== stdout || redact(stderr, redactions) !== stderr,
           redactionMatches: matchedIndexes,
           interruptedBy,
           durationMs: Date.now() - started,

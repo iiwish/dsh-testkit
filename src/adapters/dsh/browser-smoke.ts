@@ -4,9 +4,24 @@ import { chromium } from 'playwright-core'
 
 import type { Assertion } from '../../domain/report.js'
 import type { BrowserSmoke } from '../../domain/scenario.js'
+import { sanitizeCommand } from '../../process/command.js'
 
 const INITIAL_TURN_STATUS = 'Deep diving...'
 const TURN_STATUS_SELECTOR = '[role="status"][aria-live="polite"]'
+
+export function validateBrowserLaunchUrl(value: unknown, port: number): string | undefined {
+  if (value === null) return undefined
+  if (typeof value !== 'string') throw new Error('Invalid private DSH browser authentication handoff')
+  let url: URL
+  try { url = new URL(value) } catch { throw new Error('Invalid private DSH browser authentication URL') }
+  if (url.origin !== `http://127.0.0.1:${port}` || url.pathname !== '/'
+    || url.username !== '' || url.password !== '' || url.hash !== ''
+    || [...url.searchParams.keys()].some(key => key !== 'token')
+    || url.searchParams.getAll('token').length !== 1 || !url.searchParams.get('token')) {
+    throw new Error('DSH browser authentication must target the owned loopback root')
+  }
+  return url.href
+}
 
 export interface BrowserSmokeEvidence {
   schemaVersion: 1
@@ -118,6 +133,7 @@ export async function checkTurnStatusBrowserSmoke(
     screenshotPath: string
     screenshotArtifact: string
     executablePath?: string
+    authenticatedUrl?: string
   },
 ): Promise<BrowserSmokeResult> {
   const executablePath = await existingBrowserExecutable(
@@ -158,11 +174,21 @@ export async function checkTurnStatusBrowserSmoke(
       }
     })
     const page = await context.newPage()
-    await page.goto(`${origin}${smoke.path}`, {
+    const launchUrl = validateBrowserLaunchUrl(options.authenticatedUrl ?? null, options.port)
+    const response = await page.goto(launchUrl ?? `${origin}${smoke.path}`, {
       waitUntil: 'domcontentloaded',
       timeout: smoke.timeoutMs,
     })
     navigated = true
+    if (response !== null && response.status() >= 400) {
+      throw new Error(`DSH browser navigation returned HTTP ${response.status()}`)
+    }
+    if (launchUrl !== undefined) {
+      if (new URL(page.url()).searchParams.has('token')) {
+        throw new Error('DSH browser authentication did not redirect to a clean URL')
+      }
+      if (smoke.path !== '/') await page.goto(`${origin}${smoke.path}`, { waitUntil: 'domcontentloaded', timeout: smoke.timeoutMs })
+    }
     await page.waitForFunction(`
       globalThis.__DSH_TESTKIT_WEB_STATUS_FIXTURE__ === true
         || (globalThis.__ModuleLoader__?.mode === 'live'
@@ -192,7 +218,7 @@ export async function checkTurnStatusBrowserSmoke(
       screenshot: options.screenshotArtifact,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = sanitizeCommand([error instanceof Error ? error.message : String(error)], [options.authenticatedUrl ?? ''])[0]!
     if (browser === undefined) return unavailableBrowserSmoke(smoke, message)
     if (!navigated) {
       return {

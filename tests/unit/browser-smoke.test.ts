@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assessTurnStatusSmoke,
   unavailableBrowserSmoke,
+  validateBrowserLaunchUrl,
 } from '../../src/adapters/dsh/browser-smoke.js'
 import type { BrowserSmoke } from '../../src/domain/scenario.js'
 
@@ -17,6 +18,26 @@ const smoke: BrowserSmoke = {
 }
 
 describe('TurnStatus browser smoke', () => {
+  it('accepts only a private launch URL for the exact owned loopback root', () => {
+    expect(validateBrowserLaunchUrl(null, 1234)).toBeUndefined()
+    expect(validateBrowserLaunchUrl('http://127.0.0.1:1234/?token=fixture-token', 1234))
+      .toBe('http://127.0.0.1:1234/?token=fixture-token')
+    for (const value of [
+      undefined, {}, 'not-a-url', 'https://example.com/?token=secret',
+      'http://127.0.0.1:1235/?token=secret', 'http://127.0.0.1:1234/api?token=secret',
+      'http://user:secret@127.0.0.1:1234/?token=secret',
+      'http://127.0.0.1:1234/?token=secret#fragment',
+      'http://127.0.0.1:1234/?token=secret&token=second',
+      'http://127.0.0.1:1234/?token=',
+      'http://127.0.0.1:1234/?token=secret&redirect=https://example.com',
+    ]) {
+      expect(() => validateBrowserLaunchUrl(value, 1234)).toThrow(/DSH/)
+      try { validateBrowserLaunchUrl(value, 1234) } catch (error) {
+        expect(String(error)).not.toContain('secret')
+      }
+    }
+  })
+
   it('registers the fixture client with its exact scoped package identity', async () => {
     const fixtureRoot = join(process.cwd(), 'fixtures/web-status-plugin')
     const [manifest, client] = await Promise.all([

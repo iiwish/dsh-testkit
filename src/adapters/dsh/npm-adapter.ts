@@ -27,7 +27,7 @@ import { StageFailure } from '../../domain/lifecycle.js'
 import { AssertionSchema } from '../../domain/report.js'
 import type { Assertion, FailureKind, SubjectIdentity } from '../../domain/report.js'
 import { renderScenarioSnapshot } from '../../domain/scenario.js'
-import { checkTurnStatusBrowserSmoke } from './browser-smoke.js'
+import { checkTurnStatusBrowserSmoke, validateBrowserLaunchUrl } from './browser-smoke.js'
 import { checkLoopbackHttpRoutes } from './http-routes.js'
 import {
   captureSystemSnapshot,
@@ -37,7 +37,7 @@ import {
   writeSnapshot,
 } from '../../observers/snapshot.js'
 import type { FileChange } from '../../observers/snapshot.js'
-import { runCommand } from '../../process/command.js'
+import { runCommand, sanitizeCommand } from '../../process/command.js'
 import type { CommandResult } from '../../process/command.js'
 import type {
   AdapterBootObservation,
@@ -1114,10 +1114,28 @@ export class DshNpmAdapter implements LifecycleAdapter {
     const tarball = containedPath(this.packagesDir, metadata.filename)
     const installed = await this.dshPlugin('baseline-install', ['add', tarball, '--save-exact'])
     const removed = await this.dshPlugin('baseline-remove', ['remove', metadata.name])
+    // Materialize host-owned runtime state before either subject snapshot.
+    // Comparing content still catches plugins overwriting the same host paths.
+    let boot: AdapterCompletion<AdapterBootObservation>
+    try {
+      boot = await this.observeBoot('baseline-boot', 'baseline')
+    } catch (error) {
+      throw new StageFailure(`Subject-free DSH baseline failed: ${error instanceof Error ? error.message : String(error)}`, {
+        failureKind: 'infrastructure',
+        artifacts: [...this.artifactSet],
+      })
+    }
+    if (boot.value.outcome !== 'success' || boot.value.probe === null) {
+      throw new StageFailure('Subject-free DSH baseline did not reach its runtime probe', {
+        failureKind: 'infrastructure',
+        artifacts: boot.artifacts ?? [],
+      })
+    }
     return [
       ...commandArtifacts(packed),
       ...commandArtifacts(installed),
       ...commandArtifacts(removed),
+      ...(boot.artifacts ?? []),
     ]
   }
 
@@ -1213,18 +1231,20 @@ export class DshNpmAdapter implements LifecycleAdapter {
       '- insert:',
       '    - id: dsh-testkit-runtime-probe',
       `      name: ${JSON.stringify(pathToFileURL(modulePath).href)}`,
+      // Browser credentials belong to an asynchronously activated provider.
+      ...(this.request.scenario.browser === undefined ? [] : ['      inject: [connection]']),
       '',
     ].join('\n'))
   }
 
   private async observeBoot(
     label: string,
-    mode: 'present' | 'absent',
+    mode: 'present' | 'absent' | 'baseline',
   ): Promise<AdapterCompletion<AdapterBootObservation>> {
     await this.ensureProbePatch()
     const webMode = this.request.scenario.http !== undefined || this.request.scenario.browser !== undefined
     this.hostInfrastructureError = null
-    if (mode === 'present' && webMode) {
+    if (mode !== 'absent' && webMode) {
       if (this.request.runner !== 'docker') {
         throw new StageFailure('Web HTTP and browser assertions require the Docker runner', { failureKind: 'subject' })
       }
@@ -1234,15 +1254,20 @@ export class DshNpmAdapter implements LifecycleAdapter {
       this.webPort = await this.allocateLoopbackPort()
     }
     const probePath = join(this.evidenceDir, `probe-${label}.json`)
+    const browserAuthPath = join(this.runRoot, `browser-auth-${label}.json`)
+    await rm(browserAuthPath, { force: true })
     await rm(probePath, { force: true })
     const config = {
       schemaVersion: 1,
       output: probePath,
-      mode,
-      services: this.request.scenario.expect.services,
-      tools: this.request.scenario.expect.tools,
+      mode: mode === 'baseline' ? 'absent' : mode,
+      services: mode === 'baseline' ? [] : this.request.scenario.expect.services,
+      tools: mode === 'baseline' ? [] : this.request.scenario.expect.tools,
       exercise: mode === 'present' ? this.request.scenario.exercise : [],
       settleMs: 500,
+      ...(mode === 'present' && this.request.scenario.browser !== undefined && this.webPort !== null
+        ? { browserAuth: { origin: `http://127.0.0.1:${this.webPort}`, output: browserAuthPath } }
+        : {}),
     }
     const result = await runCommand({
       executable: this.dshExecutable,
@@ -1266,7 +1291,18 @@ export class DshNpmAdapter implements LifecycleAdapter {
           await this.captureHttpRoutes(label)
         }
         if (mode === 'present' && this.request.scenario.browser !== undefined && this.webPort !== null) {
-          await this.captureBrowserSmoke(label)
+          try {
+            const auth = JSON.parse(await readFile(browserAuthPath, 'utf8')) as { url: unknown }
+            await this.captureBrowserSmoke(label, auth.url)
+          } catch {
+            // Completion callbacks cannot throw through runCommand's stop path.
+            this.hostInfrastructureError = {
+              message: 'DSH private browser authentication handoff failed',
+              artifacts: [],
+            }
+          } finally {
+            await rm(browserAuthPath, { force: true })
+          }
         }
       },
     })
@@ -1416,17 +1452,19 @@ export class DshNpmAdapter implements LifecycleAdapter {
     }
   }
 
-  private async captureBrowserSmoke(label: string): Promise<void> {
+  private async captureBrowserSmoke(label: string, authentication: unknown): Promise<void> {
     const smoke = this.request.scenario.browser?.smoke
     if (smoke === undefined || this.webPort === null) return
     const artifact = `evidence/browser-${label}.json`
     const artifactPath = join(this.evidenceDir, `browser-${label}.json`)
     const screenshotArtifact = `evidence/browser-${label}-turn-status.png`
     const screenshotPath = join(this.evidenceDir, `browser-${label}-turn-status.png`)
+    const authenticatedUrl = validateBrowserLaunchUrl(authentication, this.webPort)
     const result = await checkTurnStatusBrowserSmoke(smoke, {
       port: this.webPort,
       screenshotPath,
       screenshotArtifact,
+      ...(authenticatedUrl === undefined ? {} : { authenticatedUrl }),
     })
     await writeFile(artifactPath, `${JSON.stringify(result.evidence, null, 2)}\n`)
     this.addArtifact(artifactPath)
@@ -1579,7 +1617,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
   }
 
   private async captureSystem(label: string): Promise<{ processes: string | null; ports: string | null }> {
-    const { processes, ports } = await captureSystemSnapshot()
+    const snapshot = await captureSystemSnapshot()
+    const redactions = [this.canary, ...environmentRedactions()]
+    const processes = snapshot.processes === null ? null : sanitizeCommand([snapshot.processes], redactions)[0]!
+    const ports = snapshot.ports === null ? null : sanitizeCommand([snapshot.ports], redactions)[0]!
     if (processes !== null) {
       const path = join(this.evidenceDir, `process-${label}.txt`)
       await writeFile(path, processes)

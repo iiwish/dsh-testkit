@@ -20,6 +20,18 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ## Governed Task Index
 
+### T014: Canary Compatibility Maintenance
+
+Status: Needs_Review
+Priority: P2
+Depends on: T013
+Parallel: No
+Approval: User approved ordered remediation, commits, push and PR creation for Linux CI on 2026-09-08. User acceptance is pending.
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T014.yaml`
+Evidence: `.ai-platform/evidence/T014/`
+
+Scope: Independent canary lanes and retained diagnostics, subject-free runtime baseline, private loopback browser authentication, dependency review and current support documentation. Stable schemas, formal support and the default host remain unchanged pending reviewed real-host evidence.
+
 ### T000: Deliver Lifecycle Runner MVP
 
 Status: Needs_Review
