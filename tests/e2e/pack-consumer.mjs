@@ -1,12 +1,12 @@
-import { execFile } from 'node:child_process'
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { promisify } from 'node:util'
 
 import { parse as parseYaml } from 'yaml'
+import { runCommand } from '../../dist/src/process/command.js'
+import { DEFAULT_DSH_NPM_VERSION } from '../../dist/src/adapters/dsh/support.js'
+import { RunReportSchema } from '../../dist/src/domain/report.js'
 
-const executeFile = promisify(execFile)
 const root = resolve(import.meta.dirname, '../..')
 const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const version = rootManifest.version
@@ -14,6 +14,22 @@ const temporary = await mkdtemp(join(tmpdir(), 'dsh-testkit-pack-'))
 const packDir = join(temporary, 'pack')
 const consumerDir = join(temporary, 'consumer')
 const image = `dsh-testkit-pack-smoke:${version}`
+const logDir = join(temporary, 'logs')
+const lifecycleOutput = join(temporary, 'lifecycle')
+const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? DEFAULT_DSH_NPM_VERSION
+let commandNumber = 0
+
+async function executeFile(executable, args, options = {}) {
+  const logName = `pack-${++commandNumber}`
+  const result = await runCommand({
+    executable, args, cwd: options.cwd ?? root, env: options.env,
+    timeoutMs: options.timeout ?? 30_000, logDir, logName,
+  })
+  if (result.exitCode !== 0 || result.timedOut || result.signal !== null) {
+    throw new Error(`Packed consumer command ${logName} failed; inspect retained logs`)
+  }
+  return result
+}
 
 try {
   await Promise.all([
@@ -156,11 +172,41 @@ try {
     '--tag', image,
     installedPackage,
   ], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
-  process.stdout.write(`packed consumer smoke passed: ${filename}\n`)
+  await executeFile(process.execPath, [
+    join(installedPackage, 'dist', 'src', 'cli.js'),
+    join(root, 'fixtures', 'healthy-plugin'),
+    '--dsh', dshVersion,
+    '--runner', 'docker',
+    '--config', join(root, 'fixtures', 'healthy-plugin', 'dsh-testkit.yaml'),
+    '--output', lifecycleOutput,
+    '--expect-row', 'fixture-healthy',
+    '--expect-service', 'fixtureHealthy',
+    '--expect-tool', 'fixture_echo',
+  ], { cwd: consumerDir, timeout: 900_000 })
+  const report = RunReportSchema.parse(JSON.parse(await readFile(join(lifecycleOutput, 'report.json'), 'utf8')))
+  if (report.verdict !== 'passed' || report.dsh.version !== dshVersion || report.testkitVersion !== version
+    || report.stages.find(stage => stage.id === 'exercise')?.status !== 'passed'
+    || report.stages.find(stage => stage.id === 'register')?.status !== 'passed') {
+    throw new Error('Installed package real-host identity or lifecycle assertions failed; inspect retained report')
+  }
+  process.stdout.write(`packed consumer smoke passed: ${filename}, DSH ${dshVersion}\n`)
 } finally {
   await executeFile('docker', ['image', 'rm', '--force', image], {
     timeout: 60_000,
     maxBuffer: 8 * 1024 * 1024,
   }).catch(() => undefined)
-  await rm(temporary, { recursive: true, force: true })
+  try {
+    if (process.env.DSH_TESTKIT_E2E_OUTPUT) {
+      await mkdir(process.env.DSH_TESTKIT_E2E_OUTPUT, { recursive: true })
+      const retained = await mkdtemp(join(process.env.DSH_TESTKIT_E2E_OUTPUT, 'pack-'))
+      for (const name of ['logs', 'lifecycle']) {
+        const source = join(temporary, name)
+        try { await access(source) } catch (error) {
+          if (error.code === 'ENOENT') continue
+          throw error
+        }
+        await cp(source, join(retained, name), { recursive: true, dereference: false })
+      }
+    }
+  } finally { await rm(temporary, { recursive: true, force: true }) }
 }

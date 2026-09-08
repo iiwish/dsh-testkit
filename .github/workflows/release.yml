@@ -42,8 +42,30 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm validate
       - run: pnpm test:e2e
+        env:
+          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
       - run: pnpm test:bundle-e2e
+        env:
+          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
       - run: pnpm test:pack
+        env:
+          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+      - id: safety
+        name: Prepare safe evidence
+        if: always()
+        env:
+          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
+        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
+      - id: evidence
+        name: Retain checked evidence
+        if: always() && steps.safety.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dsh-release-evidence
+          path: ${{ steps.safety.outputs.path }}
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 14
       - name: Publish with npm Trusted Publishing
         run: npm publish --access public
       - name: Verify public package

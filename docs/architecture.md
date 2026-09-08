@@ -31,3 +31,5 @@ Observer results are capability-aware. Files under the owned root, process check
 Command output is sanitized before persistence and bounded to 8 MiB per stream. Exceeding that limit fails the owning stage instead of silently claiming complete evidence.
 
 The Composite Action keeps reporting and repository mutation separate. Its default `publish-junit-check: 'false'` mode emits annotations and uploads evidence with `contents: read`. Only a trusted workflow that explicitly opts into a named JUnit Check needs `checks: write`.
+
+All source CI artifact outlets share `scripts/prepare-evidence.mjs`. After execution, it checks a bounded allowlist of diagnostic files, refuses linked or private host content and recognizable credentials, then writes a fresh private staging directory with a hash manifest. Upload and JUnit actions consume only that staged directory when the check succeeds. A rejected bundle is not partially published or silently redacted; the check reports only its rejection category. This publication boundary complements runtime redaction but cannot certify arbitrary text or screenshot pixels as public-safe.
