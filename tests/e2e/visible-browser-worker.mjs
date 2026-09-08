@@ -25,10 +25,12 @@ adapter.captureBrowserSmoke = async function (label, authentication) {
   let browser
   let passed = false
   let observation = { completed: false }
+  const completedSteps = []
   const artifact = 'evidence/browser-boot.json'
   const screenshot = 'evidence/browser-boot-turn-status.png'
   try {
     browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking'] })
+    this.browserIdentity = { name: 'chromium', version: browser.version() }
     const context = await browser.newContext({ viewport, locale: 'en-US', serviceWorkers: 'block' })
     await context.route('**/*', async route => {
       if (new URL(route.request().url()).origin === origin) await route.continue()
@@ -42,22 +44,22 @@ adapter.captureBrowserSmoke = async function (label, authentication) {
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 })
     assert.ok(response && response.status() < 400)
     assert.equal(page.url(), `${origin}/`, 'Browser must reach a token-free loopback root')
+    completedSteps.push('authenticated')
     try {
-      observation = await exerciseVisibleHost(page)
+      observation = await exerciseVisibleHost(page, step => completedSteps.push(step))
       passed = true
     } finally {
       // Only a fresh, credential-free owned profile is captured, after exchange.
       await page.screenshot({ path: join(request.outputDir, screenshot) })
       this.addArtifact(join(request.outputDir, screenshot))
     }
-    this.browserIdentity = { name: 'chromium', version: browser.version() }
   } catch {
     // Playwright errors can include DOM or authenticated navigation details.
     observation = { completed: false, error: 'Visible host interaction did not complete; inspect the bounded screenshot' }
   } finally {
     await browser?.close()
   }
-  await writeFile(join(request.outputDir, artifact), JSON.stringify({ schemaVersion: 1, contract: 'native-onboarding-and-unsent-draft', viewport, passed, observation, domRedacted: true, storageRedacted: true }, null, 2))
+  await writeFile(join(request.outputDir, artifact), JSON.stringify({ schemaVersion: 1, contract: 'native-onboarding-and-unsent-draft', viewport, passed, completedSteps, observation, domRedacted: true, storageRedacted: true }, null, 2))
   this.addArtifact(join(request.outputDir, artifact))
   this.browserResults.set(label, {
     assertions: [{ id: 'browser.visible-host.interaction', status: passed ? 'passed' : 'failed', message: 'Native onboarding and unsent draft interaction', expected: true, actual: passed, evidence: [artifact] }],

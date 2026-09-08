@@ -7,7 +7,7 @@ import { exerciseVisibleHost } from '../e2e/visible-browser.mjs'
 function mockPage() {
   const nodes = new Map<string, ReturnType<typeof node>>()
   function node() {
-    return { waitFor: vi.fn(), click: vi.fn(), fill: vi.fn(), inputValue: vi.fn(), innerText: vi.fn().mockResolvedValue('DSH Testkit visible input'), evaluate: vi.fn().mockResolvedValue(true) }
+    return { waitFor: vi.fn(), click: vi.fn(), fill: vi.fn(), press: vi.fn(), inputValue: vi.fn(), innerText: vi.fn().mockResolvedValue('DSH Testkit visible input'), evaluate: vi.fn().mockResolvedValue(true) }
   }
   const get = (key: string) => {
     if (!nodes.has(key)) nodes.set(key, node())
@@ -25,6 +25,10 @@ describe('independent visible-host interaction', () => {
     const result = await exerciseVisibleHost(page)
     expect(get('button:Continue').click).toHaveBeenCalledWith({ timeout: 20000 })
     expect(get('button:Configure later').click).toHaveBeenCalledWith({ timeout: 20000 })
+    expect(get('button:Choose workspace').click).toHaveBeenCalledWith({ timeout: 20000 })
+    expect(get('textbox:Edit path').fill).toHaveBeenCalledWith('/work/run/workspace', { timeout: 20000 })
+    expect(get('textbox:Edit path').press).toHaveBeenCalledWith('Enter', { timeout: 20000 })
+    expect(get('button:Open').click).toHaveBeenCalledWith({ timeout: 20000 })
     expect(get('textbox:').click).toHaveBeenCalledWith({ timeout: 20000 })
     expect(get('textbox:').fill).toHaveBeenCalledWith('DSH Testkit visible input', { timeout: 20000 })
     expect(result).toMatchObject({ noticeAcknowledged: true, providerSkipped: true, draftText: 'DSH Testkit visible input', submitted: false })

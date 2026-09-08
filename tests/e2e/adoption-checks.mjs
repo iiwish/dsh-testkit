@@ -20,6 +20,7 @@ export function assertAdoptionReport(report, negative) {
   assert.match(report.environment.imageId, /^sha256:[0-9a-f]{64}$/)
   assert.equal(report.stages.find(stage => stage.id === 'cleanup')?.status, 'passed')
   if (negative) {
+    assert.deepEqual(report.stages.filter(stage => ['failed', 'unsupported'].includes(stage.status)).map(stage => stage.id), ['assemble'])
     const assembly = report.stages.find(stage => stage.id === 'assemble')
     assert.equal(assembly?.status, 'failed')
     assert.ok(assembly.assertions.some(assertion => assertion.id === 'config.row.dsh-testkit-deliberately-missing' && assertion.status === 'failed' && assertion.actual === false))

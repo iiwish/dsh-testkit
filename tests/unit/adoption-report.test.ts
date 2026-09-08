@@ -37,4 +37,9 @@ describe('external adoption report contract', () => {
     const invalid = { ...report(), verdict: 'passed' }
     expect(() => assertAdoptionReport(invalid, false)).toThrow()
   })
+  it('does not let the deliberate fault hide a second lifecycle failure', () => {
+    const mixed = report()
+    mixed.stages.push({ id: 'reboot', status: 'failed', assertions: [] })
+    expect(() => assertAdoptionReport(mixed, true)).toThrow()
+  })
 })
