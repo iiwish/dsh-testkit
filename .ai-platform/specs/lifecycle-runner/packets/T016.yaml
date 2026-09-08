@@ -1,0 +1,40 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T016
+task_id: T016
+feature_id: lifecycle-runner
+mode: direct_execute
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  plan: .ai-platform/specs/lifecycle-runner/t016-plan.md
+  prerequisite_evidence: .ai-platform/evidence/T015/summary.md
+work_unit:
+  title: Isolated external adoption, independent visible browser proof and release preparation
+  depends_on: [T015]
+  sequence: [release preparation, isolated template consumer and Action, independent browser acceptance, scheduled monitoring verification]
+execution_constraints:
+  direct_execute_reason: User authorized execution but did not authorize delegation.
+  allowed_files: [.ai-platform/**, tests/e2e/**, tests/unit/**, tests/contracts/**, .github/workflows/ci.yml, package.json, CHANGELOG.md, docs/**, README.md, README.zh-CN.md]
+  invariants: [no npm publication, no release tag changes, no external repository writes, no public schema change, no default-host change, no injected DOM as visible interaction proof]
+codebase_context:
+  runner: src/runners/docker.ts
+  adapter: src/adapters/dsh/npm-adapter.ts
+  browser: src/adapters/dsh/browser-smoke.ts
+  evidence_gate: scripts/prepare-evidence.mjs
+tdd_plan:
+  red: Browser interaction and CI adoption contracts fail before implementation.
+  green: Real actionability and selected UI state determine browser acceptance; installed CLI and source Action execute pinned external source.
+validation_loop:
+  commands: [pnpm validate, pnpm test:adoption -- .adoption-subject, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack]
+  evidence_replay: Download new Linux artifacts and compare fresh policy manifests.
+evidence_contract:
+  paths: [.ai-platform/evidence/T016/summary.md, .ai-platform/evidence/T016/test-results.md, .ai-platform/evidence/T016/diff.patch]
+  required: [RED/GREEN, exact source and package identities, positive-negative-corrected lifecycle, Action result, desktop/mobile screenshots, schedule event proof, publication exclusions]
+review_contract:
+  spec_compliance: Four approved outcomes are individually evidenced, with external-event limitations explicit.
+  security: Reuse Docker limits; no credentials forwarded, raw auth evidence or unsafe public upload.
+handoff:
+  status: Needs_Review
+  acceptance_authority: user
+stop_conditions:
+  - Do not merge failed required checks or publish to npm.
+  - Do not replace genuine external or scheduled outcomes with synthetic success.

@@ -1,6 +1,7 @@
 # T015 DSH Support And Evidence Safety
 
-Status: Needs_Review
+Status: Accepted
+Acceptance: User approved the next-stage plan including T015 acceptance on 2026-09-08; publication remains unauthorized.
 Base: `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`.
 Implementation: [PR #40](https://github.com/iiwish/dsh-testkit/pull/40), merged as `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`.
 User approval: Exact rc.1 support, main monitoring closure and unified evidence checks; PR creation and merge after Linux acceptance; no npm release.
@@ -32,4 +33,4 @@ The [main-branch monitor](https://github.com/iiwish/dsh-testkit/actions/runs/342
 - The scanner is defense in depth, not arbitrary-secret detection, screenshot privacy certification or a sandbox against concurrently hostile processes.
 - Browser acceptance covers the existing bounded DOM-transition contract. The rc.1 screenshot shows the upstream first-run testing notice; it is not proof of a visually unobstructed interaction flow.
 - The release publishing job is linted and contract-tested but is not executed in this iteration. Published npm `0.4.2` and Action `v0` do not include these source changes.
-- Merge authorization is explicit; final task acceptance remains with the user.
+- Merge and T015 acceptance are authorized; package publication is not.

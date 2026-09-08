@@ -162,6 +162,53 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  adoption:
+    needs: [changes, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: bugmaker2/dsh-plugin-template
+          ref: 31af7ebeb8d07cff73253f52f9a9f530cde9de9a
+          path: .adoption-subject
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:adoption -- .adoption-subject
+        env:
+          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-adoption-evidence
+      - id: safety
+        if: always()
+        name: Prepare adoption evidence
+        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
+        env:
+          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-adoption-evidence
+      - if: always() && steps.safety.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dsh-adoption
+          path: ${{ steps.safety.outputs.path }}
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 14
+      - uses: ./.github/actions/dsh-test
+        with:
+          plugin: .adoption-subject
+          config: .adoption-subject/dsh-testkit.yaml
+          dsh-version: 0.1.2-rc.1
+          publish-junit-check: 'false'
+          artifact-retention-days: '14'
+
   action-smoke:
     needs: [changes, validate]
     runs-on: ubuntu-latest

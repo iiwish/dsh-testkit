@@ -1,10 +1,10 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.4.1
+Version: Unreleased source delivery; published baseline v0.4.2
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-31
+Last updated: 2026-09-08
 
 ## 状态定义
 

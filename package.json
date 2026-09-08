@@ -77,6 +77,7 @@
     "test:e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh.test.ts",
     "test:bundle-e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh-bundle.test.ts",
     "test:pack": "pnpm build && node tests/e2e/pack-consumer.mjs",
+    "test:adoption": "pnpm build && node tests/e2e/adoption-consumer.mjs",
     "validate": "pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
     "prepack": "pnpm check:contracts && pnpm build"
   },

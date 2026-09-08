@@ -1,8 +1,8 @@
 # DSH Testkit Delivery Index
 
-Version: v0.4.1
+Version: Unreleased source delivery; published baseline v0.4.2
 Status: Confirmed
-Last updated: 2026-08-31
+Last updated: 2026-09-08
 
 ## Active Release
 
@@ -12,7 +12,7 @@ Last updated: 2026-08-31
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 
-The v0.4.1 release scope is T013 and is accepted for protected-branch publication. T010, T011 and T012 remain accepted v0.4.0 history. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
+The published baseline is v0.4.2. T015 is accepted source delivery. T016 covers release preparation, isolated external adoption, independent visible browser acceptance and scheduled monitoring verification. Publication requires separate approval. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
 
 ## Release Gate
 
@@ -20,9 +20,20 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ## Governed Task Index
 
+### T016: Adoption And Release Readiness
+
+Status: Running
+Priority: P1
+Depends on: T015
+Parallel: No
+Approval: User approved steps 1 through 4 and this repository's protected PR/merge; no publication or external writes.
+Plan: `.ai-platform/specs/lifecycle-runner/t016-plan.md`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T016.yaml`
+Evidence: `.ai-platform/evidence/T016/`
+
 ### T015: DSH 0.1.2 Support And Evidence Safety
 
-Status: Needs_Review
+Status: Accepted
 Priority: P1
 Depends on: T014
 Parallel: No
@@ -32,7 +43,7 @@ Evidence: `.ai-platform/evidence/T015/`
 
 Scope: Add exact DSH 0.1.2-rc.1 support after packaged-consumer and Action acceptance; verify main Release Watch and summarize its terminal state; use one fail-closed evidence staging policy before artifact upload or JUnit publication. Default host, existing supported versions, v1 schemas and exit codes remain unchanged.
 
-Verification: PR #40 is merged. All 17 formal CI jobs and the post-merge main monitor pass; downloaded evidence manifests match a fresh policy replay. User acceptance is pending. No npm release or tag update is authorized.
+Verification: PRs #40 and #41 are merged. All 17 formal CI jobs and the post-merge main monitor pass; downloaded evidence manifests match a fresh policy replay. User approved the next-stage plan including T015 acceptance on 2026-09-08. No npm release or tag update is authorized.
 
 ### T014: Canary Compatibility Maintenance
 

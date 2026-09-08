@@ -4,6 +4,17 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Added
+
+- Exact DSH `0.1.2-rc.1` support, with formal lifecycle, installed-package and Action checks. The default remains `0.1.1-rc.2`.
+- Isolated, pinned external-template adoption acceptance for installed CLI initialization, intentional configuration failure, correction and the read-only source Action.
+- Independent test-only native web onboarding and unsent-editor interaction acceptance at desktop and mobile viewport sizes, separate from the seeded TurnStatus contract.
+
+### Changed
+
+- Stage and validate bounded evidence before artifact uploads and JUnit publication through a shared fail-closed policy and SHA-256 manifest.
+- Close Release Watch with an always-run summary of discovery, runnable canaries and versions awaiting npm packages.
+
 ## [0.4.2] - 2026-09-08
 
 ### Fixed
