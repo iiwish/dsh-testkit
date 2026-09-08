@@ -213,6 +213,10 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     }
     expect(result.report.verdict).toBe('passed')
     expect(result.report.environment.browser).toMatchObject({ name: 'chromium' })
+    for (const artifact of result.report.artifacts.filter(path => /\.(?:json|log|txt)$/.test(path))) {
+      const content = await readFile(join(result.outputDir, artifact), 'utf8')
+      expect(/[?&]token=(?!\[REDACTED\])[^&\s"<>]+/.test(content), `Unredacted launch token in ${artifact}`).toBe(false)
+    }
     const register = result.report.stages.find(stage => stage.id === 'register')
     expect(register?.assertions).toContainEqual(expect.objectContaining({
       id: 'browser.turn-status.text',

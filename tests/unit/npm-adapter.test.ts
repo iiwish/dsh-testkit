@@ -14,7 +14,12 @@ import type { AdapterBootObservation } from '../../src/worker/adapter.js'
 import type { AdapterCompletion } from '../../src/worker/adapter.js'
 import { ScenarioSchema } from '../../src/domain/scenario.js'
 import type { CommandResult } from '../../src/process/command.js'
-import { snapshotFiles } from '../../src/observers/snapshot.js'
+import { captureSystemSnapshot, snapshotFiles } from '../../src/observers/snapshot.js'
+
+vi.mock('../../src/observers/snapshot.js', async (importOriginal) => {
+  const snapshot = await importOriginal<typeof import('../../src/observers/snapshot.js')>()
+  return { ...snapshot, captureSystemSnapshot: vi.fn(snapshot.captureSystemSnapshot) }
+})
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const fs = await importOriginal<typeof import('node:fs/promises')>()
@@ -112,6 +117,26 @@ describe('subject-free runtime baseline', () => {
 })
 
 describe('DshNpmAdapter verdict boundaries', () => {
+  it('redacts launcher credentials before persisting or returning process snapshots', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-process-redaction-'))
+    const adapter = new DshNpmAdapter() as unknown as {
+      captureSystem(label: string): Promise<{ processes: string | null; ports: string | null }>
+    }
+    Object.assign(adapter, { evidenceDir: root, canary: 'canary-secret', request: { outputDir: root } })
+    vi.mocked(captureSystemSnapshot).mockResolvedValueOnce({
+      processes: '123 1 S node open http://127.0.0.1:3080/?token=launch-secret canary-secret',
+      ports: null,
+    })
+    try {
+      const result = await adapter.captureSystem('boot')
+      expect(result.processes).toBe('123 1 S node open http://127.0.0.1:3080/?token=[REDACTED] [REDACTED]')
+      expect(await readFile(join(root, 'process-boot.txt'), 'utf8')).toBe(result.processes)
+      expect(result.ports).toBeNull()
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('requires live loopback evidence before attributing a timeout to the DSH host', () => {
     expect(classifyBootFailure('pre-probe-timeout')).toBe('timeout')
     expect(classifyBootFailure('live-loopback-unresponsive')).toBe('dsh')

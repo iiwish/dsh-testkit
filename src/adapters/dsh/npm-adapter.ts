@@ -37,7 +37,7 @@ import {
   writeSnapshot,
 } from '../../observers/snapshot.js'
 import type { FileChange } from '../../observers/snapshot.js'
-import { runCommand } from '../../process/command.js'
+import { runCommand, sanitizeCommand } from '../../process/command.js'
 import type { CommandResult } from '../../process/command.js'
 import type {
   AdapterBootObservation,
@@ -1617,7 +1617,10 @@ export class DshNpmAdapter implements LifecycleAdapter {
   }
 
   private async captureSystem(label: string): Promise<{ processes: string | null; ports: string | null }> {
-    const { processes, ports } = await captureSystemSnapshot()
+    const snapshot = await captureSystemSnapshot()
+    const redactions = [this.canary, ...environmentRedactions()]
+    const processes = snapshot.processes === null ? null : sanitizeCommand([snapshot.processes], redactions)[0]!
+    const ports = snapshot.ports === null ? null : sanitizeCommand([snapshot.ports], redactions)[0]!
     if (processes !== null) {
       const path = join(this.evidenceDir, `process-${label}.txt`)
       await writeFile(path, processes)
