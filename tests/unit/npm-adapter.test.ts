@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
+import { parse } from 'yaml'
 
 import {
   buildLocalPackageInstallPlan,
@@ -15,7 +16,28 @@ import { ScenarioSchema } from '../../src/domain/scenario.js'
 import type { CommandResult } from '../../src/process/command.js'
 import { snapshotFiles } from '../../src/observers/snapshot.js'
 
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const fs = await importOriginal<typeof import('node:fs/promises')>()
+  return { ...fs, access: vi.fn(fs.access) }
+})
+
 describe('subject-free runtime baseline', () => {
+  it.each([true, false])('declares Connection readiness only for browser probes (%s)', async (browser) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-probe-readiness-'))
+    const adapter = new DshNpmAdapter() as unknown as { ensureProbePatch(): Promise<void> }
+    Object.assign(adapter, { runRoot: root, request: { scenario: {
+      ...(browser ? { browser: { smoke: {} } } : {}),
+    } } })
+    try {
+      vi.mocked(access).mockResolvedValueOnce(undefined)
+      await adapter.ensureProbePatch()
+      const patch = parse(await readFile(join(root, 'probe.patch.yml'), 'utf8'))
+      expect(patch[0].insert[0].inject).toEqual(browser ? ['connection'] : undefined)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('still attributes content changes to a credential file already present in the host baseline', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-baseline-residue-'))
     const home = join(root, 'home')

@@ -1231,6 +1231,8 @@ export class DshNpmAdapter implements LifecycleAdapter {
       '- insert:',
       '    - id: dsh-testkit-runtime-probe',
       `      name: ${JSON.stringify(pathToFileURL(modulePath).href)}`,
+      // Browser credentials belong to an asynchronously activated provider.
+      ...(this.request.scenario.browser === undefined ? [] : ['      inject: [connection]']),
       '',
     ].join('\n'))
   }

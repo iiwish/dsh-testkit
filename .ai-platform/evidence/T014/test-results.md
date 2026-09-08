@@ -29,6 +29,12 @@ Environment: macOS arm64, Node `24.15.0`, project pnpm `11.1.3`, Docker `29.4.0`
 - Real-host candidate and supported-host regressions.
 - Native-bundle and packaged-consumer evidence.
 
+## Linux CI Iteration
+
+- PR #37 CI run `34184903651` at `1dc5c59`: all 14 jobs passed, including real-host lifecycle, native bundle and packaged consumer for all four supported versions, plus positive and negative Action smoke matrices.
+- Release Watch run `34184752917` at `3c1aa60`: all six candidate bundle lanes passed. Each lifecycle lane failed the browser fixture with HTTP 401; other fixture results and artifacts were retained. The public `browser-boot.json` for `0.1.2-rc.1` proves navigation reached the host, not a local image-build timeout.
+- Browser probe patch declares `inject: [connection]` so the host loader activates it only after the asynchronous authentication provider is ready. Non-browser probes retain their existing dependency-free behavior. Focused patch tests cover both cases; `pnpm validate` passes 174 tests. Linux reruns are required for this correction.
+
 The canonical build overwrote disposable local canary activation after the focused worker processes had started. No new host is enabled in source or claimed supported. PR #37 is open; merge, release and user acceptance are pending.
 
 ## Dependency Security
