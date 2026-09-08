@@ -9,6 +9,7 @@ const fileLimit = 16 * 1024 * 1024
 const forbiddenDirectories = new Set(['home', 'user-home', 'harness', 'workspace', 'node_modules', 'storages', 'cache', 'packages'])
 const allowedFile = /^(?:report\.(?:json|md)|junit\.xml|scenario\.json|subject\.json|probe(?:-[a-z-]+)?\.json|browser-boot\.json|browser-boot-turn-status\.png|http-boot\.json|filesystem-(?:before-install|before-boot|after-uninstall)\.json|owned-root-final\.json|effective-config(?:-update)?\.yml|(?:process|ports)-[a-z-]+\.txt|[a-zA-Z0-9_.-]+\.(?:stdout|stderr)\.log)$/
 const redacted = (value) => value === '[REDACTED]' || value === ''
+const credentialKey = /^(?:token|api[_-]?key|password|secret|(?:access|refresh|auth)[_-]?token|client[_-]?secret|authorization|set-cookie|cookies?)$/i
 
 function scan(text) {
   if (/-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/.test(text)
@@ -21,10 +22,10 @@ function scan(text) {
     try { url = new URL(match[0]) } catch { continue }
     if (url.username || url.password) fail('CREDENTIAL')
     for (const [key, value] of url.searchParams) {
-      if (/^(?:token|access_token|auth|api[_-]?key|password|secret)$/i.test(key) && !redacted(value)) fail('CREDENTIAL')
+      if ((credentialKey.test(key) || key.toLowerCase() === 'auth') && !redacted(value)) fail('CREDENTIAL')
     }
   }
-  for (const match of text.matchAll(/["']?(?:api[_-]?key|password|secret|access[_-]?token)["']?\s*[:=]\s*["']?([^\s"',}\r\n]+)/gi)) {
+  for (const match of text.matchAll(/["']?(?:token|api[_-]?key|password|secret|(?:access|refresh|auth)[_-]?token|client[_-]?secret)["']?\s*[:=]\s*["']?([^\s"',}\r\n]+)/gi)) {
     if (!redacted(match[1])) fail('CREDENTIAL')
   }
 }
@@ -65,8 +66,8 @@ function inspect(buffer, name) {
       if (typeof value === 'string') scan(value)
       else if (value && typeof value === 'object') {
         for (const [key, child] of Object.entries(value)) {
-          if (/^(?:token|api[_-]?key|password|secret|access[_-]?token)$/i.test(key)
-            && child != null && !redacted(String(child))) fail('CREDENTIAL')
+          const emptyContainer = child && typeof child === 'object' && Object.keys(child).length === 0
+          if (credentialKey.test(key) && child != null && !emptyContainer && !redacted(String(child))) fail('CREDENTIAL')
           visit(child)
         }
       }
