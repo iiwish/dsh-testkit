@@ -22,7 +22,7 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ### T015: DSH 0.1.2 Support And Evidence Safety
 
-Status: In_Progress
+Status: Needs_Review
 Priority: P1
 Depends on: T014
 Parallel: No
@@ -31,6 +31,8 @@ Packet: `.ai-platform/specs/lifecycle-runner/packets/T015.yaml`
 Evidence: `.ai-platform/evidence/T015/`
 
 Scope: Add exact DSH 0.1.2-rc.1 support after packaged-consumer and Action acceptance; verify main Release Watch and summarize its terminal state; use one fail-closed evidence staging policy before artifact upload or JUnit publication. Default host, existing supported versions, v1 schemas and exit codes remain unchanged.
+
+Verification: PR #40 is merged. All 17 formal CI jobs and the post-merge main monitor pass; downloaded evidence manifests match a fresh policy replay. User acceptance is pending. No npm release or tag update is authorized.
 
 ### T014: Canary Compatibility Maintenance
 

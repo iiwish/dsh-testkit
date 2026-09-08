@@ -48,5 +48,5 @@ stop_conditions:
   - Do not merge a failed required check or promote a host with failed acceptance.
   - Do not substitute a source-tree invocation for the installed package acceptance.
 handoff:
-  status: In_Progress
+  status: Needs_Review
   acceptance_authority: user

@@ -1,0 +1,1106 @@
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index 6abc70f..8de8f6d 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -20,6 +20,18 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
+
+ ## Governed Task Index
+
++### T015: DSH 0.1.2 Support And Evidence Safety
++
++Status: In_Progress
++Priority: P1
++Depends on: T014
++Parallel: No
++Approval: User approved the three-part iteration and PR/main merge after Linux validation on 2026-09-08; no npm publication is authorized.
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T015.yaml`
++Evidence: `.ai-platform/evidence/T015/`
++
++Scope: Add exact DSH 0.1.2-rc.1 support after packaged-consumer and Action acceptance; verify main Release Watch and summarize its terminal state; use one fail-closed evidence staging policy before artifact upload or JUnit publication. Default host, existing supported versions, v1 schemas and exit codes remain unchanged.
++
+ ### T014: Canary Compatibility Maintenance
+
+ Status: Accepted
+diff --git a/.ai-platform/evidence/T015/summary.md b/.ai-platform/evidence/T015/summary.md
+new file mode 100644
+index 0000000..1a6f5cb
+--- /dev/null
++++ b/.ai-platform/evidence/T015/summary.md
+@@ -0,0 +1,18 @@
++# T015 DSH Support And Evidence Safety
++
++Status: In_Progress
++Base: `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`.
++User approval: Exact rc.1 support, main monitoring closure and unified evidence checks; PR creation and merge after Linux acceptance; no npm release.
++
++## Contract
++
++DSH `0.1.2-rc.1` must pass lifecycle, HTTP/browser, negative residue, native bundle, installed-package Docker execution and healthy/negative Action smoke before support is merged. The default remains `0.1.1-rc.2` and alpha candidates remain unsupported.
++
++Artifact upload and JUnit publication consume fresh staged evidence, not raw output directories. A shared fail-closed policy allows only known diagnostic formats, bounded input and regular non-linked files, rejects recognizable credentials, and reports rejection categories without exposing content. This is defense in depth, not arbitrary-secret or screenshot-privacy certification.
++
++## Preflight
++
++- T014 Linux and publication evidence is complete; main is clean.
++- A baseline main Release Watch was dispatched as run `34201769307`.
++- Inspection found packaged-consumer smoke builds the installed package image but does not execute its CLI against the selected host. T015 adds that missing acceptance rather than treating a successful build as host compatibility proof.
++- Existing required check identities are preserved. No default-host switch, new npm version or tag update is in scope.
+diff --git a/.ai-platform/evidence/T015/test-results.md b/.ai-platform/evidence/T015/test-results.md
+new file mode 100644
+index 0000000..920a400
+--- /dev/null
++++ b/.ai-platform/evidence/T015/test-results.md
+@@ -0,0 +1,21 @@
++# T015 Verification
++
++Status: In_Progress
++
++## Local Verification
++
++- RED: support/evidence tests failed 23 of 27 cases before implementation (missing rc.1 and missing shared scanner).
++- RED: workflow contracts failed 5 of 8 cases before gating and monitoring-summary changes.
++- RED: a signature-only PNG was incorrectly accepted before structural screening.
++- RED/GREEN review fix: four additional structured Authorization/cookie and refresh/environment-token cases failed before scanner hardening; all 28 safety tests pass afterward, and genuine-evidence replay still passes.
++- GREEN: final `pnpm validate` passed all 215 tests, typecheck, contracts, Action pins, release metadata and build.
++- GREEN: focused safety/workflow/discovery/summary suite passed 46 tests after PNG screening.
++- GREEN: actionlint v1.7.7 and `git diff --check` passed.
++- Genuine evidence replay: the shared scanner accepted all 12 T014 Linux canary archives (lifecycle and bundle for six hosts) as one input tree, including Chromium screenshots. No raw input was modified.
++- Baseline main Release Watch [34201769307](https://github.com/iiwish/dsh-testkit/actions/runs/34201769307) completed successfully at `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`.
++
++## Pending Linux Acceptance
++
++- Supported-host, installed-package and Action acceptance for rc.1.
++- Unified staged uploads and downloaded-manifest verification.
++- Main Release Watch terminal summary and post-merge execution.
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T015.yaml b/.ai-platform/specs/lifecycle-runner/packets/T015.yaml
+new file mode 100644
+index 0000000..919c658
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T015.yaml
+@@ -0,0 +1,52 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T015
++task_id: T015
++feature_id: lifecycle-runner
++mode: direct_execute
++approval: User approved exact rc.1 support, main monitoring closure and shared evidence safety, plus PR creation and merge after Linux validation; no release.
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  plan: .ai-platform/specs/lifecycle-runner/plan.md
++  prerequisite_evidence: .ai-platform/evidence/T014/test-results.md
++work_unit:
++  title: DSH 0.1.2 support and fail-closed evidence publication
++  depends_on: [T014]
++  sequence:
++    - Verify main Release Watch on the released baseline.
++    - Add exact rc.1 support without changing the default or admitting alpha hosts.
++    - Exercise the installed tarball CLI against the selected real Docker host, not just build its image.
++    - Stage allowlisted bounded evidence; block credentials, symlinks and unknown files before uploads and JUnit annotations.
++    - Run supported and candidate matrices, review artifacts, merge the PR and rerun main Release Watch.
++execution_constraints:
++  direct_execute_reason: User requested sequential execution and did not authorize delegation.
++  allowed_files: [.ai-platform/**, src/adapters/dsh/support.ts, scripts/**, .github/actions/**, .github/workflows/**, tests/**, package.json, README.md, README.zh-CN.md, docs/**]
++  invariants:
++    - Preserve v1 schemas, lifecycle exit codes and Docker isolation.
++    - Keep 0.1.1-rc.2 as the default; preserve all existing supported versions.
++    - Do not publish npm packages, move release tags or claim the published 0.4.2 CLI accepts rc.1.
++    - Security failures must suppress every public artifact/annotation outlet and must not print rejected content.
++    - Copy only validated bytes to a fresh runner-owned staging directory; never upload the raw evidence root.
++codebase_context:
++  support: src/adapters/dsh/support.ts
++  evidence_sources: [tests/e2e/real-dsh.test.ts, tests/e2e/real-dsh-bundle.test.ts, tests/e2e/pack-consumer.mjs]
++  publication_outlets: [.github/actions/dsh-test/action.yml, .github/workflows/ci.yml, .github/workflows/dsh-release-watch.yml, .github/workflows/release.yml]
++tdd_plan:
++  red: Prove rc.1 support/CI contracts and evidence staging tests fail before implementation.
++  green: Reject credential files, raw launch URLs, headers, links, unknown binaries, unsafe paths and oversized input; preserve safe success/failure/timeout evidence.
++validation_loop:
++  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm check:actions]
++  matrix: [0.1.1-rc.2, 0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
++  workflow_lint: actionlint v1.7.7
++evidence_contract:
++  paths: [.ai-platform/evidence/T015/summary.md, .ai-platform/evidence/T015/test-results.md]
++  required: [RED/GREEN evidence, real-host and packaged-consumer matrix, main watch run, staging policy limitations, residual risks]
++review_contract:
++  spec_compliance: All three requested outcomes have implementation and real Linux evidence.
++  security: No raw artifact outlet, untrusted path traversal, silent skip or verdict override.
++  acceptance_authority: user
++stop_conditions:
++  - Do not merge a failed required check or promote a host with failed acceptance.
++  - Do not substitute a source-tree invocation for the installed package acceptance.
++handoff:
++  status: In_Progress
++  acceptance_authority: user
+diff --git a/.github/actions/dsh-test/action.yml b/.github/actions/dsh-test/action.yml
+index 383b832..77efe5d 100644
+--- a/.github/actions/dsh-test/action.yml
++++ b/.github/actions/dsh-test/action.yml
+@@ -95,21 +95,29 @@ runs:
+         INPUT_ARGS_JSON: ${{ inputs.args-json }}
+         RESOLVED_OUTPUT: ${{ steps.paths.outputs.output }}
+       run: node "$GITHUB_ACTION_PATH/../../../dist/src/action/run.js"
++    - id: safety
++      name: Prepare safe evidence
++      if: always() && steps.paths.outcome == 'success'
++      shell: bash
++      env:
++        RESOLVED_OUTPUT: ${{ steps.paths.outputs.output }}
++      run: node "$GITHUB_ACTION_PATH/../../../scripts/prepare-evidence.mjs" "$GITHUB_WORKSPACE/$RESOLVED_OUTPUT" --allow-missing
+     - name: Publish JUnit
+-      if: always()
++      if: always() && steps.safety.outcome == 'success'
+       uses: mikepenz/action-junit-report@d9f48fc87bc235f7e214acf696ca5abc0a986f16 # v6.4.2
+       with:
+-        report_paths: ${{ github.workspace }}/${{ steps.paths.outputs.output }}/junit.xml
++        report_paths: ${{ steps.safety.outputs.path }}/junit.xml
+         check_name: ${{ steps.paths.outputs.check-name }}
+         fail_on_failure: false
+         annotate_only: ${{ inputs.publish-junit-check != 'true' }}
+     - name: Upload lifecycle evidence
+       id: evidence
+-      if: always()
++      if: always() && steps.safety.outcome == 'success'
+       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+       with:
+         name: ${{ steps.paths.outputs.artifact-name }}
+-        path: ${{ github.workspace }}/${{ steps.paths.outputs.output }}
++        path: ${{ steps.safety.outputs.path }}
++        include-hidden-files: false
+         if-no-files-found: error
+         retention-days: ${{ inputs.artifact-retention-days }}
+     - name: Enforce lifecycle verdict
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index f47ca70..fa56b22 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -78,10 +78,33 @@ jobs:
+         run: pnpm install --frozen-lockfile
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:bundle-e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:pack
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
++
++      - id: safety
++        name: Prepare safe evidence
++        if: always() && (github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true')
++        env:
++          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
++        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
++      - id: evidence
++        name: Retain checked evidence
++        if: always() && steps.safety.outcome == 'success'
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: dsh-formal-default
++          path: ${{ steps.safety.outputs.path }}
++          include-hidden-files: false
++          if-no-files-found: error
++          retention-days: 14
+
+   real-host-compat:
+     needs: [changes, validate]
+@@ -89,7 +112,7 @@ jobs:
+     strategy:
+       fail-fast: false
+       matrix:
+-        dsh-version: [0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
++        dsh-version: [0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
+     env:
+       DSH_TESTKIT_DSH_VERSION: ${{ matrix.dsh-version }}
+     steps:
+@@ -111,10 +134,33 @@ jobs:
+         run: pnpm install --frozen-lockfile
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:bundle-e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
+         run: pnpm test:pack
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
++
++      - id: safety
++        name: Prepare safe evidence
++        if: always() && (github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true')
++        env:
++          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
++        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
++      - id: evidence
++        name: Retain checked evidence
++        if: always() && steps.safety.outcome == 'success'
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: dsh-formal-${{ matrix.dsh-version }}
++          path: ${{ steps.safety.outputs.path }}
++          include-hidden-files: false
++          if-no-files-found: error
++          retention-days: 14
+
+   action-smoke:
+     needs: [changes, validate]
+@@ -154,6 +200,10 @@ jobs:
+         include:
+           - plugin: fixtures/healthy-plugin
+             dsh-version: 0.1.0-rc.8
++          - plugin: fixtures/healthy-plugin
++            dsh-version: 0.1.2-rc.1
++          - plugin: fixtures/boot-failure-plugin
++            dsh-version: 0.1.2-rc.1
+           - plugin: fixtures/boot-failure-plugin
+             dsh-version: 0.1.0-rc.8
+           - plugin: fixtures/healthy-plugin
+diff --git a/.github/workflows/dsh-release-watch.yml b/.github/workflows/dsh-release-watch.yml
+index dc70165..3c764a6 100644
+--- a/.github/workflows/dsh-release-watch.yml
++++ b/.github/workflows/dsh-release-watch.yml
+@@ -70,12 +70,33 @@ jobs:
+         run: pnpm test:bundle-e2e
+         env:
+           DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+-      - name: Retain canary evidence
++      - id: safety
++        name: Prepare safe evidence
+         if: always()
++        env:
++          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
++        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
++      - name: Retain canary evidence
++        if: always() && steps.safety.outcome == 'success'
+         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+         with:
+           name: dsh-canary-${{ matrix.dsh }}-${{ matrix.lane }}
+-          path: ${{ runner.temp }}/dsh-testkit-evidence
++          path: ${{ steps.safety.outputs.path }}
+           include-hidden-files: false
+           if-no-files-found: warn
+           retention-days: 14
++
++  summary:
++    if: always()
++    needs: [discover, canary]
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Summarize monitoring result
++        env:
++          DISCOVERY_RESULT: ${{ needs.discover.result }}
++          CANARY_RESULT: ${{ needs.canary.result }}
++          CANARY_VERSIONS: ${{ needs.discover.outputs.canary_versions }}
++          PENDING_NPM_VERSIONS: ${{ needs.discover.outputs.pending_npm_versions }}
++        run: node scripts/summarize-dsh-release-watch.mjs
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 8d4d0d2..dc2e57b 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -42,8 +42,30 @@ jobs:
+       - run: pnpm install --frozen-lockfile
+       - run: pnpm validate
+       - run: pnpm test:e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - run: pnpm test:bundle-e2e
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
+       - run: pnpm test:pack
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
++      - id: safety
++        name: Prepare safe evidence
++        if: always()
++        env:
++          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
++        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
++      - id: evidence
++        name: Retain checked evidence
++        if: always() && steps.safety.outcome == 'success'
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: dsh-release-evidence
++          path: ${{ steps.safety.outputs.path }}
++          include-hidden-files: false
++          if-no-files-found: error
++          retention-days: 14
+       - name: Publish with npm Trusted Publishing
+         run: npm publish --access public
+       - name: Verify public package
+diff --git a/README.md b/README.md
+index 8ef785f..e0576da 100644
+--- a/README.md
++++ b/README.md
+@@ -75,9 +75,9 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
+         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+ ```
+
+-The adapter currently accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
++The source adapter accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Published npm `dsh-testkit@0.4.2` and the `v0` Action do not include `0.1.2-rc.1` support; use a reviewed source commit for that host until a release includes it. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
+
+-The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, npm provides `0.1.2-alpha.2` through `0.1.2-alpha.5`, `0.1.2-rc.1`, and `0.1.3-alpha.2`; the official `0.1.2-alpha.1` and `0.1.3-alpha.1` releases are waiting for matching npm packages. These candidates are not formally supported. See [Host Compatibility](docs/host-compatibility.md) for known failures, evidence, and promotion requirements.
++The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, the alpha candidates are `0.1.2-alpha.2` through `0.1.2-alpha.5` and `0.1.3-alpha.2`; the official `0.1.2-alpha.1` and `0.1.3-alpha.1` releases are waiting for matching npm packages. Alpha candidates are not formally supported. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
+
+ ### What A Pass Means
+
+@@ -153,7 +153,7 @@ steps:
+       publish-junit-check: 'false'
+ ```
+
+-This default writes JUnit annotations to the job, uploads the complete evidence directory, and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API.
++This default writes JUnit annotations to the job and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API. The source Action checks evidence before either publication outlet and uploads only a fresh staged copy with a hash manifest. Unsafe evidence fails the job and is not published. This guard is not included in the published `v0` Action until a release includes it.
+
+ A trusted push or release workflow may opt into a named JUnit Check:
+
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index a03041b..d3730cd 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -75,9 +75,9 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
+         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+ ```
+
+-当前 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
++源码 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。已发布的 npm `dsh-testkit@0.4.2` 和 `v0` Action 不包含 `0.1.2-rc.1` 支持；包含该支持的版本发布前，请使用经过审核的源码 commit。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
+
+-一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，npm 提供 `0.1.2-alpha.2` 至 `0.1.2-alpha.5`、`0.1.2-rc.1` 和 `0.1.3-alpha.2`；官方 `0.1.2-alpha.1`、`0.1.3-alpha.1` release 等待对应 npm 包。这些候选版本均未纳入正式支持。已知失败、验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
++一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，alpha 候选为 `0.1.2-alpha.2` 至 `0.1.2-alpha.5` 和 `0.1.3-alpha.2`；官方 `0.1.2-alpha.1`、`0.1.3-alpha.1` release 等待对应 npm 包。Alpha 候选版本均未纳入正式支持。验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
+
+ ### 通过意味着什么
+
+@@ -153,7 +153,7 @@ steps:
+       publish-junit-check: 'false'
+ ```
+
+-默认模式会把 JUnit annotation 写入 job，上传完整证据目录，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。
++默认模式会把 JUnit annotation 写入 job，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。源码 Action 在两个发布出口前执行统一证据检查，只上传附带哈希清单的全新暂存副本。不安全证据会使 job 失败且不会发布。已发布的 `v0` Action 尚不包含此检查，需等待相应版本发布。
+
+ 受信任的 push 或 release workflow 可以选择发布命名 JUnit Check：
+
+diff --git a/docs/architecture.md b/docs/architecture.md
+index f5350b9..f13b770 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -31,3 +31,5 @@ Observer results are capability-aware. Files under the owned root, process check
+ Command output is sanitized before persistence and bounded to 8 MiB per stream. Exceeding that limit fails the owning stage instead of silently claiming complete evidence.
+
+ The Composite Action keeps reporting and repository mutation separate. Its default `publish-junit-check: 'false'` mode emits annotations and uploads evidence with `contents: read`. Only a trusted workflow that explicitly opts into a named JUnit Check needs `checks: write`.
++
++All source CI artifact outlets share `scripts/prepare-evidence.mjs`. After execution, it checks a bounded allowlist of diagnostic files, refuses linked or private host content and recognizable credentials, then writes a fresh private staging directory with a hash manifest. Upload and JUnit actions consume only that staged directory when the check succeeds. A rejected bundle is not partially published or silently redacted; the check reports only its rejection category. This publication boundary complements runtime redaction but cannot certify arbitrary text or screenshot pixels as public-safe.
+diff --git a/docs/contributing.md b/docs/contributing.md
+index da91256..8c9256d 100644
+--- a/docs/contributing.md
++++ b/docs/contributing.md
+@@ -15,7 +15,11 @@ The Docker runner uses `assets/runner-pnpm-lock.yaml`, which `pnpm build` genera
+
+ The real-host E2E suite executes intentionally broken packages. Use Docker for untrusted subjects. Local E2E is reserved for repository-owned fixtures and still requires explicit unsafe consent.
+
+-Set `DSH_TESTKIT_E2E_OUTPUT` to retain lifecycle reports, sanitized logs, and browser screenshots in a chosen evidence directory. Native bundle tests retain only diagnostics and nested run reports there, not host homes or package installations. Release Watch runs lifecycle and native-bundle lanes as separate matrix jobs and uploads evidence on failure as well as success. New host candidates require both lanes; an early lifecycle failure must not suppress the bundle result.
++Set `DSH_TESTKIT_E2E_OUTPUT` to retain lifecycle reports, sanitized logs, and browser screenshots in a chosen evidence directory. Native bundle and packaged-consumer tests retain only diagnostics and run reports there, not host homes or package installations. `test:pack` installs the produced tarball into a clean consumer, checks its public interfaces and Docker build, then executes that installed CLI against `DSH_TESTKIT_DSH_VERSION` using Docker and validates the resulting host/package identity and lifecycle report.
++
++Release Watch runs lifecycle and native-bundle lanes as separate matrix jobs. New host candidates require both lanes; an early lifecycle failure must not suppress the bundle result. Formal CI, Release Watch, the release workflow and the source Composite Action run `scripts/prepare-evidence.mjs` before uploading diagnostics; JUnit also reads only the checked staging copy. Safe failed-run evidence is retained without converting the original failure to success. A policy rejection fails the job and suppresses both outlets.
++
++The evidence policy permits named diagnostic files, regular non-linked inputs, UTF-8 text and the bounded browser PNG. It rejects unknown files, host directories, recognizable credentials, files over 16 MiB, bundles over 256 MiB, more than 4,000 files and excessive nesting. Success creates a fresh mode-restricted copy and a SHA-256 manifest; missing output is explicitly recorded as unavailable, not as a passing test. Review policy additions alongside representative genuine evidence and adversarial tests. Do not use this scanner as arbitrary-secret detection, screenshot privacy certification or a sandbox for concurrently hostile processes.
+
+ Runtime support starts at Node.js 22. Keep the Node type-definition major under explicit review rather than automatically adopting the latest major; newer declarations can make unavailable runtime APIs typecheck successfully.
+
+diff --git a/docs/host-compatibility.md b/docs/host-compatibility.md
+index 1a041da..d99e0ae 100644
+--- a/docs/host-compatibility.md
++++ b/docs/host-compatibility.md
+@@ -5,19 +5,24 @@ Status checked: 2026-09-08.
+ | Host versions | Status |
+ | --- | --- |
+ | `0.1.1-rc.2` | Formal support; default host |
++| `0.1.2-rc.1` | Source support; not included in npm `0.4.2` or Action `v0` |
+ | `0.1.0-rc.6`, `0.1.0-rc.7`, `0.1.0-rc.8` | Formal compatibility support |
+-| `0.1.2-alpha.2` through `0.1.2-alpha.5`, `0.1.2-rc.1` | Disposable canaries; Linux lifecycle and native-bundle checks pass; not formally supported |
++| `0.1.2-alpha.2` through `0.1.2-alpha.5` | Older alpha canaries with recorded passing checks; not formally supported or rerun after rc.1 promotion |
+ | `0.1.3-alpha.2` | Disposable canary; Linux lifecycle and native-bundle checks pass; not formally supported |
+ | `0.1.2-alpha.1`, `0.1.3-alpha.1` | Immutable official releases without matching npm artifacts; no runtime execution |
+
+-The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout.
++The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest formally supported version: with `0.1.2-rc.1` in source support, its current runnable candidate is `0.1.3-alpha.2` and its pending npm candidate is `0.1.3-alpha.1`.
+
+ ## Validation
+
+-The [Linux Release Watch](https://github.com/iiwish/dsh-testkit/actions/runs/34185918263) passes all six candidates in independent lifecycle and native-bundle lanes. The [supported-host CI](https://github.com/iiwish/dsh-testkit/actions/runs/34185912844) passes the formal matrix, including packaged Docker consumers and positive/negative Action smoke cases.
++The [baseline main Release Watch](https://github.com/iiwish/dsh-testkit/actions/runs/34201769307) passes all six pre-promotion candidates in independent lifecycle and native-bundle lanes. Source support promotion requires the full formal matrix, including installed-package Docker execution and positive/negative Action smoke cases. The T015 evidence record holds the promotion checks and main-branch monitoring result.
+
+ The adapter establishes a subject-free runtime baseline before taking subject snapshots. Changes to existing host paths remain subject-attributable; host filenames are not a blanket exemption. Browser smoke waits for the Connection service and uses the disposable host's own root-token exchange without disabling its authentication fence. Logs and process snapshots redact launch tokens. The T014 evidence record tracks validation and artifact review.
+
+ ## Promotion Gate
+
+ An exact npm candidate becomes formally supported only after lifecycle, negative-residue, HTTP, browser, native-bundle and packaged-consumer checks pass and the adapter change is reviewed. All existing supported hosts must remain green. Candidate failures retain their reports and do not change the default host or stable exit-code semantics.
++
++## Monitoring
++
++Release Watch runs daily at 03:17 UTC on the default branch and supports explicit dispatch. Its final summary records the ref, commit, discovery result, aggregate independent-lane result, runnable candidates and pending npm candidates. A failed or cancelled prerequisite cannot produce a passing summary. A successful discovery with no candidates records a skipped canary matrix. Dispatch verification does not claim that a future scheduled run has executed.
+diff --git a/package.json b/package.json
+index 94a61b5..fef20fe 100644
+--- a/package.json
++++ b/package.json
+@@ -76,7 +76,7 @@
+     "test:coverage": "vitest run --coverage",
+     "test:e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh.test.ts",
+     "test:bundle-e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh-bundle.test.ts",
+-    "test:pack": "node tests/e2e/pack-consumer.mjs",
++    "test:pack": "pnpm build && node tests/e2e/pack-consumer.mjs",
+     "validate": "pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
+     "prepack": "pnpm check:contracts && pnpm build"
+   },
+diff --git a/scripts/prepare-evidence.mjs b/scripts/prepare-evidence.mjs
+new file mode 100644
+index 0000000..b63d2c8
+--- /dev/null
++++ b/scripts/prepare-evidence.mjs
+@@ -0,0 +1,146 @@
++import { constants } from 'node:fs'
++import { appendFile, lstat, mkdir, mkdtemp, open, readdir, realpath, rm, writeFile } from 'node:fs/promises'
++import { createHash } from 'node:crypto'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++
++const fail = (category) => { throw new Error(`EVIDENCE_${category}`) }
++const fileLimit = 16 * 1024 * 1024
++const forbiddenDirectories = new Set(['home', 'user-home', 'harness', 'workspace', 'node_modules', 'storages', 'cache', 'packages'])
++const allowedFile = /^(?:report\.(?:json|md)|junit\.xml|scenario\.json|subject\.json|probe(?:-[a-z-]+)?\.json|browser-boot\.json|browser-boot-turn-status\.png|http-boot\.json|filesystem-(?:before-install|before-boot|after-uninstall)\.json|owned-root-final\.json|effective-config(?:-update)?\.yml|(?:process|ports)-[a-z-]+\.txt|[a-zA-Z0-9_.-]+\.(?:stdout|stderr)\.log)$/
++const redacted = (value) => value === '[REDACTED]' || value === ''
++const credentialKey = /^(?:token|api[_-]?key|password|secret|(?:access|refresh|auth)[_-]?token|client[_-]?secret|authorization|set-cookie|cookies?)$/i
++
++function scan(text) {
++  if (/-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/.test(text)
++    || /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|npm_[A-Za-z0-9]{20,})\b/.test(text)) fail('CREDENTIAL')
++  for (const match of text.matchAll(/(?:authorization|set-cookie|cookie)\s*:\s*([^\r\n]+)/gi)) {
++    if (!redacted(match[1].trim().replace(/^Bearer\s+/i, ''))) fail('CREDENTIAL')
++  }
++  for (const match of text.matchAll(/https?:\/\/[^\s"'<>]+/gi)) {
++    let url
++    try { url = new URL(match[0]) } catch { continue }
++    if (url.username || url.password) fail('CREDENTIAL')
++    for (const [key, value] of url.searchParams) {
++      if ((credentialKey.test(key) || key.toLowerCase() === 'auth') && !redacted(value)) fail('CREDENTIAL')
++    }
++  }
++  for (const match of text.matchAll(/["']?(?:token|api[_-]?key|password|secret|(?:access|refresh|auth)[_-]?token|client[_-]?secret)["']?\s*[:=]\s*["']?([^\s"',}\r\n]+)/gi)) {
++    if (!redacted(match[1])) fail('CREDENTIAL')
++  }
++}
++
++function inspect(buffer, name) {
++  if (name.endsWith('.png')) {
++    if (!buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) fail('FORMAT')
++    // Chromium screenshots need no embedded text or arbitrary trailing payloads.
++    let offset = 8
++    let dataSeen = false
++    while (offset + 12 <= buffer.length) {
++      const length = buffer.readUInt32BE(offset)
++      const type = buffer.toString('ascii', offset + 4, offset + 8)
++      if (offset + length + 12 > buffer.length) fail('FORMAT')
++      if (offset === 8) {
++        if (type !== 'IHDR' || length !== 13) fail('FORMAT')
++        const width = buffer.readUInt32BE(offset + 8)
++        const height = buffer.readUInt32BE(offset + 12)
++        if (width === 0 || height === 0 || width > 16384 || height > 16384) fail('LIMIT')
++      } else if (type === 'IDAT') dataSeen = true
++      else if (type === 'IEND') {
++        if (length !== 0 || !dataSeen || offset + 12 !== buffer.length) fail('FORMAT')
++        return
++      } else fail('FORMAT')
++      offset += length + 12
++    }
++    fail('FORMAT')
++  }
++  let text
++  try { text = new TextDecoder('utf-8', { fatal: true }).decode(buffer) } catch { fail('FORMAT') }
++  if (text.includes('\0')) fail('FORMAT')
++  scan(text)
++  // Decode JSON escapes as well as scanning raw diagnostics, which may be non-JSON.
++  if (name.endsWith('.json')) {
++    let parsed
++    try { parsed = JSON.parse(text) } catch { return }
++    const visit = (value) => {
++      if (typeof value === 'string') scan(value)
++      else if (value && typeof value === 'object') {
++        for (const [key, child] of Object.entries(value)) {
++          const emptyContainer = child && typeof child === 'object' && Object.keys(child).length === 0
++          if (credentialKey.test(key) && child != null && !emptyContainer && !redacted(String(child))) fail('CREDENTIAL')
++          visit(child)
++        }
++      }
++    }
++    visit(parsed)
++  }
++}
++
++let stage
++try {
++  const args = process.argv.slice(2)
++  if (!args[0] || args.slice(1).some((arg) => arg !== '--allow-missing')) fail('PATH')
++  const input = resolve(args[0])
++  let available = true
++  try {
++    const metadata = await lstat(input)
++    if (metadata.isSymbolicLink()) fail('LINK')
++    if (!metadata.isDirectory()) fail('PATH')
++  } catch (error) {
++    if (error.code === 'ENOENT' && args.includes('--allow-missing')) available = false
++    else throw error
++  }
++  const parent = await realpath(process.env.RUNNER_TEMP || tmpdir())
++  stage = await mkdtemp(join(parent, 'dsh-safe-evidence-'))
++  const files = []
++  let total = 0
++  let entries = 0
++  async function walk(directory, relative = '', depth = 0) {
++    if (depth > 24) fail('LIMIT')
++    for (const name of (await readdir(directory)).sort()) {
++      if (++entries > 8000) fail('LIMIT')
++      const source = join(directory, name)
++      const metadata = await lstat(source)
++      if (metadata.isSymbolicLink() || (!metadata.isDirectory() && metadata.nlink !== 1)) fail('LINK')
++      if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(name)) fail('PATH')
++      const path = relative ? `${relative}/${name}` : name
++      if (metadata.isDirectory()) {
++        if (forbiddenDirectories.has(name.toLowerCase())) fail('PATH')
++        await mkdir(join(stage, path), { mode: 0o700 })
++        await walk(source, path, depth + 1)
++        continue
++      }
++      if (!metadata.isFile() || !allowedFile.test(name)) fail('PATH')
++      if (metadata.size > fileLimit || files.length >= 4000 || total + metadata.size > 256 * 1024 * 1024) fail('LIMIT')
++      const handle = await open(source, constants.O_RDONLY | constants.O_NOFOLLOW)
++      let buffer
++      try {
++        const current = await handle.stat()
++        if (!current.isFile() || current.nlink !== 1 || current.ino !== metadata.ino || current.dev !== metadata.dev) fail('LINK')
++        if (current.size > fileLimit) fail('LIMIT')
++        buffer = Buffer.alloc(current.size + 1)
++        let length = 0
++        while (length < buffer.length) {
++          const { bytesRead } = await handle.read(buffer, length, buffer.length - length, null)
++          if (!bytesRead) break
++          length += bytesRead
++        }
++        if (length !== current.size) fail('LIMIT')
++        buffer = buffer.subarray(0, length)
++      } finally { await handle.close() }
++      total += buffer.length
++      if (total > 256 * 1024 * 1024) fail('LIMIT')
++      inspect(buffer, name)
++      await writeFile(join(stage, path), buffer, { flag: 'wx', mode: 0o600 })
++      files.push({ path, bytes: buffer.length, sha256: createHash('sha256').update(buffer).digest('hex') })
++    }
++  }
++  if (available) await walk(input)
++  await writeFile(join(stage, 'evidence-manifest.json'), JSON.stringify({ schemaVersion: 1, sourceAvailable: available, files }, null, 2), { flag: 'wx', mode: 0o600 })
++  if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `path=${stage}\n`)
++  console.log(JSON.stringify({ path: stage }))
++} catch (error) {
++  if (stage) await rm(stage, { recursive: true, force: true })
++  console.error(/^EVIDENCE_[A-Z]+$/.test(error.message) ? error.message : 'EVIDENCE_IO')
++  process.exitCode = 1
++}
+diff --git a/scripts/summarize-dsh-release-watch.mjs b/scripts/summarize-dsh-release-watch.mjs
+new file mode 100644
+index 0000000..ea63416
+--- /dev/null
++++ b/scripts/summarize-dsh-release-watch.mjs
+@@ -0,0 +1,34 @@
++import { appendFile } from 'node:fs/promises'
++
++const { DISCOVERY_RESULT: discovery, CANARY_RESULT: canary } = process.env
++const versions = (value) => {
++  const parsed = JSON.parse(value || '[]')
++  if (!Array.isArray(parsed) || parsed.some(item => typeof item !== 'string' || !/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(item))) {
++    throw new Error('Invalid monitoring version list')
++  }
++  return parsed
++}
++try {
++  const candidates = versions(process.env.CANARY_VERSIONS)
++  const pending = versions(process.env.PENDING_NPM_VERSIONS)
++  const healthy = discovery === 'success' && (candidates.length ? canary === 'success' : canary === 'skipped')
++  const lines = [
++    '# DSH Release Watch',
++    '',
++    `- Ref: ${process.env.GITHUB_REF}`,
++    `- Commit: ${process.env.GITHUB_SHA}`,
++    `- Discovery: ${discovery}`,
++    `- Canary lanes: ${canary}`,
++    `- Runnable candidates: ${candidates.join(', ') || 'none'}`,
++    `- Official releases awaiting exact npm packages: ${pending.join(', ') || 'none'}`,
++    `- Monitoring result: ${healthy ? 'passed' : 'requires attention'}`,
++    '',
++    'Canary results do not promote support or authorize publication.',
++    '',
++  ]
++  await appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'))
++  if (!healthy) process.exitCode = 1
++} catch {
++  console.error('Release Watch summary could not validate monitoring results')
++  process.exitCode = 1
++}
+diff --git a/src/adapters/dsh/support.ts b/src/adapters/dsh/support.ts
+index fbeb507..8ea902f 100644
+--- a/src/adapters/dsh/support.ts
++++ b/src/adapters/dsh/support.ts
+@@ -1,5 +1,6 @@
+ export const SUPPORTED_DSH_NPM_VERSIONS = [
+   '0.1.1-rc.2',
++  '0.1.2-rc.1',
+   '0.1.0-rc.8',
+   '0.1.0-rc.7',
+   '0.1.0-rc.6',
+diff --git a/tests/contracts/ci-required-checks.test.ts b/tests/contracts/ci-required-checks.test.ts
+index d78a5c9..acafac0 100644
+--- a/tests/contracts/ci-required-checks.test.ts
++++ b/tests/contracts/ci-required-checks.test.ts
+@@ -2,21 +2,36 @@ import { readFile } from 'node:fs/promises'
+
+ import { describe, expect, it } from 'vitest'
+ import { parse } from 'yaml'
++import { DEFAULT_DSH_NPM_VERSION, SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+
+ const runLifecycle = "github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'"
+ const skipLifecycle = "github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'"
+
+ describe('required CI checks', () => {
++  it('runs every formally supported host through all three real-host suites', async () => {
++    const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
++    expect(workflow.jobs['real-host'].env.DSH_TESTKIT_DSH_VERSION).toBe(DEFAULT_DSH_NPM_VERSION)
++    expect(workflow.jobs['real-host-compat'].strategy.matrix['dsh-version']).toEqual(SUPPORTED_DSH_NPM_VERSIONS.slice(1))
++    for (const name of ['real-host', 'real-host-compat']) {
++      for (const command of ['pnpm test:e2e', 'pnpm test:bundle-e2e', 'pnpm test:pack']) {
++        expect(workflow.jobs[name].steps).toContainEqual(expect.objectContaining({
++          run: command, env: { DSH_TESTKIT_E2E_OUTPUT: '${{ runner.temp }}/dsh-testkit-evidence' },
++        }))
++      }
++      expect(workflow.jobs[name].steps.some((step: Record<string, unknown>) => step.id === 'safety')).toBe(true)
++    }
++  })
++
+   it('runs both canary lanes independently and uploads evidence even after failure', async () => {
+     const workflow = parse(await readFile('.github/workflows/dsh-release-watch.yml', 'utf8'))
+     const job = workflow.jobs.canary
+     expect(job.strategy.matrix.lane).toEqual(['lifecycle', 'bundle'])
+     const upload = job.steps.find((step: Record<string, unknown>) => String(step.uses).startsWith('actions/upload-artifact@'))
+     expect(upload).toMatchObject({
+-      if: 'always()',
++      if: "always() && steps.safety.outcome == 'success'",
+       with: {
+         name: 'dsh-canary-${{ matrix.dsh }}-${{ matrix.lane }}',
+-        path: '${{ runner.temp }}/dsh-testkit-evidence',
++        path: '${{ steps.safety.outputs.path }}',
+         'include-hidden-files': false,
+         'retention-days': 14,
+       },
+@@ -41,7 +56,7 @@ describe('required CI checks', () => {
+       run: expect.stringContaining('No lifecycle-impacting changes'),
+     }))
+
+-    const executionSteps = job.steps.filter((step: Record<string, unknown>) => step.if !== skipLifecycle)
++    const executionSteps = job.steps.filter((step: Record<string, unknown>) => step.if !== skipLifecycle && !['safety', 'evidence'].includes(String(step.id)))
+     expect(executionSteps.length).toBeGreaterThan(0)
+     expect(executionSteps.every((step: Record<string, unknown>) => step.if === runLifecycle)).toBe(true)
+   })
+@@ -58,8 +73,8 @@ describe('required CI checks', () => {
+     const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
+     const entries = workflow.jobs['action-smoke-compat'].strategy.matrix.include
+
+-    expect(entries).toHaveLength(6)
+-    for (const dshVersion of ['0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']) {
++    expect(entries).toHaveLength(8)
++    for (const dshVersion of ['0.1.2-rc.1', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']) {
+       expect(entries).toEqual(expect.arrayContaining([
+         { plugin: 'fixtures/healthy-plugin', 'dsh-version': dshVersion },
+         { plugin: 'fixtures/boot-failure-plugin', 'dsh-version': dshVersion },
+@@ -76,5 +91,33 @@ describe('required CI checks', () => {
+     })
+     const junit = action.runs.steps.find((step: Record<string, unknown>) => step.name === 'Publish JUnit')
+     expect(junit.with.annotate_only).toBe("${{ inputs.publish-junit-check != 'true' }}")
++    expect(junit.if).toBe("always() && steps.safety.outcome == 'success'")
++    expect(junit.with.report_paths).toBe('${{ steps.safety.outputs.path }}/junit.xml')
++  })
++
++  it('gates every artifact outlet with the shared scanner and staged path', async () => {
++    for (const path of ['.github/workflows/ci.yml', '.github/workflows/dsh-release-watch.yml', '.github/workflows/release.yml', '.github/actions/dsh-test/action.yml']) {
++      const workflow = parse(await readFile(path, 'utf8'))
++      const jobs = workflow.jobs ? Object.values(workflow.jobs) : [workflow.runs]
++      for (const job of jobs as { steps?: Record<string, any>[] }[]) {
++        for (const outlet of job.steps?.filter(step => String(step.uses).startsWith('actions/upload-artifact@')) ?? []) {
++          expect(outlet.if).toBe("always() && steps.safety.outcome == 'success'")
++          expect(outlet.with.path).toBe('${{ steps.safety.outputs.path }}')
++          expect(outlet.with['include-hidden-files']).toBe(false)
++          const safety = job.steps?.find(step => step.id === 'safety')
++          expect(safety?.run).toContain('scripts/prepare-evidence.mjs')
++          expect(safety?.if).toContain('always()')
++          expect(job.steps!.indexOf(safety!)).toBeLessThan(job.steps!.indexOf(outlet))
++        }
++      }
++    }
++  })
++
++  it('closes monitoring with an always-run summary of discovery and canary results', async () => {
++    const workflow = parse(await readFile('.github/workflows/dsh-release-watch.yml', 'utf8'))
++    expect(workflow.jobs.summary).toMatchObject({
++      if: 'always()', needs: ['discover', 'canary'],
++    })
++    expect(workflow.jobs.summary.steps).toContainEqual(expect.objectContaining({ run: 'node scripts/summarize-dsh-release-watch.mjs' }))
+   })
+ })
+diff --git a/tests/e2e/pack-consumer.mjs b/tests/e2e/pack-consumer.mjs
+index 680400c..070e143 100644
+--- a/tests/e2e/pack-consumer.mjs
++++ b/tests/e2e/pack-consumer.mjs
+@@ -1,12 +1,12 @@
+-import { execFile } from 'node:child_process'
+-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { access, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+ import { tmpdir } from 'node:os'
+ import { join, resolve } from 'node:path'
+-import { promisify } from 'node:util'
+
+ import { parse as parseYaml } from 'yaml'
++import { runCommand } from '../../dist/src/process/command.js'
++import { DEFAULT_DSH_NPM_VERSION } from '../../dist/src/adapters/dsh/support.js'
++import { RunReportSchema } from '../../dist/src/domain/report.js'
+
+-const executeFile = promisify(execFile)
+ const root = resolve(import.meta.dirname, '../..')
+ const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+ const version = rootManifest.version
+@@ -14,6 +14,22 @@ const temporary = await mkdtemp(join(tmpdir(), 'dsh-testkit-pack-'))
+ const packDir = join(temporary, 'pack')
+ const consumerDir = join(temporary, 'consumer')
+ const image = `dsh-testkit-pack-smoke:${version}`
++const logDir = join(temporary, 'logs')
++const lifecycleOutput = join(temporary, 'lifecycle')
++const dshVersion = process.env.DSH_TESTKIT_DSH_VERSION ?? DEFAULT_DSH_NPM_VERSION
++let commandNumber = 0
++
++async function executeFile(executable, args, options = {}) {
++  const logName = `pack-${++commandNumber}`
++  const result = await runCommand({
++    executable, args, cwd: options.cwd ?? root, env: options.env,
++    timeoutMs: options.timeout ?? 30_000, logDir, logName,
++  })
++  if (result.exitCode !== 0 || result.timedOut || result.signal !== null) {
++    throw new Error(`Packed consumer command ${logName} failed; inspect retained logs`)
++  }
++  return result
++}
+
+ try {
+   await Promise.all([
+@@ -156,11 +172,41 @@ try {
+     '--tag', image,
+     installedPackage,
+   ], { cwd: consumerDir, timeout: 1_800_000, maxBuffer: 16 * 1024 * 1024 })
+-  process.stdout.write(`packed consumer smoke passed: ${filename}\n`)
++  await executeFile(process.execPath, [
++    join(installedPackage, 'dist', 'src', 'cli.js'),
++    join(root, 'fixtures', 'healthy-plugin'),
++    '--dsh', dshVersion,
++    '--runner', 'docker',
++    '--config', join(root, 'fixtures', 'healthy-plugin', 'dsh-testkit.yaml'),
++    '--output', lifecycleOutput,
++    '--expect-row', 'fixture-healthy',
++    '--expect-service', 'fixtureHealthy',
++    '--expect-tool', 'fixture_echo',
++  ], { cwd: consumerDir, timeout: 900_000 })
++  const report = RunReportSchema.parse(JSON.parse(await readFile(join(lifecycleOutput, 'report.json'), 'utf8')))
++  if (report.verdict !== 'passed' || report.dsh.version !== dshVersion || report.testkitVersion !== version
++    || report.stages.find(stage => stage.id === 'exercise')?.status !== 'passed'
++    || report.stages.find(stage => stage.id === 'register')?.status !== 'passed') {
++    throw new Error('Installed package real-host identity or lifecycle assertions failed; inspect retained report')
++  }
++  process.stdout.write(`packed consumer smoke passed: ${filename}, DSH ${dshVersion}\n`)
+ } finally {
+   await executeFile('docker', ['image', 'rm', '--force', image], {
+     timeout: 60_000,
+     maxBuffer: 8 * 1024 * 1024,
+   }).catch(() => undefined)
+-  await rm(temporary, { recursive: true, force: true })
++  try {
++    if (process.env.DSH_TESTKIT_E2E_OUTPUT) {
++      await mkdir(process.env.DSH_TESTKIT_E2E_OUTPUT, { recursive: true })
++      const retained = await mkdtemp(join(process.env.DSH_TESTKIT_E2E_OUTPUT, 'pack-'))
++      for (const name of ['logs', 'lifecycle']) {
++        const source = join(temporary, name)
++        try { await access(source) } catch (error) {
++          if (error.code === 'ENOENT') continue
++          throw error
++        }
++        await cp(source, join(retained, name), { recursive: true, dereference: false })
++      }
++    }
++  } finally { await rm(temporary, { recursive: true, force: true }) }
+ }
+diff --git a/tests/unit/dsh-release-train.test.ts b/tests/unit/dsh-release-train.test.ts
+index 2c92f0a..3b7e000 100644
+--- a/tests/unit/dsh-release-train.test.ts
++++ b/tests/unit/dsh-release-train.test.ts
+@@ -12,6 +12,7 @@ import { SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
+ const fixtures = resolve(import.meta.dirname, '../fixtures')
+ const root = resolve(import.meta.dirname, '../..')
+ const executeFile = promisify(execFile)
++const historicalSupport = ['0.1.1-rc.2', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']
+
+ describe('DSH release-train discovery', () => {
+   it('reports no canary when latest and next are supported', async () => {
+@@ -42,7 +43,7 @@ describe('DSH release-train discovery', () => {
+     const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-current.json'), 'utf8'))
+     const releases = JSON.parse(await readFile(resolve(fixtures, 'dsh-github-releases-alpha.json'), 'utf8'))
+
+-    expect(discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS, releases)).toEqual({
++    expect(discoverDshReleaseTrain(metadata, historicalSupport, releases)).toEqual({
+       taggedVersions: ['0.1.1-rc.2'],
+       upstreamVersions: ['0.1.1-rc.1', '0.1.2-alpha.1', '0.1.2-alpha.2'],
+       supportedVersions: ['0.1.0-rc.6', '0.1.0-rc.7', '0.1.0-rc.8', '0.1.1-rc.2'],
+@@ -56,7 +57,7 @@ describe('DSH release-train discovery', () => {
+     const metadata = JSON.parse(await readFile(resolve(fixtures, 'dsh-registry-alpha-published.json'), 'utf8'))
+     const releases = JSON.parse(await readFile(resolve(fixtures, 'dsh-github-releases-alpha.json'), 'utf8'))
+
+-    expect(discoverDshReleaseTrain(metadata, SUPPORTED_DSH_NPM_VERSIONS, releases)).toMatchObject({
++    expect(discoverDshReleaseTrain(metadata, historicalSupport, releases)).toMatchObject({
+       canaryVersions: ['0.1.2-alpha.2'],
+       pendingNpmVersions: ['0.1.2-alpha.1'],
+     })
+@@ -68,6 +69,17 @@ describe('DSH release-train discovery', () => {
+     }, ['0.1.0-rc.6'])).toThrow('not an exact semantic version')
+   })
+
++  it('monitors newer releases without rerunning promoted rc.1 or its older alphas', () => {
++    const releases = ['0.1.2-alpha.1', '0.1.2-alpha.2', '0.1.2-rc.1', '0.1.3-alpha.1', '0.1.3-alpha.2']
++      .map(version => ({ tag_name: `dsh-v${version}`, immutable: true }))
++    expect(discoverDshReleaseTrain({
++      'dist-tags': { latest: '0.1.2-rc.1', next: '0.1.2-rc.1' },
++      versions: { '0.1.2-alpha.2': {}, '0.1.2-rc.1': {}, '0.1.3-alpha.2': {} },
++    }, SUPPORTED_DSH_NPM_VERSIONS, releases)).toMatchObject({
++      canaryVersions: ['0.1.3-alpha.2'], pendingNpmVersions: ['0.1.3-alpha.1'],
++    })
++  })
++
+   it('enables a candidate only in the requested disposable source file', async () => {
+     const temporary = await mkdtemp(resolve(tmpdir(), 'dsh-testkit-canary-'))
+     const support = resolve(temporary, 'support.ts')
+diff --git a/tests/unit/dsh-support.test.ts b/tests/unit/dsh-support.test.ts
+new file mode 100644
+index 0000000..f4478c2
+--- /dev/null
++++ b/tests/unit/dsh-support.test.ts
+@@ -0,0 +1,17 @@
++import { describe, expect, it } from 'vitest'
++
++import { assertSupportedDshVersion, DEFAULT_DSH_NPM_VERSION, SUPPORTED_DSH_NPM_VERSIONS } from '../../src/adapters/dsh/support.js'
++
++describe('reviewed DSH support', () => {
++  it('accepts the exact rc.1 host without changing the default or dropping older hosts', () => {
++    expect(DEFAULT_DSH_NPM_VERSION).toBe('0.1.1-rc.2')
++    expect(SUPPORTED_DSH_NPM_VERSIONS).toEqual([
++      '0.1.1-rc.2', '0.1.2-rc.1', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6',
++    ])
++    expect(() => assertSupportedDshVersion('0.1.2-rc.1')).not.toThrow()
++  })
++
++  it.each(['0.1.2-alpha.5', '0.1.3-alpha.2', 'latest', '^0.1.2'])('rejects unreviewed or mutable host %s', (version) => {
++    expect(() => assertSupportedDshVersion(version)).toThrow(expect.objectContaining({ exitCode: 4 }))
++  })
++})
+diff --git a/tests/unit/evidence-safety.test.ts b/tests/unit/evidence-safety.test.ts
+new file mode 100644
+index 0000000..0b8fa49
+--- /dev/null
++++ b/tests/unit/evidence-safety.test.ts
+@@ -0,0 +1,134 @@
++import { execFile } from 'node:child_process'
++import { link, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { promisify } from 'node:util'
++
++import { afterEach, beforeEach, describe, expect, it } from 'vitest'
++
++const execute = promisify(execFile)
++const script = resolve(import.meta.dirname, '../../scripts/prepare-evidence.mjs')
++let root: string
++let input: string
++let staging: string
++
++beforeEach(async () => {
++  root = await mkdtemp(join(tmpdir(), 'dsh-evidence-policy-'))
++  input = join(root, 'input')
++  staging = join(root, 'staging')
++  await mkdir(input)
++  await mkdir(staging)
++})
++afterEach(async () => { await rm(root, { recursive: true, force: true }) })
++
++async function prepare(...args: string[]) {
++  try {
++    const result = await execute(process.execPath, [script, input, ...args], {
++      env: { ...process.env, RUNNER_TEMP: staging, GITHUB_OUTPUT: join(root, 'github-output') },
++      timeout: 10_000,
++    })
++    return { code: 0, ...result }
++  } catch (error) {
++    const result = error as { code: number; stdout: string; stderr: string }
++    return { code: result.code, stdout: result.stdout, stderr: result.stderr }
++  }
++}
++
++describe('evidence publication boundary', () => {
++  it.each(['passed', 'failed', 'timeout'])('stages safe %s diagnostics without mutating originals', async (verdict) => {
++    const report = JSON.stringify({ verdict, url: 'http://127.0.0.1:3080/?token=[REDACTED]' })
++    await writeFile(join(input, 'report.json'), report)
++    const result = await prepare()
++    expect(result.code, result.stderr).toBe(0)
++    const output = JSON.parse(result.stdout).path as string
++    expect(output.startsWith(`${await realpath(staging)}/`)).toBe(true)
++    expect(await readFile(join(output, 'report.json'), 'utf8')).toBe(report)
++    expect(await readFile(join(input, 'report.json'), 'utf8')).toBe(report)
++    expect((await stat(join(output, 'report.json'))).mode & 0o777).toBe(0o600)
++    expect(JSON.parse(await readFile(join(output, 'evidence-manifest.json'), 'utf8'))).toMatchObject({
++      schemaVersion: 1, sourceAvailable: true,
++      files: [{ path: 'report.json', bytes: Buffer.byteLength(report), sha256: expect.stringMatching(/^[a-f0-9]{64}$/) }],
++    })
++    expect(await readFile(join(root, 'github-output'), 'utf8')).toContain(`path=${output}\n`)
++  })
++
++  it.each([
++    ['launch-query', 'http://127.0.0.1:3080/?token=private-launch'],
++    ['encoded-query', 'http://127.0.0.1:3080/?%74oken=private-launch'],
++    ['json-escape', '{"url":"http://127.0.0.1:3080/?to\\u006ben=private-launch"}'],
++    ['authorization', 'Authorization: Bearer private-launch'],
++    ['json-authorization', '{"Authorization":"Bearer private-launch"}'],
++    ['json-cookies', '{"cookies":[{"name":"session","value":"private-launch"}]}'],
++    ['refresh-token', '{"refresh_token":"private-launch"}'],
++    ['environment-token', 'TOKEN=private-launch'],
++    ['cookie', 'Set-Cookie: session=private-launch; HttpOnly'],
++    ['private-key', '-----BEGIN PRIVATE KEY-----\nprivate-launch'],
++    ['api-key', '{"api_key":"private-launch"}'],
++  ])('rejects %s without exposing the value or leaving a staging directory', async (_kind, content) => {
++    await writeFile(join(input, 'report.json'), content)
++    const result = await prepare()
++    expect(result.code).toBe(1)
++    expect(result.stderr).toContain('EVIDENCE_CREDENTIAL')
++    expect(`${result.stdout}${result.stderr}`).not.toContain('private-launch')
++    expect(await readdir(staging)).toEqual([])
++    await expect(readFile(join(root, 'github-output'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
++  })
++
++  it.each(['.credentials.yaml', 'browser-auth-boot.json', 'worker-request.json', 'plugin-source.js', 'archive.zip'])('rejects non-allowlisted file %s', async (filename) => {
++    await writeFile(join(input, filename), 'private-content')
++    const result = await prepare()
++    expect(result.code).toBe(1)
++    expect(result.stderr).toContain('EVIDENCE_PATH')
++    expect(result.stderr).not.toContain('private-content')
++  })
++
++  it.each(['symlink', 'hardlink', 'directory-link'])('rejects %s rather than following it outside the input', async (kind) => {
++    const outside = join(root, 'outside')
++    await mkdir(outside)
++    await writeFile(join(outside, 'report.json'), '{}')
++    if (kind === 'directory-link') await symlink(outside, join(input, 'runs'))
++    else if (kind === 'symlink') await symlink(join(outside, 'report.json'), join(input, 'report.json'))
++    else await link(join(outside, 'report.json'), join(input, 'report.json'))
++    const result = await prepare()
++    expect(result.code).toBe(1)
++    expect(result.stderr).toContain('EVIDENCE_LINK')
++    expect(await readdir(staging)).toEqual([])
++  })
++
++  it('rejects host-directory content even with an allowlisted basename', async () => {
++    await mkdir(join(input, 'home'))
++    await writeFile(join(input, 'home', 'report.json'), '{}')
++    expect((await prepare()).stderr).toContain('EVIDENCE_PATH')
++  })
++
++  it('rejects a binary disguised as a text report', async () => {
++    await writeFile(join(input, 'report.json'), Buffer.from([0, 255, 1]))
++    expect((await prepare()).stderr).toContain('EVIDENCE_FORMAT')
++  })
++
++  it('rejects a PNG signature without a complete bounded image structure', async () => {
++    await writeFile(join(input, 'browser-boot-turn-status.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
++    expect((await prepare()).stderr).toContain('EVIDENCE_FORMAT')
++  })
++
++  it('rejects excessive nesting without publishing partial output', async () => {
++    await mkdir(join(input, ...Array.from({ length: 26 }, () => 'runs')), { recursive: true })
++    expect((await prepare()).stderr).toContain('EVIDENCE_LIMIT')
++    expect(await readdir(staging)).toEqual([])
++  })
++
++  it('rejects an oversized file before reading its contents', async () => {
++    await writeFile(join(input, 'report.json'), Buffer.alloc(16 * 1024 * 1024 + 1, 32))
++    expect((await prepare()).stderr).toContain('EVIDENCE_LIMIT')
++  })
++
++  it('retains an explicit unavailable manifest when an early failure produced no output', async () => {
++    await rm(input, { recursive: true })
++    const result = await prepare('--allow-missing')
++    expect(result.code, result.stderr).toBe(0)
++    const output = JSON.parse(result.stdout).path as string
++    expect(JSON.parse(await readFile(join(output, 'evidence-manifest.json'), 'utf8'))).toMatchObject({
++      sourceAvailable: false, files: [],
++    })
++  })
++})
+diff --git a/tests/unit/release-watch-summary.test.ts b/tests/unit/release-watch-summary.test.ts
+new file mode 100644
+index 0000000..a256feb
+--- /dev/null
++++ b/tests/unit/release-watch-summary.test.ts
+@@ -0,0 +1,42 @@
++import { execFile } from 'node:child_process'
++import { mkdtemp, readFile, rm } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { promisify } from 'node:util'
++
++import { describe, expect, it } from 'vitest'
++
++const execute = promisify(execFile)
++
++describe('Release Watch closure', () => {
++  it.each([
++    ['success', 'success', '["0.1.3-alpha.2"]', 0],
++    ['success', 'skipped', '[]', 0],
++    ['failure', 'skipped', '', 1],
++    ['success', 'failure', '["0.1.3-alpha.2"]', 1],
++    ['success', 'cancelled', '["0.1.3-alpha.2"]', 1],
++    ['success', 'skipped', '["0.1.3-alpha.2"]', 1],
++    ['success', 'success', '["latest"]', 1],
++  ])('discovery %s / canary %s / %s gives exit %s', async (discovery, canary, versions, code) => {
++    const directory = await mkdtemp(join(tmpdir(), 'release-watch-summary-'))
++    const summary = join(directory, 'summary.md')
++    try {
++      let exitCode = 0
++      try {
++        await execute(process.execPath, [resolve('scripts/summarize-dsh-release-watch.mjs')], {
++          env: { ...process.env, DISCOVERY_RESULT: discovery, CANARY_RESULT: canary,
++            CANARY_VERSIONS: versions, PENDING_NPM_VERSIONS: '["0.1.3-alpha.1"]',
++            GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: 'a'.repeat(40), GITHUB_REF: 'refs/heads/main' },
++        })
++      } catch (error) { exitCode = (error as { code: number }).code }
++      expect(exitCode).toBe(code)
++      if (!versions.includes('latest')) {
++        const text = await readFile(summary, 'utf8')
++        expect(text).toContain('refs/heads/main')
++        expect(text).toContain('a'.repeat(40))
++        expect(text).toContain('0.1.3-alpha.1')
++        expect(text).toContain(code === 0 ? 'Monitoring result: passed' : 'Monitoring result: requires attention')
++      }
++    } finally { await rm(directory, { recursive: true, force: true }) }
++  })
++})
