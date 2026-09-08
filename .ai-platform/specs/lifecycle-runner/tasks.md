@@ -1,10 +1,14 @@
 # DSH Testkit Post-Spec Work Graph
 
-Version: v0.4.1
+Version: Unreleased source delivery; published baseline v0.4.2
 Status: Confirmed
 Feature: lifecycle-runner
 Source spec: `.ai-platform/docs/product-design.md`
-Last updated: 2026-08-31
+Last updated: 2026-09-08
+
+## Current Delivery
+
+T015 is accepted source delivery. T016 is the active sequential task; its approved four-step scope, allowed files, validation and packet are recorded in [T016 plan](t016-plan.md) and the [delivery index](../../docs/tasks.md). Publication is not authorized.
 
 ## 状态定义
 

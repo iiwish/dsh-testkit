@@ -1,0 +1,813 @@
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index 0c70b5e..5aca803 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -1,8 +1,8 @@
+ # DSH Testkit Delivery Index
+
+-Version: v0.4.1
++Version: Unreleased source delivery; published baseline v0.4.2
+ Status: Confirmed
+-Last updated: 2026-08-31
++Last updated: 2026-09-08
+
+ ## Active Release
+
+@@ -12,7 +12,7 @@ Last updated: 2026-08-31
+ - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
+ - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
+
+-The v0.4.1 release scope is T013 and is accepted for protected-branch publication. T010, T011 and T012 remain accepted v0.4.0 history. T000 through T009 remain historical records in their previously recorded `Needs_Review` states; publication does not retroactively supply user acceptance for them.
++The published baseline is v0.4.2. T015 is accepted source delivery. T016 covers release preparation, isolated external adoption, independent visible browser acceptance and scheduled monitoring verification. Publication requires separate approval. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
+
+ ## Release Gate
+
+@@ -20,9 +20,20 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
+
+ ## Governed Task Index
+
++### T016: Adoption And Release Readiness
++
++Status: Running
++Priority: P1
++Depends on: T015
++Parallel: No
++Approval: User approved steps 1 through 4 and this repository's protected PR/merge; no publication or external writes.
++Plan: `.ai-platform/specs/lifecycle-runner/t016-plan.md`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T016.yaml`
++Evidence: `.ai-platform/evidence/T016/`
++
+ ### T015: DSH 0.1.2 Support And Evidence Safety
+
+-Status: Needs_Review
++Status: Accepted
+ Priority: P1
+ Depends on: T014
+ Parallel: No
+@@ -32,7 +43,7 @@ Evidence: `.ai-platform/evidence/T015/`
+
+ Scope: Add exact DSH 0.1.2-rc.1 support after packaged-consumer and Action acceptance; verify main Release Watch and summarize its terminal state; use one fail-closed evidence staging policy before artifact upload or JUnit publication. Default host, existing supported versions, v1 schemas and exit codes remain unchanged.
+
+-Verification: PR #40 is merged. All 17 formal CI jobs and the post-merge main monitor pass; downloaded evidence manifests match a fresh policy replay. User acceptance is pending. No npm release or tag update is authorized.
++Verification: PRs #40 and #41 are merged. All 17 formal CI jobs and the post-merge main monitor pass; downloaded evidence manifests match a fresh policy replay. User approved the next-stage plan including T015 acceptance on 2026-09-08. No npm release or tag update is authorized.
+
+ ### T014: Canary Compatibility Maintenance
+
+diff --git a/.ai-platform/evidence/T015/summary.md b/.ai-platform/evidence/T015/summary.md
+index c0e84e8..bb7d93e 100644
+--- a/.ai-platform/evidence/T015/summary.md
++++ b/.ai-platform/evidence/T015/summary.md
+@@ -1,6 +1,7 @@
+ # T015 DSH Support And Evidence Safety
+
+-Status: Needs_Review
++Status: Accepted
++Acceptance: User approved the next-stage plan including T015 acceptance on 2026-09-08; publication remains unauthorized.
+ Base: `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`.
+ Implementation: [PR #40](https://github.com/iiwish/dsh-testkit/pull/40), merged as `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`.
+ User approval: Exact rc.1 support, main monitoring closure and unified evidence checks; PR creation and merge after Linux acceptance; no npm release.
+@@ -32,4 +33,4 @@ The [main-branch monitor](https://github.com/iiwish/dsh-testkit/actions/runs/342
+ - The scanner is defense in depth, not arbitrary-secret detection, screenshot privacy certification or a sandbox against concurrently hostile processes.
+ - Browser acceptance covers the existing bounded DOM-transition contract. The rc.1 screenshot shows the upstream first-run testing notice; it is not proof of a visually unobstructed interaction flow.
+ - The release publishing job is linted and contract-tested but is not executed in this iteration. Published npm `0.4.2` and Action `v0` do not include these source changes.
+-- Merge authorization is explicit; final task acceptance remains with the user.
++- Merge and T015 acceptance are authorized; package publication is not.
+diff --git a/.ai-platform/evidence/T015/test-results.md b/.ai-platform/evidence/T015/test-results.md
+index a81eb99..37ea461 100644
+--- a/.ai-platform/evidence/T015/test-results.md
++++ b/.ai-platform/evidence/T015/test-results.md
+@@ -1,6 +1,6 @@
+ # T015 Verification
+
+-Status: Needs_Review
++Status: Accepted
+
+ ## Local Verification
+
+diff --git a/.ai-platform/evidence/T016/summary.md b/.ai-platform/evidence/T016/summary.md
+new file mode 100644
+index 0000000..97073bd
+--- /dev/null
++++ b/.ai-platform/evidence/T016/summary.md
+@@ -0,0 +1,31 @@
++# T016 Adoption And Release Readiness
++
++Status: Running
++Executor: Codex, direct execution; no delegation authorized.
++Base: `59773eae27043154945954f6e03938218d8d9021`
++Branch: `feat/t016-adoption-readiness`
++Approval: User approved all four next-stage items and this repository's PR/merge after validation. No npm publication, release tags or external repository writes.
++
++## Implementation Scope
++
++- Installed-tarball consumer and read-only Action acceptance against a pinned external template copy.
++- Separate test-only real-web onboarding/editor acceptance, without changing the public smoke or injecting status DOM.
++- Unreleased notes, release gate, and scheduled-monitor ownership/freshness/failure runbook.
++- T015 acceptance and current task index.
++
++## Validation
++
++Focused RED: New browser module was absent and the adoption CI job was absent; both test suites failed as expected.
++Focused GREEN: 4 tests passed after implementation.
++Initial full validation exposed an omitted explicit `include-hidden-files: false` on the new upload. The existing safety contract failed and the upload was corrected rather than weakening the test.
++Actionlint 1.7.12 passes the CI workflow.
++
++Linux real-host, external consumer/Action and visual review are required before merge; results belong in `test-results.md`.
++
++## Review Boundaries
++
++- External validation is a technical rehearsal, not confirmed maintainer adoption.
++- The intentional failure is an invalid Testkit row expectation, not an upstream plugin defect.
++- Browser coverage is native onboarding and an unsent editor draft, not model response quality or arbitrary plugin UI.
++- The 2026-09-08 natural schedule success predates T015. A post-T015 scheduled event needs its own receipt.
++- T016 user acceptance and publication remain separate gates.
+diff --git a/.ai-platform/evidence/T016/test-results.md b/.ai-platform/evidence/T016/test-results.md
+new file mode 100644
+index 0000000..fb63de0
+--- /dev/null
++++ b/.ai-platform/evidence/T016/test-results.md
+@@ -0,0 +1,25 @@
++# T016 Test Results
++
++Status: Running
++
++## Local Evidence
++
++- `pnpm vitest run tests/unit/visible-browser.test.ts tests/contracts/adoption.test.ts`: RED for missing independent browser module and missing adoption job; GREEN with 4 passing tests.
++- Initial `pnpm validate`: 222 passed, 1 failed. The failing safety contract correctly rejected the new artifact outlet's omitted explicit hidden-file setting; workflow corrected.
++- `/tmp/sugrid-actionlint/actionlint .github/workflows/ci.yml`: passed (1.7.12).
++
++## Actual Schedule Receipt
++
++`gh run view 34202400081` reports event `schedule`, SHA `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`, success for discovery and all twelve canary lanes. Created at `2026-09-08T08:02:49Z`. This proves natural scheduling on the T014 baseline, not post-T015 scheduling.
++
++## Pending Validation
++
++Full local validation, Linux supported-host matrix, clean installed external consumer, source Action, desktop/mobile screenshot review, artifact replay and protected merge receipts.
++
++## Linux Iteration Evidence
++
++- Run `34210191761`, head `fdee7f7`: installed consumer initialization and external-template baseline passed. The deliberately missing row failed correctly at `assemble`; the new driver incorrectly expected `register` and failed. Exact-report contract tests correct the driver without changing product verdicts. Downloaded artifact replay matches all 127 manifest entries (1,352,170 bytes). Remaining jobs were superseded by the next revision, not accepted as a passing matrix.
++- Run `34210793725`, head `1129be3`: baseline passed, deliberate configuration failed, corrected configuration passed. All three reports identify source commit `31af7ebeb8d07cff73253f52f9a9f530cde9de9a`, the same packed-subject digest `sha256:a9ac9c8195c5e6649ce14392c9aa8b324382fe0378474d819425546970190afb`, DSH `0.1.2-rc.1`, and Docker image `sha256:3f5b7f5b881ee16b51f5d928075906257d123238c2f5b35659741d537d47759f`. Independent browser setup failed with output permission denied before obtaining a screenshot. Its test-only Docker invocation was missing the caller UID/GID; the fix preserves read-only mounts and dropped capabilities, matching the production runner ownership contract. Replay matches 191 entries (1,967,507 bytes).
++- Ownership/entry-point tests and a mixed-failure negative control were RED before their fixes and GREEN afterward. An intentional row failure cannot conceal a second failed/unsupported lifecycle stage.
++- The independent lane uses the healthy host fixture, not the client-side status mutator. Its reports explicitly identify the test-only observation harness.
++- Run `34211587214`, head `6aa00a7`: the external positive/negative/corrected lifecycle sequence passed. Independent desktop acceptance reached the actual unobstructed DSH page after normal onboarding but could not edit the disabled composer: a fresh profile requires workspace selection. The screenshot confirms this prerequisite, and the test now selects only `/work/run/workspace` through the native directory picker before entering an unsent draft. No application DOM or settings storage is patched. A focused RED/GREEN test covers that sequence.
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T016.yaml b/.ai-platform/specs/lifecycle-runner/packets/T016.yaml
+new file mode 100644
+index 0000000..d76f43e
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T016.yaml
+@@ -0,0 +1,40 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T016
++task_id: T016
++feature_id: lifecycle-runner
++mode: direct_execute
++governance_inputs:
++  constitution: .ai-platform/memory/constitution.md
++  plan: .ai-platform/specs/lifecycle-runner/t016-plan.md
++  prerequisite_evidence: .ai-platform/evidence/T015/summary.md
++work_unit:
++  title: Isolated external adoption, independent visible browser proof and release preparation
++  depends_on: [T015]
++  sequence: [release preparation, isolated template consumer and Action, independent browser acceptance, scheduled monitoring verification]
++execution_constraints:
++  direct_execute_reason: User authorized execution but did not authorize delegation.
++  allowed_files: [.ai-platform/**, tests/e2e/**, tests/unit/**, tests/contracts/**, .github/workflows/ci.yml, package.json, CHANGELOG.md, docs/**, README.md, README.zh-CN.md]
++  invariants: [no npm publication, no release tag changes, no external repository writes, no public schema change, no default-host change, no injected DOM as visible interaction proof]
++codebase_context:
++  runner: src/runners/docker.ts
++  adapter: src/adapters/dsh/npm-adapter.ts
++  browser: src/adapters/dsh/browser-smoke.ts
++  evidence_gate: scripts/prepare-evidence.mjs
++tdd_plan:
++  red: Browser interaction and CI adoption contracts fail before implementation.
++  green: Real actionability and selected UI state determine browser acceptance; installed CLI and source Action execute pinned external source.
++validation_loop:
++  commands: [pnpm validate, pnpm test:adoption -- .adoption-subject, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack]
++  evidence_replay: Download new Linux artifacts and compare fresh policy manifests.
++evidence_contract:
++  paths: [.ai-platform/evidence/T016/summary.md, .ai-platform/evidence/T016/test-results.md, .ai-platform/evidence/T016/diff.patch]
++  required: [RED/GREEN, exact source and package identities, positive-negative-corrected lifecycle, Action result, desktop/mobile screenshots, schedule event proof, publication exclusions]
++review_contract:
++  spec_compliance: Four approved outcomes are individually evidenced, with external-event limitations explicit.
++  security: Reuse Docker limits; no credentials forwarded, raw auth evidence or unsafe public upload.
++handoff:
++  status: Needs_Review
++  acceptance_authority: user
++stop_conditions:
++  - Do not merge failed required checks or publish to npm.
++  - Do not replace genuine external or scheduled outcomes with synthetic success.
+diff --git a/.ai-platform/specs/lifecycle-runner/t016-plan.md b/.ai-platform/specs/lifecycle-runner/t016-plan.md
+new file mode 100644
+index 0000000..07f78fe
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/t016-plan.md
+@@ -0,0 +1,43 @@
++# T016 Adoption And Release Readiness
++
++Status: Confirmed
++Date: 2026-09-08
++Approval: User explicitly approved the four-step next-stage plan and requested completion; authorized this repository's PR and merge after validation. External repositories are isolated copies only. Publication is not authorized.
++
++## Scope And Sequence
++
++One sequential task covers US-007/US-008 and the approved browser evidence improvement:
++
++1. Record T015 acceptance and prepare an unreleased delivery checklist and notes. Preserve package version, npm and tags.
++2. Pin `bugmaker2/dsh-plugin-template` to `31af7ebeb8d07cff73253f52f9a9f530cde9de9a`. Run installed-package init twice, inspect the generated scenario/workflow/Skill, execute Docker lifecycle, inject an explicitly missing-row expectation, correct that configuration and rerun. Exercise the source Action in this repository's PR. Do not claim an upstream defect or maintainer adoption.
++3. Add a separate test-only real-web browser lane. Use the existing lifecycle adapter inside the same restricted Docker image, replace only its internal browser observation callback for this test, and exercise native visible host controls without inserting DOM, suppressing overlays, or writing acknowledgement storage. Preserve public browser smoke and v1 schemas. Capture desktop/mobile screenshots after token-free authentication and explicit UI onboarding, recording the exact tested flow.
++4. Verify actual scheduled-run event/SHA/status, document ownership, freshness and failure handling, and track the first post-merge scheduled run if it has not occurred. Do not represent workflow_dispatch as schedule or silently enable privileged notifications.
++
++## Task T016
++
++Status: Ready
++Priority: P1
++Depends on: T015
++Blocks: Publication review
++Parallel: No
++Conflicts with: Release operations
++Allowed files: `.ai-platform/**`, `tests/e2e/**`, `tests/unit/**`, `tests/contracts/**`, `.github/workflows/ci.yml`, `package.json`, `CHANGELOG.md`, `docs/**`, `README.md`, `README.zh-CN.md`.
++The evidence and documentation globs cover the single delivery record and related current-state reference pages, not unrelated refactoring.
++
++## Validation And Definition Of Done
++
++- RED/GREEN tests for bounded browser interactions and adoption workflow contracts.
++- `pnpm validate`, actionlint, full five-host Linux CI, clean installed consumer and read-only external-subject Action.
++- Verify actual screenshots and rescan new evidence manifests; retain intentional negative verdicts.
++- Record exact scheduled-event evidence and distinguish completed verification from pending external events.
++- Review scope, credential handling, cleanup and public claims before protected merge. User acceptance of T016 remains separate.
++
++## Checklist And Analysis
++
++- Requirements have separate install/adoption, browser, publication and monitoring outcomes.
++- No model calls, user credentials, public-schema changes, default-host change, npm publication, release tags or external writes are permitted.
++- External scripts execute only in Docker; controller init inspects manifests without running plugin code.
++- Browser evidence is independent of injected TurnStatus, and cannot claim full product or arbitrary plugin UI coverage.
++- No Critical/High contract conflicts. Natural scheduling and maintainer adoption are external-state gates; only the former is a requested verification outcome, the latter is explicitly not claimed.
++
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T016.yaml`
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index c57b180..808ddf9 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -1,10 +1,14 @@
+ # DSH Testkit Post-Spec Work Graph
+
+-Version: v0.4.1
++Version: Unreleased source delivery; published baseline v0.4.2
+ Status: Confirmed
+ Feature: lifecycle-runner
+ Source spec: `.ai-platform/docs/product-design.md`
+-Last updated: 2026-08-31
++Last updated: 2026-09-08
++
++## Current Delivery
++
++T015 is accepted source delivery. T016 is the active sequential task; its approved four-step scope, allowed files, validation and packet are recorded in [T016 plan](t016-plan.md) and the [delivery index](../../docs/tasks.md). Publication is not authorized.
+
+ ## 状态定义
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index fa56b22..75b1923 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -162,6 +162,54 @@ jobs:
+           if-no-files-found: error
+           retention-days: 14
+
++  adoption:
++    needs: [changes, validate]
++    if: github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'
++    runs-on: ubuntu-latest
++    timeout-minutes: 60
++    permissions:
++      contents: read
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          repository: bugmaker2/dsh-plugin-template
++          ref: 31af7ebeb8d07cff73253f52f9a9f530cde9de9a
++          path: .adoption-subject
++          persist-credentials: false
++      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
++        with:
++          version: 11.1.3
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '22'
++          cache: pnpm
++      - run: pnpm install --frozen-lockfile
++      - run: pnpm test:adoption -- .adoption-subject
++        env:
++          DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-adoption-evidence
++      - id: safety
++        if: always()
++        name: Prepare adoption evidence
++        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
++        env:
++          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-adoption-evidence
++      - if: always() && steps.safety.outcome == 'success'
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: dsh-adoption
++          path: ${{ steps.safety.outputs.path }}
++          include-hidden-files: false
++          if-no-files-found: error
++          retention-days: 14
++      - uses: ./.github/actions/dsh-test
++        with:
++          plugin: .adoption-subject
++          config: .adoption-subject/dsh-testkit.yaml
++          dsh-version: 0.1.2-rc.1
++          publish-junit-check: 'false'
++          artifact-retention-days: '14'
++
+   action-smoke:
+     needs: [changes, validate]
+     runs-on: ubuntu-latest
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c30ce81..fc4217e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,17 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+
+ ## [Unreleased]
+
++### Added
++
++- Exact DSH `0.1.2-rc.1` support, with formal lifecycle, installed-package and Action checks. The default remains `0.1.1-rc.2`.
++- Isolated, pinned external-template adoption acceptance for installed CLI initialization, intentional configuration failure, correction and the read-only source Action.
++- Independent test-only native web onboarding and unsent-editor interaction acceptance at desktop and mobile viewport sizes, separate from the seeded TurnStatus contract.
++
++### Changed
++
++- Stage and validate bounded evidence before artifact uploads and JUnit publication through a shared fail-closed policy and SHA-256 manifest.
++- Close Release Watch with an always-run summary of discovery, runnable canaries and versions awaiting npm packages.
++
+ ## [0.4.2] - 2026-09-08
+
+ ### Fixed
+diff --git a/docs/monitoring-operations.md b/docs/monitoring-operations.md
+new file mode 100644
+index 0000000..98114de
+--- /dev/null
++++ b/docs/monitoring-operations.md
+@@ -0,0 +1,22 @@
++# Release Watch Operations
++
++Owner: `iiwish`, repository maintainer. The maintainer reviews failed scheduled runs and approves host-support changes; the watcher cannot publish packages or promote support.
++
++## Schedule And Freshness
++
++The default-branch workflow requests one run daily at 03:17 UTC (11:17 Asia/Shanghai). GitHub may delay scheduling; a requested cron time is not an execution receipt. Treat absence of any scheduled run for 36 hours as stale and investigate Actions enablement and workflow availability.
++
++Use `gh run list --workflow dsh-release-watch.yml --event schedule` and inspect the returned event, SHA, branch, jobs and conclusion. A successful `workflow_dispatch` verifies execution logic but cannot prove scheduler delivery.
++
++On 2026-09-08, [scheduled run 34202400081](https://github.com/iiwish/dsh-testkit/actions/runs/34202400081) succeeded at `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`. That is the T014 baseline, not T015's evidence-policy implementation. The [post-T015 manual main run](https://github.com/iiwish/dsh-testkit/actions/runs/34205717065) verifies the updated workflow at `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`. The first scheduled run containing that implementation needs its own receipt.
++
++## Failure Handling
++
++1. Discovery failure: inspect release/npm reachability and exact-version parsing. No candidates discovered during an error is not a clean bill of health.
++2. Official release without npm: retain a pending state. Do not run a mutable branch or substitute another package identity.
++3. Canary failure: inspect lifecycle and bundle lanes independently, retain the exact failed identity and first failure stage, and distinguish infrastructure, host drift and plugin assertions.
++4. Evidence safety failure: keep the job failed and suppress artifact/JUnit publication. Do not upload raw evidence to debug the scanner; reproduce and inspect locally in an isolated environment.
++5. Retry only demonstrable transient infrastructure failures. Deterministic failures need a bounded fix and regression evidence.
++6. Promote an exact host only through reviewed formal lifecycle, HTTP/browser, native-bundle, installed-package and Action acceptance. Preserve the existing default unless separately approved.
++
++The workflow has read-only repository permissions. It does not create issues, send external messages or grant itself write access. Use GitHub Actions failure subscriptions for routine maintainer notifications; subscriptions are account preferences and are not verified by a green workflow. Successful unchanged runs and pending-package states do not require status-message noise.
+diff --git a/docs/release-preparation.md b/docs/release-preparation.md
+new file mode 100644
+index 0000000..7f142b9
+--- /dev/null
++++ b/docs/release-preparation.md
+@@ -0,0 +1,26 @@
++# Unreleased Delivery Preparation
++
++Published baseline: `dsh-testkit@0.4.2` and Action `v0`.
++Publication status: Not authorized. Package version and tags remain unchanged.
++
++## Scope
++
++The source delivery includes exact DSH `0.1.2-rc.1` support, shared fail-closed evidence staging, complete Release Watch summaries, an isolated external-template adoption check, and independent visible-host browser acceptance. The default host remains `0.1.1-rc.2`; v1 schemas and exit codes are unchanged. Alpha hosts remain canary-only.
++
++The independent browser harness is repository test infrastructure, not a new public scenario mode. Its named contract is native onboarding and an unsent editor draft, not arbitrary plugin UI coverage or model execution.
++
++## Publication Gate
++
++1. Review T015/T016 evidence and obtain explicit release approval, including the chosen version. A proposed patch release is `0.4.3`; it is not allocated or published by this preparation.
++2. Update version-controlled package/version references in a separate release PR. Keep README support claims aligned with the version actually available to consumers.
++3. Require clean install, full supported-host and positive/negative Action matrix, installed tarball execution, native bundle acceptance, and all evidence safety checks at that exact release commit.
++4. Use the existing protected trusted-publishing workflow. Verify npm tarball identity, provenance and package contents, immutable release tag, GitHub Release, and `v0` Action target after publication.
++5. Re-run the published consumer and Action entry points. Source-commit tests and an unpublished tarball are preparation evidence, not proof of registry distribution.
++
++Release operations must not bypass failed checks or combine unrelated dependency upgrades. PR #35 is outside this delivery. External repository integration and maintainer adoption require their own authorization and evidence.
++
++## References
++
++- [Unreleased changes](../CHANGELOG.md)
++- [T016 plan](../.ai-platform/specs/lifecycle-runner/t016-plan.md)
++- [Monitoring operations](monitoring-operations.md)
+diff --git a/package.json b/package.json
+index fef20fe..9234efb 100644
+--- a/package.json
++++ b/package.json
+@@ -77,6 +77,7 @@
+     "test:e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh.test.ts",
+     "test:bundle-e2e": "pnpm build && DSH_TESTKIT_E2E=1 vitest run tests/e2e/real-dsh-bundle.test.ts",
+     "test:pack": "pnpm build && node tests/e2e/pack-consumer.mjs",
++    "test:adoption": "pnpm build && node tests/e2e/adoption-consumer.mjs",
+     "validate": "pnpm check:contracts && pnpm check:actions && pnpm check:release && pnpm typecheck && pnpm test:coverage && pnpm build",
+     "prepack": "pnpm check:contracts && pnpm build"
+   },
+diff --git a/tests/contracts/adoption.test.ts b/tests/contracts/adoption.test.ts
+new file mode 100644
+index 0000000..e15bd4e
+--- /dev/null
++++ b/tests/contracts/adoption.test.ts
+@@ -0,0 +1,15 @@
++import { readFile } from 'node:fs/promises'
++import { describe, expect, it } from 'vitest'
++import { parse } from 'yaml'
++
++describe('isolated external adoption acceptance', () => {
++  it('pins the external repository and keeps its checkout credential-free and Action read-only', async () => {
++    const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
++    const job = workflow.jobs.adoption
++    expect(job.permissions).toEqual({ contents: 'read' })
++    expect(job.if).toBe("github.event_name == 'push' || needs.changes.outputs.lifecycle == 'true'")
++    const checkout = job.steps.find((step: { with?: { repository?: string } }) => step.with?.repository)
++    expect(checkout.with).toMatchObject({ repository: 'bugmaker2/dsh-plugin-template', ref: '31af7ebeb8d07cff73253f52f9a9f530cde9de9a', 'persist-credentials': false })
++    expect(job.steps).toContainEqual(expect.objectContaining({ uses: './.github/actions/dsh-test', with: expect.objectContaining({ plugin: '.adoption-subject', 'dsh-version': '0.1.2-rc.1', 'publish-junit-check': 'false' }) }))
++  })
++})
+diff --git a/tests/e2e/adoption-checks.mjs b/tests/e2e/adoption-checks.mjs
+new file mode 100644
+index 0000000..a06d4bb
+--- /dev/null
++++ b/tests/e2e/adoption-checks.mjs
+@@ -0,0 +1,32 @@
++import assert from 'node:assert/strict'
++
++export const adoptionCommit = '31af7ebeb8d07cff73253f52f9a9f530cde9de9a'
++export const adoptionHost = '0.1.2-rc.1'
++
++export function buildVisibleBrowserArgs(baseArgs) {
++  const userIndex = baseArgs.indexOf('--user')
++  assert.ok(userIndex > 0 && /^\d+:\d+$/.test(baseArgs[userIndex + 1]), 'Docker output owner must be explicit')
++  assert.equal(baseArgs.at(-2), '--request')
++  return [...baseArgs.slice(0, -3), '--entrypoint', 'node', baseArgs.at(-3),
++    '/opt/dsh-testkit/tests/e2e/visible-browser-worker.mjs']
++}
++
++export function assertAdoptionReport(report, negative) {
++  assert.equal(report.verdict, negative ? 'failed' : 'passed')
++  assert.equal(report.subject.packageName, 'dsh-plugin-template')
++  assert.equal(report.subject.gitCommit, adoptionCommit)
++  assert.equal(report.dsh.version, adoptionHost)
++  assert.equal(report.environment.runner, 'docker')
++  assert.match(report.environment.imageId, /^sha256:[0-9a-f]{64}$/)
++  assert.equal(report.stages.find(stage => stage.id === 'cleanup')?.status, 'passed')
++  if (negative) {
++    assert.deepEqual(report.stages.filter(stage => ['failed', 'unsupported'].includes(stage.status)).map(stage => stage.id), ['assemble'])
++    const assembly = report.stages.find(stage => stage.id === 'assemble')
++    assert.equal(assembly?.status, 'failed')
++    assert.ok(assembly.assertions.some(assertion => assertion.id === 'config.row.dsh-testkit-deliberately-missing' && assertion.status === 'failed' && assertion.actual === false))
++  } else {
++    for (const id of ['install-plugin', 'assemble', 'boot', 'register', 'uninstall', 'reboot']) {
++      assert.equal(report.stages.find(stage => stage.id === id)?.status, 'passed', `${id} did not pass`)
++    }
++  }
++}
+diff --git a/tests/e2e/adoption-consumer.mjs b/tests/e2e/adoption-consumer.mjs
+new file mode 100644
+index 0000000..3611e01
+--- /dev/null
++++ b/tests/e2e/adoption-consumer.mjs
+@@ -0,0 +1,89 @@
++import assert from 'node:assert/strict'
++import { createHash } from 'node:crypto'
++import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join, resolve } from 'node:path'
++import { parse } from 'yaml'
++
++import { runCommand } from '../../dist/src/process/command.js'
++import { buildDockerRunArgs, dockerRunName } from '../../dist/src/runners/docker.js'
++import { RunReportSchema } from '../../dist/src/domain/report.js'
++import { adoptionCommit as expectedCommit, adoptionHost as host, assertAdoptionReport, buildVisibleBrowserArgs } from './adoption-checks.mjs'
++
++const root = resolve(import.meta.dirname, '../..')
++const subject = resolve(process.argv.filter(arg => arg !== '--')[2] ?? '.adoption-subject')
++const temporary = await mkdtemp(join(tmpdir(), 'dsh-adoption-'))
++const output = resolve(process.env.DSH_TESTKIT_E2E_OUTPUT ?? join(temporary, 'evidence'))
++await mkdir(output, { recursive: true })
++const env = { PATH: process.env.PATH, HOME: join(temporary, 'home'), NPM_CONFIG_USERCONFIG: '/dev/null', NPM_CONFIG_REGISTRY: 'https://registry.npmjs.org/', NPM_CONFIG_AUDIT: 'false', NPM_CONFIG_FUND: 'false', CI: 'true' }
++await mkdir(env.HOME, { recursive: true })
++
++async function command(name, executable, args, cwd = root, expectedCode = 0, timeoutMs = 900_000) {
++  const result = await runCommand({ executable, args, cwd, env, inheritEnv: false, timeoutMs, logDir: join(output, 'logs'), logName: name })
++  assert.equal(result.timedOut, false, `${name} timed out`)
++  assert.equal(result.stdoutTruncated || result.stderrTruncated, false, `${name} output truncated`)
++  assert.equal(result.exitCode, expectedCode, `${name}: unexpected exit; see ${output}/logs/${name}.*.log`)
++  return result
++}
++
++try {
++  const identity = await command('subject-commit', 'git', ['rev-parse', 'HEAD'], subject)
++  assert.equal(identity.stdout.trim(), expectedCommit)
++  assert.equal((await command('subject-clean', 'git', ['status', '--porcelain'], subject)).stdout.trim(), '')
++  const pack = await command('pack-testkit', 'npm', ['pack', '--json', '--pack-destination', temporary])
++  const metadata = JSON.parse(pack.stdout)[0]
++  const consumer = join(temporary, 'consumer')
++  await mkdir(consumer)
++  await writeFile(join(consumer, 'package.json'), JSON.stringify({ private: true, name: 'testkit-adoption-consumer', version: '0.0.0' }))
++  await command('install-consumer', 'npm', ['install', '--ignore-scripts', '--omit=optional', join(temporary, metadata.filename)], consumer)
++  const cli = join(consumer, 'node_modules/dsh-testkit/dist/src/cli.js')
++  await command('init-first', process.execPath, [cli, 'init'], subject)
++  const generatedPaths = ['dsh-testkit.yaml', '.github/workflows/dsh-lifecycle.yml', '.agents/skills/dsh-testkit/SKILL.md']
++  const digest = async path => createHash('sha256').update(await readFile(join(subject, path))).digest('hex')
++  const generated = []
++  for (const path of generatedPaths) generated.push({ path, sha256: await digest(path) })
++  await command('init-second', process.execPath, [cli, 'init'], subject)
++  for (const file of generated) assert.equal(await digest(file.path), file.sha256, 'init is not byte-idempotent')
++  const scenario = parse(await readFile(join(subject, 'dsh-testkit.yaml'), 'utf8'))
++  assert.deepEqual(scenario.expect.rows, ['dsh-plugin-template'])
++  const workflow = parse(await readFile(join(subject, '.github/workflows/dsh-lifecycle.yml'), 'utf8'))
++  assert.deepEqual(workflow.permissions, { contents: 'read' })
++  const reports = []
++  for (const [name, negative] of [['baseline', false], ['negative-config', true], ['corrected-config', false]]) {
++    const destination = join(output, name)
++    await command(name, process.execPath, [cli, '--config', 'dsh-testkit.yaml', '--dsh', host, '--output', destination,
++      ...(negative ? ['--expect-row', 'dsh-testkit-deliberately-missing'] : [])], subject, negative ? 1 : 0)
++    const report = RunReportSchema.parse(JSON.parse(await readFile(join(destination, 'report.json'), 'utf8')))
++    assertAdoptionReport(report, negative)
++    reports.push(report)
++  }
++  await writeFile(join(output, 'probe-adoption.json'), JSON.stringify({ sourceRepository: 'bugmaker2/dsh-plugin-template', sourceCommit: expectedCommit, testkitTarballIntegrity: metadata.integrity, generated, runs: reports.map(report => ({ runId: report.runId, verdict: report.verdict, sourceDigest: report.subject.sourceDigest, dsh: report.dsh, image: report.environment.image })), maintainerAdoption: false, fault: 'deliberately incorrect configuration, not an upstream plugin defect' }, null, 2))
++
++  for (const [name, viewport] of [['desktop', { width: 1280, height: 800 }], ['mobile', { width: 390, height: 844 }]]) {
++    const destination = join(output, `visible-${name}`)
++    await mkdir(destination)
++    const runId = `t016-visible-${name}-${Date.now()}`
++    await writeFile(join(destination, 'request.json'), JSON.stringify({ schemaVersion: 1, runId, scenario: {
++      schemaVersion: 1, name: 'independent-visible-host', subject: { source: '/input/primary' }, dsh: { version: host }, profile: 'web',
++      expect: { rows: ['fixture-healthy'] }, browser: { smoke: { kind: 'turn-status-text', expectedText: 'not-used-by-independent-acceptance' } }, timeouts: { bootMs: 120000 },
++    }, outputDir: '/output', reproductionCommand: 'pnpm test:adoption -- .adoption-subject', case: 'register', runner: 'docker', unsafeLocal: false }))
++    const baseArgs = buildDockerRunArgs({ image: reports[0].environment.image, runId, outputDir: destination, requestFilename: 'request.json', user: `${process.getuid()}:${process.getgid()}`, inputs: [
++      { hostPath: join(root, 'fixtures/healthy-plugin'), containerPath: '/input/primary' },
++      { hostPath: join(root, 'tests/e2e'), containerPath: '/opt/dsh-testkit/tests/e2e' },
++    ], environment: { TESTKIT_VISIBLE_VIEWPORT: JSON.stringify(viewport), DSH_TESTKIT_IMAGE: reports[0].environment.image, DSH_TESTKIT_IMAGE_ID: reports[0].environment.imageId } })
++    const args = buildVisibleBrowserArgs(baseArgs)
++    try {
++      await command(`visible-${name}`, 'docker', args, root, 0, 900_000)
++      const report = RunReportSchema.parse(JSON.parse(await readFile(join(destination, 'report.json'), 'utf8')))
++      assert.equal(report.verdict, 'passed')
++      assert.ok(report.stages.find(stage => stage.id === 'register')?.assertions.some(assertion => assertion.id === 'browser.visible-host.interaction' && assertion.status === 'passed'))
++    } finally {
++      await rm(join(destination, 'request.json'), { force: true })
++      await runCommand({ executable: 'docker', args: ['rm', '--force', dockerRunName(runId)], cwd: root, env, inheritEnv: false, timeoutMs: 10000, logDir: join(output, 'logs'), logName: `cleanup-visible-${name}` })
++    }
++  }
++  console.log('Installed consumer, intentional configuration failure, correction and independent visible browser acceptance passed.')
++} finally {
++  // Keep bounded diagnostics when no explicit output was requested.
++  if (process.env.DSH_TESTKIT_E2E_OUTPUT) await rm(temporary, { recursive: true, force: true })
++}
+diff --git a/tests/e2e/visible-browser-worker.mjs b/tests/e2e/visible-browser-worker.mjs
+new file mode 100644
+index 0000000..14c0404
+--- /dev/null
++++ b/tests/e2e/visible-browser-worker.mjs
+@@ -0,0 +1,76 @@
++import assert from 'node:assert/strict'
++import { mkdir, readFile, writeFile } from 'node:fs/promises'
++import { join } from 'node:path'
++import { chromium } from 'playwright-core'
++
++import { DshNpmAdapter } from '../../dist/src/adapters/dsh/npm-adapter.js'
++import { validateBrowserLaunchUrl } from '../../dist/src/adapters/dsh/browser-smoke.js'
++import { LifecycleWorker } from '../../dist/src/worker/lifecycle-worker.js'
++import { WorkerRequestSchema } from '../../dist/src/worker/protocol.js'
++import { sanitizeCommand } from '../../dist/src/process/command.js'
++import { exerciseVisibleHost } from './visible-browser.mjs'
++
++assert.equal(process.env.DSH_TESTKIT_RUNNER, 'docker', 'Visible acceptance must run in Docker')
++const request = WorkerRequestSchema.parse(JSON.parse(await readFile('/output/request.json', 'utf8')))
++assert.equal(request.scenario.dsh.version, '0.1.2-rc.1')
++const viewport = JSON.parse(process.env.TESTKIT_VISIBLE_VIEWPORT)
++const adapter = new DshNpmAdapter()
++
++// Independent, test-only observation on the live host. The shipped adapter and
++// public turn-status-text contract remain unchanged; no status DOM is seeded.
++adapter.captureBrowserSmoke = async function (label, authentication) {
++  assert.equal(label, 'boot')
++  const origin = `http://127.0.0.1:${this.webPort}`
++  const url = validateBrowserLaunchUrl(authentication, this.webPort)
++  assert.ok(url, 'rc.1 must provide its private authentication handoff')
++  let browser
++  let passed = false
++  let observation = { completed: false }
++  const completedSteps = []
++  const artifact = 'evidence/browser-boot.json'
++  const screenshot = 'evidence/browser-boot-turn-status.png'
++  try {
++    browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking'] })
++    this.browserIdentity = { name: 'chromium', version: browser.version() }
++    const context = await browser.newContext({ viewport, locale: 'en-US', serviceWorkers: 'block' })
++    await context.route('**/*', async route => {
++      if (new URL(route.request().url()).origin === origin) await route.continue()
++      else await route.abort('blockedbyclient')
++    })
++    await context.routeWebSocket('**/*', async route => {
++      if (new URL(route.url()).origin === origin.replace('http:', 'ws:')) route.connectToServer()
++      else await route.close({ code: 1008, reason: 'Non-loopback WebSocket blocked' })
++    })
++    const page = await context.newPage()
++    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 })
++    assert.ok(response && response.status() < 400)
++    assert.equal(page.url(), `${origin}/`, 'Browser must reach a token-free loopback root')
++    completedSteps.push('authenticated')
++    try {
++      observation = await exerciseVisibleHost(page, step => completedSteps.push(step))
++      passed = true
++    } finally {
++      // Only a fresh, credential-free owned profile is captured, after exchange.
++      await page.screenshot({ path: join(request.outputDir, screenshot) })
++      this.addArtifact(join(request.outputDir, screenshot))
++    }
++  } catch (error) {
++    // Retain only the first bounded diagnostic line, never Playwright's DOM call log.
++    const diagnostic = sanitizeCommand([String(error.message).split('\n')[0]], [url])[0].slice(0, 240)
++    observation = { completed: false, error: diagnostic }
++  } finally {
++    await browser?.close()
++  }
++  await writeFile(join(request.outputDir, artifact), JSON.stringify({ schemaVersion: 1, contract: 'native-onboarding-and-unsent-draft', viewport, passed, completedSteps, observation, domRedacted: true, storageRedacted: true }, null, 2))
++  this.addArtifact(join(request.outputDir, artifact))
++  this.browserResults.set(label, {
++    assertions: [{ id: 'browser.visible-host.interaction', status: passed ? 'passed' : 'failed', message: 'Native onboarding and unsent draft interaction', expected: true, actual: passed, evidence: [artifact] }],
++    artifacts: [artifact],
++  })
++}
++
++await mkdir(request.outputDir, { recursive: true })
++const report = await new LifecycleWorker(adapter).run(request)
++report.environment.testHarness = 'independent-native-browser; not the public TurnStatus observer'
++await writeFile('/output/report.json', JSON.stringify(report, null, 2))
++process.exitCode = report.verdict === 'passed' ? 0 : 1
+diff --git a/tests/e2e/visible-browser.mjs b/tests/e2e/visible-browser.mjs
+new file mode 100644
+index 0000000..a836c20
+--- /dev/null
++++ b/tests/e2e/visible-browser.mjs
+@@ -0,0 +1,36 @@
++import assert from 'node:assert/strict'
++
++export async function exerciseVisibleHost(page, onStep = () => {}) {
++  const timeout = 20_000
++  const notice = page.getByRole('dialog', { name: 'Internal Testing Notice' })
++  await notice.waitFor({ state: 'visible', timeout })
++  await page.getByRole('button', { name: 'Continue', exact: true }).click({ timeout })
++  await notice.waitFor({ state: 'hidden', timeout })
++  onStep('notice-acknowledged')
++  const provider = page.getByRole('dialog', { name: 'Add an API key to get started' })
++  await provider.waitFor({ state: 'visible', timeout })
++  await page.getByRole('button', { name: 'Configure later', exact: true }).click({ timeout })
++  await provider.waitFor({ state: 'hidden', timeout })
++  onStep('provider-skipped')
++  assert.equal(await page.locator('#root').evaluate(root => !root.inert), true, 'Application remains inert')
++  await page.getByRole('button', { name: 'Choose workspace', exact: true }).click({ timeout })
++  const picker = page.getByRole('dialog', { name: 'Select Workspace Directory' })
++  await picker.waitFor({ state: 'visible', timeout })
++  await page.getByRole('button', { name: 'Edit path', exact: true }).click({ timeout })
++  const path = page.getByRole('textbox', { name: 'Edit path', exact: true })
++  await path.fill('/work/run/workspace', { timeout })
++  await path.press('Enter', { timeout })
++  await page.getByRole('button', { name: 'Open', exact: true }).click({ timeout })
++  await picker.waitFor({ state: 'hidden', timeout })
++  onStep('owned-workspace-selected')
++  const editor = page.locator('[data-composer-input][contenteditable="true"]')
++  await editor.waitFor({ state: 'visible', timeout })
++  const draftText = 'DSH Testkit visible input'
++  await editor.click({ timeout })
++  onStep('editor-focused')
++  await editor.fill(draftText, { timeout })
++  onStep('draft-filled')
++  assert.equal(await editor.innerText(), draftText, 'Native editor did not retain the draft')
++  onStep('draft-entered')
++  return { noticeAcknowledged: true, providerSkipped: true, workspaceSelected: '/work/run/workspace', draftText, submitted: false }
++}
+diff --git a/tests/unit/adoption-report.test.ts b/tests/unit/adoption-report.test.ts
+new file mode 100644
+index 0000000..2bc1374
+--- /dev/null
++++ b/tests/unit/adoption-report.test.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, it } from 'vitest'
++import { buildDockerRunArgs } from '../../src/runners/docker.js'
++// @ts-expect-error Test-only JavaScript contract used by the installed-consumer driver.
++import { assertAdoptionReport, buildVisibleBrowserArgs } from '../e2e/adoption-checks.mjs'
++
++const report = () => ({
++  verdict: 'failed',
++  subject: { packageName: 'dsh-plugin-template', gitCommit: '31af7ebeb8d07cff73253f52f9a9f530cde9de9a' },
++  dsh: { version: '0.1.2-rc.1' },
++  environment: { runner: 'docker', imageId: `sha256:${'a'.repeat(64)}` },
++  stages: [
++    { id: 'assemble', status: 'failed', assertions: [{ id: 'config.row.dsh-testkit-deliberately-missing', status: 'failed', actual: false }] },
++    { id: 'register', status: 'skipped', assertions: [] },
++    { id: 'cleanup', status: 'passed', assertions: [] },
++  ],
++})
++
++describe('external adoption report contract', () => {
++  it('retains Docker hardening and the output owner when substituting the test-only entry point', () => {
++    const args = buildVisibleBrowserArgs(buildDockerRunArgs({ image: 'test-image', runId: 'visible-test', outputDir: '/tmp/evidence', requestFilename: 'request.json', user: '1001:1001' }))
++    expect(args).toEqual(expect.arrayContaining(['--read-only', '--cap-drop', 'ALL', '--user', '1001:1001', '--security-opt', 'no-new-privileges']))
++    expect(args.slice(-4)).toEqual(['--entrypoint', 'node', 'test-image', '/opt/dsh-testkit/tests/e2e/visible-browser-worker.mjs'])
++    expect(() => buildVisibleBrowserArgs(['run', 'test-image', '--request', '/output/request.json'])).toThrow('output owner')
++  })
++  it('accepts only the deliberate row failure at configuration assembly', () => {
++    expect(() => assertAdoptionReport(report(), true)).not.toThrow()
++  })
++  it('rejects an unrelated failed lifecycle or missing cleanup', () => {
++    const wrong = report()
++    wrong.stages[0]!.assertions[0]!.id = 'config.row.unrelated'
++    expect(() => assertAdoptionReport(wrong, true)).toThrow()
++    const dirty = report()
++    dirty.stages[2]!.status = 'failed'
++    expect(() => assertAdoptionReport(dirty, true)).toThrow()
++  })
++  it('requires actual positive install, boot, uninstall and reboot stages', () => {
++    const invalid = { ...report(), verdict: 'passed' }
++    expect(() => assertAdoptionReport(invalid, false)).toThrow()
++  })
++  it('does not let the deliberate fault hide a second lifecycle failure', () => {
++    const mixed = report()
++    mixed.stages.push({ id: 'reboot', status: 'failed', assertions: [] })
++    expect(() => assertAdoptionReport(mixed, true)).toThrow()
++  })
++})
+diff --git a/tests/unit/visible-browser.test.ts b/tests/unit/visible-browser.test.ts
+new file mode 100644
+index 0000000..28520d1
+--- /dev/null
++++ b/tests/unit/visible-browser.test.ts
+@@ -0,0 +1,55 @@
++import { describe, expect, it, vi } from 'vitest'
++
++// Test-only module is mounted into the restricted Docker image, not published.
++// @ts-expect-error The independent browser harness is JavaScript.
++import { exerciseVisibleHost } from '../e2e/visible-browser.mjs'
++
++const editorSelector = '[data-composer-input][contenteditable="true"]'
++
++function mockPage() {
++  const nodes = new Map<string, ReturnType<typeof node>>()
++  function node() {
++    return { waitFor: vi.fn(), click: vi.fn(), fill: vi.fn(), press: vi.fn(), inputValue: vi.fn(), innerText: vi.fn().mockResolvedValue('DSH Testkit visible input'), evaluate: vi.fn().mockResolvedValue(true) }
++  }
++  const get = (key: string) => {
++    if (!nodes.has(key)) nodes.set(key, node())
++    return nodes.get(key)!
++  }
++  return { nodes, get, page: {
++    getByRole: (role: string, options?: { name: string }) => get(`${role}:${options?.name ?? ''}`),
++    locator: (selector: string) => get(selector),
++  } }
++}
++
++describe('independent visible-host interaction', () => {
++  it('acknowledges native onboarding and edits the real textbox without submitting', async () => {
++    const { page, get } = mockPage()
++    const result = await exerciseVisibleHost(page)
++    expect(get('button:Continue').click).toHaveBeenCalledWith({ timeout: 20000 })
++    expect(get('button:Configure later').click).toHaveBeenCalledWith({ timeout: 20000 })
++    expect(get('button:Choose workspace').click).toHaveBeenCalledWith({ timeout: 20000 })
++    expect(get('textbox:Edit path').fill).toHaveBeenCalledWith('/work/run/workspace', { timeout: 20000 })
++    expect(get('textbox:Edit path').press).toHaveBeenCalledWith('Enter', { timeout: 20000 })
++    expect(get('button:Open').click).toHaveBeenCalledWith({ timeout: 20000 })
++    expect(get(editorSelector).waitFor).toHaveBeenCalledWith({ state: 'visible', timeout: 20000 })
++    expect(get(editorSelector).click).toHaveBeenCalledWith({ timeout: 20000 })
++    expect(get(editorSelector).fill).toHaveBeenCalledWith('DSH Testkit visible input', { timeout: 20000 })
++    expect(result).toMatchObject({ noticeAcknowledged: true, providerSkipped: true, draftText: 'DSH Testkit visible input', submitted: false })
++  })
++
++  it('fails when an overlay blocks a real click rather than dismissing it through DOM mutation', async () => {
++    const { page, get } = mockPage()
++    get('button:Continue').click.mockRejectedValue(new Error('intercepts pointer events'))
++    await expect(exerciseVisibleHost(page)).rejects.toThrow('intercepts pointer events')
++    expect(get(editorSelector).fill).not.toHaveBeenCalled()
++  })
++
++  it('fails if the app remains inert or text entry does not reach the actual editor', async () => {
++    const first = mockPage()
++    first.get('#root').evaluate.mockResolvedValue(false)
++    await expect(exerciseVisibleHost(first.page)).rejects.toThrow('inert')
++    const second = mockPage()
++    second.get(editorSelector).innerText.mockResolvedValue('')
++    await expect(exerciseVisibleHost(second.page)).rejects.toThrow('draft')
++  })
++})
