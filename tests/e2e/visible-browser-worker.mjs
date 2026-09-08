@@ -67,5 +67,6 @@ adapter.captureBrowserSmoke = async function (label, authentication) {
 
 await mkdir(request.outputDir, { recursive: true })
 const report = await new LifecycleWorker(adapter).run(request)
+report.environment.testHarness = 'independent-native-browser; not the public TurnStatus observer'
 await writeFile('/output/report.json', JSON.stringify(report, null, 2))
 process.exitCode = report.verdict === 'passed' ? 0 : 1

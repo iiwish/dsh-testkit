@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { buildDockerRunArgs } from '../../src/runners/docker.js'
 // @ts-expect-error Test-only JavaScript contract used by the installed-consumer driver.
-import { assertAdoptionReport } from '../e2e/adoption-checks.mjs'
+import { assertAdoptionReport, buildVisibleBrowserArgs } from '../e2e/adoption-checks.mjs'
 
 const report = () => ({
   verdict: 'failed',
@@ -15,6 +16,12 @@ const report = () => ({
 })
 
 describe('external adoption report contract', () => {
+  it('retains Docker hardening and the output owner when substituting the test-only entry point', () => {
+    const args = buildVisibleBrowserArgs(buildDockerRunArgs({ image: 'test-image', runId: 'visible-test', outputDir: '/tmp/evidence', requestFilename: 'request.json', user: '1001:1001' }))
+    expect(args).toEqual(expect.arrayContaining(['--read-only', '--cap-drop', 'ALL', '--user', '1001:1001', '--security-opt', 'no-new-privileges']))
+    expect(args.slice(-4)).toEqual(['--entrypoint', 'node', 'test-image', '/opt/dsh-testkit/tests/e2e/visible-browser-worker.mjs'])
+    expect(() => buildVisibleBrowserArgs(['run', 'test-image', '--request', '/output/request.json'])).toThrow('output owner')
+  })
   it('accepts only the deliberate row failure at configuration assembly', () => {
     expect(() => assertAdoptionReport(report(), true)).not.toThrow()
   })

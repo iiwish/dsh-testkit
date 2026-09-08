@@ -8,7 +8,7 @@ import { parse } from 'yaml'
 import { runCommand } from '../../dist/src/process/command.js'
 import { buildDockerRunArgs, dockerRunName } from '../../dist/src/runners/docker.js'
 import { RunReportSchema } from '../../dist/src/domain/report.js'
-import { adoptionCommit as expectedCommit, adoptionHost as host, assertAdoptionReport } from './adoption-checks.mjs'
+import { adoptionCommit as expectedCommit, adoptionHost as host, assertAdoptionReport, buildVisibleBrowserArgs } from './adoption-checks.mjs'
 
 const root = resolve(import.meta.dirname, '../..')
 const subject = resolve(process.argv.filter(arg => arg !== '--')[2] ?? '.adoption-subject')
@@ -67,12 +67,11 @@ try {
       schemaVersion: 1, name: 'independent-visible-host', subject: { source: '/input/primary' }, dsh: { version: host }, profile: 'web',
       expect: { rows: ['fixture-healthy'] }, browser: { smoke: { kind: 'turn-status-text', expectedText: 'not-used-by-independent-acceptance' } }, timeouts: { bootMs: 120000 },
     }, outputDir: '/output', reproductionCommand: 'pnpm test:adoption -- .adoption-subject', case: 'register', runner: 'docker', unsafeLocal: false }))
-    const baseArgs = buildDockerRunArgs({ image: reports[0].environment.image, runId, outputDir: destination, requestFilename: 'request.json', inputs: [
+    const baseArgs = buildDockerRunArgs({ image: reports[0].environment.image, runId, outputDir: destination, requestFilename: 'request.json', user: `${process.getuid()}:${process.getgid()}`, inputs: [
       { hostPath: join(root, 'fixtures/healthy-plugin'), containerPath: '/input/primary' },
       { hostPath: join(root, 'tests/e2e'), containerPath: '/opt/dsh-testkit/tests/e2e' },
     ], environment: { TESTKIT_VISIBLE_VIEWPORT: JSON.stringify(viewport), DSH_TESTKIT_IMAGE: reports[0].environment.image, DSH_TESTKIT_IMAGE_ID: reports[0].environment.imageId } })
-    const args = [...baseArgs.slice(0, -3), '--entrypoint', 'node', reports[0].environment.image,
-      '/opt/dsh-testkit/tests/e2e/visible-browser-worker.mjs']
+    const args = buildVisibleBrowserArgs(baseArgs)
     try {
       await command(`visible-${name}`, 'docker', args, root, 0, 900_000)
       const report = RunReportSchema.parse(JSON.parse(await readFile(join(destination, 'report.json'), 'utf8')))
