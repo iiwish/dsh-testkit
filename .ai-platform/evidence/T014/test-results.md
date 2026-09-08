@@ -47,7 +47,14 @@ Implementation SHA: `8d602cf399f19e738a3e8ea98eaa80016481e059`.
 - Artifact review of the next run found launch URLs in `ps` snapshots of the host browser-opener process. Process and port evidence now use the same secret sanitizer as command logs, before persistence and residue reporting. A focused regression failed with raw launcher/canary credentials before the fix; `pnpm validate` passes 175 tests after the fix. Browser E2E also scans every declared text artifact for unredacted launch URLs without printing secret values on failure.
 - The 12 lifecycle archives from runs `34184752917` and `34185395643` were deleted after identifying the snapshot exposure. These were ephemeral tokens for terminated loopback-only test hosts; no durable host credential files were uploaded. Replacement sanitized artifacts are required from the final rerun.
 
-The canonical build overwrote disposable local canary activation after the focused worker processes had started. No new host is enabled in source or claimed supported. PR #37 is open; merge, release and user acceptance are pending.
+The canonical build overwrote disposable local canary activation after the focused worker processes had started. No new host is enabled in source or claimed supported. The user accepted the fixes and authorized merge and publication; PR #37 is merged and v0.4.2 is published.
+
+## Publication
+
+- Release PR [#38](https://github.com/iiwish/dsh-testkit/pull/38) and protected-main CI passed the full supported-host matrix under the v0.4.2 identity.
+- Trusted publication [34199141267](https://github.com/iiwish/dsh-testkit/actions/runs/34199141267) passed every gate and published npm latest from `c418db152334cdba0e9473b828e8345b73c496cb`.
+- Clean npm installation, CLI `--version`, public API import and `npm audit signatures` passed: 12 verified registry signatures and 3 verified attestations. SLSA provenance resolves the exact release commit and `refs/tags/v0.4.2`.
+- GitHub Release and the existing v0 Action channel point to v0.4.2. Exact identities and digests are recorded in `.ai-platform/docs/release-report.md`.
 
 ## Dependency Security
 
