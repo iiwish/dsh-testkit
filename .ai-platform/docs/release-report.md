@@ -1,49 +1,33 @@
-# DSH Testkit v0.4.1 Release Report
+# DSH Testkit v0.4.2 Release Report
 
-Version: v0.4.1
-Status: Published
-Decision: GO
+Version: v0.4.2
+Status: Release_Candidate
+Decision: Awaiting release-identity CI
 Release channel: Public preview
-Last updated: 2026-08-31
+Last updated: 2026-09-08
 
 ## Release Scope
 
-DSH Testkit v0.4.1 adds worker-owned source dependency restoration, read-only generated CI, coordinated rc.8 tool contracts, complete compatibility Action smoke, official-release/npm canary classification, and immutable design-partner rerun gates. Scenario schema v1, report schema v1, exit-code meanings, and Docker-default isolation remain unchanged.
+DSH Testkit v0.4.2 contains the accepted T014 compatibility and diagnostic-safety fixes: a subject-free runtime baseline, Connection-ready browser authentication, private credential handoff, launch-token redaction in logs and process snapshots, and independent canary lifecycle/bundle lanes. It updates Zod to 4.5.4, development Cordis to 4.0.2 and development-only fast-uri to 3.1.7. Scenario/report v1 schemas, exit codes, Docker-default isolation, formal host support and the default DSH version remain unchanged.
 
-T013 is the accepted v0.4.1 scope. T010 through T012 remain accepted v0.4.0 history. T000 through T009 retain their recorded historical states.
+The user accepted the verified fixes and authorized merge and publication on 2026-09-08. Implementation PR [#37](https://github.com/iiwish/dsh-testkit/pull/37) is merged at `4c00534`.
 
-## Review Decision
+## Verification
 
-Maintainer review found one P2 before publication: mutable `packageManager` tags were accepted and an explicit npm version was not guaranteed. The release candidate rejects non-semver manager versions and dispatches explicit npm, pnpm, and Yarn versions through Corepack. RED/GREEN unit coverage and the real Docker prepare fixture pass after the fix. No P0 through P3 finding remains.
+| Gate | Evidence |
+| --- | --- |
+| Implementation CI | [34186704924](https://github.com/iiwish/dsh-testkit/actions/runs/34186704924): all 14 jobs passed |
+| Supported hosts | Lifecycle, native bundle, packaged Docker consumer and positive/negative Action smoke passed on DSH 0.1.1-rc.2 and 0.1.0-rc.6/7/8 |
+| Candidate hosts | [34185918263](https://github.com/iiwish/dsh-testkit/actions/runs/34185918263): all 12 lifecycle/bundle lanes passed for 0.1.2-alpha.2/3/4/5, 0.1.2-rc.1 and 0.1.3-alpha.2 |
+| Diagnostic safety | All 12 final archives downloaded and scanned with no unredacted launch URLs or private credential files; superseded unsafe archives removed |
+| Dependency hygiene | Official npm audit reports no known vulnerabilities |
+| Release identity local validation | v0.4.2: 26 files / 175 tests passed, with typecheck, contracts and build |
+| Publication identity | Pending v0.4.2 release PR, protected-main CI and trusted publishing |
 
-The accepted implementation is published from protected-main commit `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41`. Required and compatibility CI, CodeQL, trusted npm publication, public installation and provenance verification all pass.
+## Publication Gate
 
-## Release Evidence
-
-| Gate | Result |
-|---|---|
-| Frozen install and validation | Passed: 25 test files, 159 tests, typecheck, coverage and build |
-| Package contract | Passed: publint, packed consumer, npm publish dry run, 151-file allowlist |
-| Package size | 199,843 bytes packed; 845,603 bytes unpacked |
-| Dependency hygiene | Production audit found no known vulnerability; licenses are MIT, ISC, Apache-2.0 and Python-2.0 |
-| Supported real host | Passed all 11 cases on DSH rc.2, rc.8, rc.7 and rc.6 |
-| Native DSH bundle | Passed on DSH rc.2, rc.8, rc.7 and rc.6 |
-| Composite Action | Healthy and expected boot-failure subjects passed on default plus all compatibility hosts |
-| Source prepare path | Exact pnpm 10.17.0 fixture passed inside the owned Docker worker |
-| Alpha boundary | alpha.1 waits for npm; alpha.2 remains a failing disposable canary; neither is supported |
-| Design partners | No immutable package higher than the recorded shelf or spotlight baseline; no rerun performed |
-| Artifact governance | T013 validator and diff checks passed |
-
-## Published Identities
-
-- Release PR: [#31](https://github.com/iiwish/dsh-testkit/pull/31), candidate CI [33351739325](https://github.com/iiwish/dsh-testkit/actions/runs/33351739325), CodeQL [33351737788](https://github.com/iiwish/dsh-testkit/actions/runs/33351737788).
-- Protected-main commit: `6725fd40d5e25333b05ce6131d0c7f1e6c9aab41`; main CI [33352221017](https://github.com/iiwish/dsh-testkit/actions/runs/33352221017) and CodeQL [33352221601](https://github.com/iiwish/dsh-testkit/actions/runs/33352221601) passed.
-- Immutable tag: `v0.4.1`; stable moving tag: `v0`; both resolve to the protected-main commit.
-- Trusted publication: [workflow 33352703674](https://github.com/iiwish/dsh-testkit/actions/runs/33352703674) passed validation, real-host, native-bundle, packed-consumer, publish and registry verification.
-- npm: `dsh-testkit@0.4.1` is `latest`; integrity `sha512-TmltTUQSCp+AjlBSnJCRA6hpUPwRGmV0LagqUtFE6JMvQ/UmKi94T2FyunBnrDj2/SeR7lNKuh7U01KNM4psLg==`; shasum `5b00611c1cccfe13110cc1cb1612ff4071b91ddd`.
-- GitHub Release: [DSH Testkit v0.4.1](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.1).
-- npm exposes both the publish attestation and SLSA provenance for the public artifact; clean public execution reports `0.4.1`.
+Publish only the exact v0.4.2 protected-main commit after release-identity CI and review pass. The existing tag-triggered workflow validates the package, exercises the default real host and native bundle, tests the packaged Docker consumer, publishes through npm Trusted Publishing and verifies registry visibility. Verify public installation and provenance before marking Published or advancing the existing v0 Action channel. Never retarget an immutable version tag.
 
 ## Residual Risk
 
-DSH `0.1.2-alpha.2` creates new credential/fallback profile paths and changes the observed TurnStatus transition. Testkit records these as unsupported canary differences rather than normalizing them into the stable adapter. Cold arm64 image builds can exceed the ten-minute attempt budget while Chromium packages download; the watchdog classifies this as infrastructure and removes owned containers.
+Local macOS arm64 cold Docker builds are network-limited; Linux Docker acceptance is complete. Candidates remain disposable canaries because packaged-consumer promotion evidence and a support decision are separate requirements. No new host is claimed formally supported.

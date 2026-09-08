@@ -1,7 +1,7 @@
 # T014 Canary Compatibility Maintenance
 
-Status: Needs_Review
-User authorization: Ordered remediation, commits, push and PR creation for Linux CI approved on 2026-09-08.
+Status: Accepted
+User authorization: Verified fixes accepted; merge and publication approved on 2026-09-08.
 Base: `825382496444dfe3ebe5157f9a9b7583f11a1dd5` (main, 2026-08-31).
 
 ## Scope
@@ -19,7 +19,7 @@ Upstream inspected at `deepseek-ai/deepseek-harness@a66e4702047846cdaa10c66c9d3d
 
 ## Review Boundaries
 
-Unchanged: v1 schemas, stable exit semantics, Docker isolation, controller packaging boundary and supported-host registry. Negative fixtures still detect plugin writes to host-looking paths, including credential-file content. No release or PR merge is authorized by this record. User acceptance is pending.
+Unchanged: v1 schemas, stable exit semantics, Docker isolation, controller packaging boundary and supported-host registry. Negative fixtures still detect plugin writes to host-looking paths, including credential-file content. The user authorized merge and patch publication after Linux acceptance.
 
 ## Verification And Handoff
 
@@ -32,4 +32,4 @@ Linux acceptance at implementation commit `8d602cf399f19e738a3e8ea98eaa80016481e
 - All 12 final candidate archives were downloaded and scanned; no unredacted launch URL was found. Browser E2E enforces this for its declared text artifacts. Earlier unsafe process-snapshot archives were removed; details are in the test record.
 - Local `pnpm validate`: 26 files / 175 tests passed. Typecheck and whitespace checks passed after the final E2E assertion.
 
-Spec and code review found no remaining blocker in the scoped fixes after resolving Connection readiness and process-snapshot redaction. [PR #37](https://github.com/iiwish/dsh-testkit/pull/37) is open for review. Local macOS Docker builds remain affected by slow package downloads; Linux Docker acceptance is complete. Candidate packaged-consumer promotion checks were not added to Release Watch, so no candidate is promoted to formal support. No merge, publication or user acceptance is claimed.
+Spec and code review found no remaining blocker in the scoped fixes after resolving Connection readiness and process-snapshot redaction. [PR #37](https://github.com/iiwish/dsh-testkit/pull/37) is merged at `4c00534`. Local macOS Docker builds remain affected by slow package downloads; Linux Docker acceptance is complete. Candidate packaged-consumer promotion checks were not added to Release Watch, so no candidate is promoted to formal support. The v0.4.2 release report tracks publication separately.

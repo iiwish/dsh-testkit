@@ -22,11 +22,11 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ### T014: Canary Compatibility Maintenance
 
-Status: Needs_Review
+Status: Accepted
 Priority: P2
 Depends on: T013
 Parallel: No
-Approval: User approved ordered remediation, commits, push and PR creation for Linux CI on 2026-09-08. User acceptance is pending.
+Approval: User accepted the verified fixes and authorized merge and publication on 2026-09-08.
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T014.yaml`
 Evidence: `.ai-platform/evidence/T014/`
 

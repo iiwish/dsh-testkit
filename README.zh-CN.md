@@ -181,7 +181,7 @@ steps:
 DSH Testkit 还提供可选的、由社区维护的 DSH Profile Bundle：
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.4.1
+dsh plugin --profile web add dsh-testkit@0.4.2
 dsh --profile web --dump-config
 ```
 
