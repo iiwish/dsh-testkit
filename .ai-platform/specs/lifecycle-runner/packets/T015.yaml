@@ -1,0 +1,52 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T015
+task_id: T015
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User approved exact rc.1 support, main monitoring closure and shared evidence safety, plus PR creation and merge after Linux validation; no release.
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  plan: .ai-platform/specs/lifecycle-runner/plan.md
+  prerequisite_evidence: .ai-platform/evidence/T014/test-results.md
+work_unit:
+  title: DSH 0.1.2 support and fail-closed evidence publication
+  depends_on: [T014]
+  sequence:
+    - Verify main Release Watch on the released baseline.
+    - Add exact rc.1 support without changing the default or admitting alpha hosts.
+    - Exercise the installed tarball CLI against the selected real Docker host, not just build its image.
+    - Stage allowlisted bounded evidence; block credentials, symlinks and unknown files before uploads and JUnit annotations.
+    - Run supported and candidate matrices, review artifacts, merge the PR and rerun main Release Watch.
+execution_constraints:
+  direct_execute_reason: User requested sequential execution and did not authorize delegation.
+  allowed_files: [.ai-platform/**, src/adapters/dsh/support.ts, scripts/**, .github/actions/**, .github/workflows/**, tests/**, package.json, README.md, README.zh-CN.md, docs/**]
+  invariants:
+    - Preserve v1 schemas, lifecycle exit codes and Docker isolation.
+    - Keep 0.1.1-rc.2 as the default; preserve all existing supported versions.
+    - Do not publish npm packages, move release tags or claim the published 0.4.2 CLI accepts rc.1.
+    - Security failures must suppress every public artifact/annotation outlet and must not print rejected content.
+    - Copy only validated bytes to a fresh runner-owned staging directory; never upload the raw evidence root.
+codebase_context:
+  support: src/adapters/dsh/support.ts
+  evidence_sources: [tests/e2e/real-dsh.test.ts, tests/e2e/real-dsh-bundle.test.ts, tests/e2e/pack-consumer.mjs]
+  publication_outlets: [.github/actions/dsh-test/action.yml, .github/workflows/ci.yml, .github/workflows/dsh-release-watch.yml, .github/workflows/release.yml]
+tdd_plan:
+  red: Prove rc.1 support/CI contracts and evidence staging tests fail before implementation.
+  green: Reject credential files, raw launch URLs, headers, links, unknown binaries, unsafe paths and oversized input; preserve safe success/failure/timeout evidence.
+validation_loop:
+  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm check:actions]
+  matrix: [0.1.1-rc.2, 0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
+  workflow_lint: actionlint v1.7.7
+evidence_contract:
+  paths: [.ai-platform/evidence/T015/summary.md, .ai-platform/evidence/T015/test-results.md]
+  required: [RED/GREEN evidence, real-host and packaged-consumer matrix, main watch run, staging policy limitations, residual risks]
+review_contract:
+  spec_compliance: All three requested outcomes have implementation and real Linux evidence.
+  security: No raw artifact outlet, untrusted path traversal, silent skip or verdict override.
+  acceptance_authority: user
+stop_conditions:
+  - Do not merge a failed required check or promote a host with failed acceptance.
+  - Do not substitute a source-tree invocation for the installed package acceptance.
+handoff:
+  status: In_Progress
+  acceptance_authority: user

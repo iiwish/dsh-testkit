@@ -20,6 +20,18 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ## Governed Task Index
 
+### T015: DSH 0.1.2 Support And Evidence Safety
+
+Status: In_Progress
+Priority: P1
+Depends on: T014
+Parallel: No
+Approval: User approved the three-part iteration and PR/main merge after Linux validation on 2026-09-08; no npm publication is authorized.
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T015.yaml`
+Evidence: `.ai-platform/evidence/T015/`
+
+Scope: Add exact DSH 0.1.2-rc.1 support after packaged-consumer and Action acceptance; verify main Release Watch and summarize its terminal state; use one fail-closed evidence staging policy before artifact upload or JUnit publication. Default host, existing supported versions, v1 schemas and exit codes remain unchanged.
+
 ### T014: Canary Compatibility Maintenance
 
 Status: Accepted

@@ -75,9 +75,9 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
 ```
 
-当前 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
+源码 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。已发布的 npm `dsh-testkit@0.4.2` 和 `v0` Action 不包含 `0.1.2-rc.1` 支持；包含该支持的版本发布前，请使用经过审核的源码 commit。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
 
-一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，npm 提供 `0.1.2-alpha.2` 至 `0.1.2-alpha.5`、`0.1.2-rc.1` 和 `0.1.3-alpha.2`；官方 `0.1.2-alpha.1`、`0.1.3-alpha.1` release 等待对应 npm 包。这些候选版本均未纳入正式支持。已知失败、验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
+一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，alpha 候选为 `0.1.2-alpha.2` 至 `0.1.2-alpha.5` 和 `0.1.3-alpha.2`；官方 `0.1.2-alpha.1`、`0.1.3-alpha.1` release 等待对应 npm 包。Alpha 候选版本均未纳入正式支持。验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
 
 ### 通过意味着什么
 
@@ -153,7 +153,7 @@ steps:
       publish-junit-check: 'false'
 ```
 
-默认模式会把 JUnit annotation 写入 job，上传完整证据目录，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。
+默认模式会把 JUnit annotation 写入 job，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。源码 Action 在两个发布出口前执行统一证据检查，只上传附带哈希清单的全新暂存副本。不安全证据会使 job 失败且不会发布。已发布的 `v0` Action 尚不包含此检查，需等待相应版本发布。
 
 受信任的 push 或 release workflow 可以选择发布命名 JUnit Check：
 

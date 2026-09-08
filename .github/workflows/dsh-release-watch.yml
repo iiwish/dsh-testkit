@@ -70,12 +70,33 @@ jobs:
         run: pnpm test:bundle-e2e
         env:
           DSH_TESTKIT_E2E_OUTPUT: ${{ runner.temp }}/dsh-testkit-evidence
-      - name: Retain canary evidence
+      - id: safety
+        name: Prepare safe evidence
         if: always()
+        env:
+          EVIDENCE_INPUT: ${{ runner.temp }}/dsh-testkit-evidence
+        run: node scripts/prepare-evidence.mjs "$EVIDENCE_INPUT" --allow-missing
+      - name: Retain canary evidence
+        if: always() && steps.safety.outcome == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dsh-canary-${{ matrix.dsh }}-${{ matrix.lane }}
-          path: ${{ runner.temp }}/dsh-testkit-evidence
+          path: ${{ steps.safety.outputs.path }}
           include-hidden-files: false
           if-no-files-found: warn
           retention-days: 14
+
+  summary:
+    if: always()
+    needs: [discover, canary]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Summarize monitoring result
+        env:
+          DISCOVERY_RESULT: ${{ needs.discover.result }}
+          CANARY_RESULT: ${{ needs.canary.result }}
+          CANARY_VERSIONS: ${{ needs.discover.outputs.canary_versions }}
+          PENDING_NPM_VERSIONS: ${{ needs.discover.outputs.pending_npm_versions }}
+        run: node scripts/summarize-dsh-release-watch.mjs
