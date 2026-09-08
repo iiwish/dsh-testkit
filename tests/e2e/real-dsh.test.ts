@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -26,7 +26,9 @@ async function runFixture(
   runner: 'local' | 'docker' = 'local',
 ): Promise<FixtureRun> {
   const cwd = join(root, 'fixtures', name)
-  const output = await mkdtemp(join(tmpdir(), `dsh-testkit-e2e-${name}-`))
+  const evidenceRoot = process.env.DSH_TESTKIT_E2E_OUTPUT ?? tmpdir()
+  await mkdir(evidenceRoot, { recursive: true })
+  const output = await mkdtemp(join(evidenceRoot, `dsh-testkit-e2e-${name}-`))
   let code = 0
   let failure: unknown
   try {
@@ -62,7 +64,7 @@ describe.sequential('real DSH lifecycle fixtures', () => {
       '--expect-tool', 'fixture_echo',
       '--update-from', '../healthy-plugin-v0',
     ])
-    expect(result.code).toBe(0)
+    expect(result.code, JSON.stringify(result.report.stages.filter(stage => stage.status === 'failed'))).toBe(0)
     expect(result.report.verdict).toBe('passed')
     expect(result.report.stages.find(stage => stage.id === 'exercise')?.status).toBe('passed')
     const update = result.report.stages.find(stage => stage.id === 'update')
@@ -73,6 +75,10 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     ]))
     expect(update?.artifacts).toContain('evidence/effective-config-update.yml')
     expect(result.report.artifacts.some(path => path.includes('probe-boot'))).toBe(true)
+    expect(result.report.artifacts).toContain('evidence/probe-baseline-boot.json')
+    const baseline = JSON.parse(await readFile(join(result.outputDir, 'evidence/probe-baseline-boot.json'), 'utf8'))
+    expect(baseline.tools).not.toContain('fixture_echo')
+    expect(baseline.exercises).toEqual([])
   }, 900_000)
 
   it('treats the declared boot failure as a passing negative case and recovers the profile', async () => {
@@ -162,6 +168,9 @@ describe.sequential('real DSH lifecycle fixtures', () => {
     const residue = result.report.stages.find(stage => stage.id === 'uninstall')
       ?.assertions.find(assertion => assertion.id === 'uninstall.filesystem.residue')?.actual
     expect(residue).toEqual(expect.arrayContaining(['added:dsh-home/.anonymous-user-id']))
+    expect(residue).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^(added|modified):dsh-home\/\.credentials\.yaml$/),
+    ]))
   }, 900_000)
 
   it('captures process and port evidence while an observer fixture is live', async () => {

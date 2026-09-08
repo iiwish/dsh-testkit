@@ -77,7 +77,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 The adapter currently accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
 
-The official `dsh-v0.1.2-alpha.1` release remains a pending canary because its matching npm package is unavailable. `@deepseek-ai/dsh@0.1.2-alpha.2` is available and enters only the disposable canary matrix. Neither alpha is part of the default support matrix; a reviewed adapter change and real-host evidence are still required for formal support.
+The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, npm provides `0.1.2-alpha.2` through `0.1.2-alpha.5`, `0.1.2-rc.1`, and `0.1.3-alpha.2`; the official `0.1.2-alpha.1` and `0.1.3-alpha.1` releases are waiting for matching npm packages. These candidates are not formally supported. See [Host Compatibility](docs/host-compatibility.md) for known failures, evidence, and promotion requirements.
 
 ### What A Pass Means
 

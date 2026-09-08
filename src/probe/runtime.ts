@@ -10,6 +10,7 @@ interface ProbeConfig {
   skills?: string[]
   exercise: Array<{ tool: string; arguments: Record<string, unknown> }>
   settleMs?: number
+  browserAuth?: { origin: string; output: string }
 }
 
 interface RuntimeContext {
@@ -37,7 +38,7 @@ function assertion(id: string, pass: boolean, message: string, expected: unknown
 async function persist(output: string, payload: unknown): Promise<void> {
   await mkdir(dirname(output), { recursive: true })
   const temporary = `${output}.${process.pid}.tmp`
-  await writeFile(temporary, `${JSON.stringify(payload, null, 2)}\n`)
+  await writeFile(temporary, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 })
   await rename(temporary, output)
 }
 
@@ -152,6 +153,16 @@ export async function apply(ctx: RuntimeContext): Promise<void> {
         ))
       }
     }
+  }
+
+  if (config.browserAuth !== undefined) {
+    const connection = ctx.get('connection') as { authenticatedUrl?: (origin: string) => string } | undefined
+    // Private runner-owned handoff, deliberately absent from the public probe.
+    await persist(config.browserAuth.output, {
+      url: typeof connection?.authenticatedUrl === 'function'
+        ? connection.authenticatedUrl(config.browserAuth.origin)
+        : null,
+    })
   }
 
   await persist(config.output, {

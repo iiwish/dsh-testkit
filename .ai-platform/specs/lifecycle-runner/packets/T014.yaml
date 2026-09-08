@@ -1,0 +1,35 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T014
+task_id: T014
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User approved ordered remediation and explicitly authorized commits, push and PR creation for Linux CI on 2026-09-08.
+work_unit:
+  title: Canary evidence and DSH 0.1.2 compatibility maintenance
+  depends_on: [T013]
+  sequence:
+    - Preserve both canary test lanes and bounded evidence on failure.
+    - Reproduce and fix host filesystem attribution and web fixture loading.
+    - Regress all supported hosts before considering support promotion.
+    - Review dependency updates and synchronize support documentation.
+execution_constraints:
+  direct_execute_reason: User requested sequential fixes, not delegation.
+  allowed_files: [.ai-platform/**, .github/workflows/dsh-release-watch.yml, tests/**, src/adapters/dsh/**, src/probe/runtime.ts, src/process/command.ts, fixtures/**, package.json, pnpm-lock.yaml, assets/runner-pnpm-lock.yaml, README.md, README.zh-CN.md, docs/**]
+  invariants:
+    - Preserve Docker isolation, v1 schemas and stable exit codes.
+    - Never suppress residue merely by adding runtime filenames to a whitelist.
+    - Keep new hosts as canaries until reviewed real-host evidence supports promotion.
+    - Do not publish, merge PRs or mark Accepted.
+    - Authenticate only to the owned loopback host; keep launch tokens out of published evidence.
+tdd_plan:
+  red: Add failing CI contracts and reproduce candidate failures before fixes.
+  green: Focused contracts, real-host fixtures and bundle verification pass.
+validation_loop:
+  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm check:actions]
+  matrix: [0.1.1-rc.2, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6, 0.1.2-rc.1]
+evidence_contract:
+  paths: [.ai-platform/evidence/T014/summary.md, .ai-platform/evidence/T014/test-results.md]
+  required: [RED and GREEN results, source attribution, runtime matrix, residual risks]
+handoff:
+  status: In_Progress
+  acceptance_authority: user

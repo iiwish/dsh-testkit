@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -7,6 +7,19 @@ import { describe, expect, it } from 'vitest'
 import { runCommand } from '../../src/process/command.js'
 
 describe('command runner', () => {
+  it('redacts host launch-token URLs even when the process crashes before its probe', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-command-auth-'))
+    const result = await runCommand({
+      executable: process.execPath,
+      args: ['-e', 'console.log("dsh web: http://127.0.0.1:1234/?token=private-launch-token"); process.exit(1)'],
+      cwd: root, timeoutMs: 5_000, logDir: root, logName: 'auth',
+    })
+    expect(result.stdout).toContain('?token=[REDACTED]')
+    expect(result.redactionApplied).toBe(true)
+    expect(JSON.stringify(result)).not.toContain('private-launch-token')
+    expect(await readFile(join(root, 'auth.stdout.log'), 'utf8')).not.toContain('private-launch-token')
+  })
+
   it('captures output, persists logs and redacts canary values', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-command-'))
     const result = await runCommand({

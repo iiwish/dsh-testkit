@@ -7,6 +7,30 @@ const runLifecycle = "github.event_name == 'push' || needs.changes.outputs.lifec
 const skipLifecycle = "github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'"
 
 describe('required CI checks', () => {
+  it('runs both canary lanes independently and uploads evidence even after failure', async () => {
+    const workflow = parse(await readFile('.github/workflows/dsh-release-watch.yml', 'utf8'))
+    const job = workflow.jobs.canary
+    expect(job.strategy.matrix.lane).toEqual(['lifecycle', 'bundle'])
+    const upload = job.steps.find((step: Record<string, unknown>) => String(step.uses).startsWith('actions/upload-artifact@'))
+    expect(upload).toMatchObject({
+      if: 'always()',
+      with: {
+        name: 'dsh-canary-${{ matrix.dsh }}-${{ matrix.lane }}',
+        path: '${{ runner.temp }}/dsh-testkit-evidence',
+        'include-hidden-files': false,
+        'retention-days': 14,
+      },
+    })
+    expect(job.steps).toContainEqual(expect.objectContaining({
+      if: "matrix.lane == 'lifecycle'", run: 'pnpm test:e2e',
+      env: { DSH_TESTKIT_E2E_OUTPUT: '${{ runner.temp }}/dsh-testkit-evidence' },
+    }))
+    expect(job.steps).toContainEqual(expect.objectContaining({
+      if: "matrix.lane == 'bundle'", run: 'pnpm test:bundle-e2e',
+      env: { DSH_TESTKIT_E2E_OUTPUT: '${{ runner.temp }}/dsh-testkit-evidence' },
+    }))
+  })
+
   it.each(['real-host', 'action-smoke'])('%s keeps its check identity for documentation-only pull requests', async (jobName) => {
     const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
     const job = workflow.jobs[jobName]
