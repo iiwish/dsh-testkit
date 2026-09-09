@@ -30,5 +30,5 @@ evidence_contract:
   paths: [.ai-platform/evidence/T018/summary.md]
   required: [actual RED and GREEN, audit, production lock comparison, exact PR CI, residual risks]
 handoff:
-  status: Running
+  status: Needs_Review
   acceptance_authority: user
