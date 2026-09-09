@@ -1,0 +1,34 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T018
+task_id: T018
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User approved repairing PR 44 on 2026-09-09 after the coordinated Vitest/coverage plan. Publication is not authorized.
+work_unit:
+  title: Repair coordinated Vitest 4 security upgrade in PR 44
+  depends_on: []
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  product: .ai-platform/docs/product-design.md
+execution_constraints:
+  allowed_files: [package.json, pnpm-lock.yaml, .github/dependabot.yml, tests/contracts/test-toolchain.test.ts, tests/unit/runner-execution.test.ts, .ai-platform/specs/lifecycle-runner/packets/T018.yaml, .ai-platform/evidence/T018/**]
+  invariants: [no runtime dependency changes, no version or tag changes, no coverage threshold reductions, no paused automation changes, no external repository writes]
+codebase_context:
+  configuration: vitest.config.ts
+  failure: PR 44 CI 34304895123 mixes vitest 4.1.11 with coverage-v8 3.2.7 and throws fetchCache during coverage conversion.
+  baseline: main 3af43bd9cbd638ba6d401673af3be86789b1a733
+tdd_plan:
+  red: Existing CI failure plus a contract requiring matching exact Vitest/coverage versions and grouped updates.
+  green: Upgrade coverage-v8 to 4.1.11, keep dependency updates scoped, and pass unchanged coverage configuration.
+validation_loop:
+  commands: [pnpm install --frozen-lockfile, pnpm validate, pnpm audit --registry=https://registry.npmjs.org, git diff --check]
+  remote: Full five-host Linux matrix, Action positive/negative cases, adoption and CodeQL on exact PR head.
+review_contract:
+  scope: Inspect production lock identity, removed APIs and unchanged test discovery/coverage thresholds.
+  stop: Stop on unresolved regression or unrelated dependency refresh; merge requires user authorization.
+evidence_contract:
+  paths: [.ai-platform/evidence/T018/summary.md]
+  required: [actual RED and GREEN, audit, production lock comparison, exact PR CI, residual risks]
+handoff:
+  status: Running
+  acceptance_authority: user
