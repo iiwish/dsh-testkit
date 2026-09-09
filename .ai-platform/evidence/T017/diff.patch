@@ -1,0 +1,697 @@
+diff --git a/.ai-platform/docs/release-acceptance-plan.md b/.ai-platform/docs/release-acceptance-plan.md
+index 1d87fd5..b25f0d8 100644
+--- a/.ai-platform/docs/release-acceptance-plan.md
++++ b/.ai-platform/docs/release-acceptance-plan.md
+@@ -1,10 +1,10 @@
+ # DSH Testkit Release Acceptance Plan
+
+-Version: v0.4.1
++Version: v0.4.3
+ Status: Current
+ Release channel: Public preview
+ Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
+-Last updated: 2026-08-31
++Last updated: 2026-09-09
+
+ ## 1. Acceptance Objective
+
+diff --git a/.ai-platform/docs/release-report.md b/.ai-platform/docs/release-report.md
+index df7430d..16f4de4 100644
+--- a/.ai-platform/docs/release-report.md
++++ b/.ai-platform/docs/release-report.md
+@@ -1,44 +1,25 @@
+-# DSH Testkit v0.4.2 Release Report
++# DSH Testkit v0.4.3 Release Report
+
+-Version: v0.4.2
+-Status: Published
+-Decision: GO
++Version: v0.4.3
++Status: Release_Candidate
++Decision: Pending validation
+ Release channel: Public preview
+-Last updated: 2026-09-08
++Last updated: 2026-09-09
+
+ ## Release Scope
+
+-DSH Testkit v0.4.2 contains the accepted T014 compatibility and diagnostic-safety fixes: a subject-free runtime baseline, Connection-ready browser authentication, private credential handoff, launch-token redaction in logs and process snapshots, and independent canary lifecycle/bundle lanes. It updates Zod to 4.5.4, development Cordis to 4.0.2 and development-only fast-uri to 3.1.7. Scenario/report v1 schemas, exit codes, Docker-default isolation, formal host support and the default DSH version remain unchanged.
++Accepted T015/T016 delivery adds exact DSH `0.1.2-rc.1` formal support, shared fail-closed artifact/JUnit evidence policy, complete Release Watch summaries, pinned external-template CLI/Action acceptance and independent desktop/mobile native onboarding/draft checks. Default DSH `0.1.1-rc.2`, v1 schemas, stable exit codes and Docker isolation are unchanged. The repository and generated runner lock pin transitive `js-yaml` to `4.3.2` for GHSA-2883-xcg3-v3hh; all other dependency identities are unchanged.
+
+-The user accepted the verified fixes and authorized merge and publication on 2026-09-08. Implementation PR [#37](https://github.com/iiwish/dsh-testkit/pull/37) is merged at `4c00534`.
++The user explicitly authorized npm `0.4.3`, GitHub Release/tag and Action `v0` after all checks pass. T017 owns release execution. PR #35 is closed as an optional out-of-scope type-major update, not merged or reported as a failing build.
+
+ ## Verification
+
+-| Gate | Evidence |
+-| --- | --- |
+-| Implementation CI | [34186704924](https://github.com/iiwish/dsh-testkit/actions/runs/34186704924): all 14 jobs passed |
+-| Supported hosts | Lifecycle, native bundle, packaged Docker consumer and positive/negative Action smoke passed on DSH 0.1.1-rc.2 and 0.1.0-rc.6/7/8 |
+-| Candidate hosts | [34185918263](https://github.com/iiwish/dsh-testkit/actions/runs/34185918263): all 12 lifecycle/bundle lanes passed for 0.1.2-alpha.2/3/4/5, 0.1.2-rc.1 and 0.1.3-alpha.2 |
+-| Diagnostic safety | All 12 final archives downloaded and scanned with no unredacted launch URLs or private credential files; superseded unsafe archives removed |
+-| Dependency hygiene | Official npm audit reports no known vulnerabilities |
+-| Release identity local validation | v0.4.2: 26 files / 175 tests passed, with typecheck, contracts and build |
+-| Release PR | [#38](https://github.com/iiwish/dsh-testkit/pull/38): merged after [CI 34197687930](https://github.com/iiwish/dsh-testkit/actions/runs/34197687930) and CodeQL passed |
+-| Protected main | [CI 34198390655](https://github.com/iiwish/dsh-testkit/actions/runs/34198390655) and [CodeQL 34198390308](https://github.com/iiwish/dsh-testkit/actions/runs/34198390308) passed on the exact release commit |
+-| Trusted publication | [34199141267](https://github.com/iiwish/dsh-testkit/actions/runs/34199141267): identity, validation, real-host, native bundle, packaged consumer, publish and public visibility checks passed |
+-| Public consumer | Clean official-registry install completed; CLI reports 0.4.2 and public API import succeeds |
+-| Supply-chain verification | npm audit signatures verifies 12 registry signatures and 3 attestations; package provenance names the release workflow, tag and exact release commit |
+-| Repository security | No open Dependabot vulnerability alert after the fixes reached main |
+-
+-## Published Identities
+-
+-- Protected-main release commit: `c418db152334cdba0e9473b828e8345b73c496cb`.
+-- Immutable tag `v0.4.2` and moving Action channel `v0` both resolve to the release commit. The v0 channel update used an exact-old-value lease; immutable tags were not retargeted.
+-- npm `dsh-testkit@0.4.2` is `latest`; 151 files, 861,115 bytes unpacked.
+-- Integrity: `sha512-/bP4ecXFc0/6B/mhkjFWXVEIAWCrOEFCbGwOCa09FBOlRJ7UJC6SRNwwSMPIv59yezcX6MggkgPK4cQboEJFhg==`.
+-- SHA-1: `4643785e9e3ad8a386e5025d23cf9a832a6dc5ca`.
+-- [GitHub Release](https://github.com/iiwish/dsh-testkit/releases/tag/v0.4.2) is published as the latest release.
+-- Public consumer verification directory: `/tmp/dsh-public-042-ftkAs7`. Registry metadata, CLI/API execution and cryptographic npm signature/attestation verification all passed after installation completed.
++The accepted implementation at `ce90f70ced1e290f2b0f20f45bb85811c2d7ae05` passes [main CI 34215001063](https://github.com/iiwish/dsh-testkit/actions/runs/34215001063), all 18 jobs and CodeQL. T016 records 228 passing tests, independently rescanned artifacts and actual desktop/mobile screenshot review. Candidate-specific validation and publication receipts are recorded in [T017 evidence](../evidence/T017/test-results.md); historical success is not a substitute for the release commit's checks.
++
++## Distribution Gate
++
++Published baseline is `0.4.2`. Candidate publication, immutable `v0.4.3`, the GitHub Release, `v0` movement and public consumer verification remain pending. No public `0.4.3` distribution is claimed at this stage.
+
+ ## Residual Risk
+
+-Local macOS arm64 cold Docker builds are network-limited; Linux Docker acceptance is complete. Candidates remain disposable canaries because packaged-consumer promotion evidence and a support decision are separate requirements. No new host is claimed formally supported.
++This is a public preview, not security certification or arbitrary-plugin UI coverage. External-template testing does not establish ongoing maintainer adoption. Model execution is not tested. The Codex natural-scheduler follow-up is paused at the user's request; GitHub scheduling is independent, and its first post-T015 receipt remains unverified.
+diff --git a/.ai-platform/docs/tasks.md b/.ai-platform/docs/tasks.md
+index 3e219bb..2344ca0 100644
+--- a/.ai-platform/docs/tasks.md
++++ b/.ai-platform/docs/tasks.md
+@@ -1,6 +1,6 @@
+ # DSH Testkit Delivery Index
+
+-Version: Unreleased source delivery; published baseline v0.4.2
++Version: v0.4.3 release candidate; published baseline v0.4.2
+ Status: Confirmed
+ Last updated: 2026-09-08
+
+@@ -12,7 +12,7 @@ Last updated: 2026-09-08
+ - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
+ - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
+
+-The published baseline is v0.4.2. T015 is accepted source delivery. T016 covers release preparation, isolated external adoption, independent visible browser acceptance and scheduled monitoring verification. Publication requires separate approval. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
++The published baseline is v0.4.2. T015 and T016 are accepted. T017 governs the explicitly authorized v0.4.3 publication and public distribution verification. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
+
+ ## Release Gate
+
+@@ -20,9 +20,20 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
+
+ ## Governed Task Index
+
++### T017: Patch Release v0.4.3
++
++Status: Running
++Priority: P1
++Depends on: T016
++Parallel: No
++Approval: User authorized publication, GitHub Release/tag and Action v0 after all checks on 2026-09-09.
++Plan: `.ai-platform/specs/lifecycle-runner/t017-plan.md`
++Packet: `.ai-platform/specs/lifecycle-runner/packets/T017.yaml`
++Evidence: `.ai-platform/evidence/T017/`
++
+ ### T016: Adoption And Release Readiness
+
+-Status: Needs_Review
++Status: Accepted
+ Priority: P1
+ Depends on: T015
+ Parallel: No
+diff --git a/.ai-platform/evidence/T016/summary.md b/.ai-platform/evidence/T016/summary.md
+index 7a9ca83..77df78d 100644
+--- a/.ai-platform/evidence/T016/summary.md
++++ b/.ai-platform/evidence/T016/summary.md
+@@ -1,6 +1,6 @@
+ # T016 Adoption And Release Readiness
+
+-Status: Needs_Review
++Status: Accepted
+ Executor: Codex, direct execution; no delegation authorized.
+ Base: `59773eae27043154945954f6e03938218d8d9021`
+ Branch: `feat/t016-adoption-readiness`
+@@ -24,7 +24,7 @@ Implementation `785a37b7a90724037b5baf35184476240c51e124` passes 228 local tests
+
+ Spec and code-quality review found no remaining actionable issue: execution stays in owned Docker profiles, external source remains pinned and isolated, negative verdicts remain intact, and public runtime/schema/default-host contracts are unchanged. Test-only browser ownership and asynchronous editor readiness failures have focused regression coverage.
+
+-Release preparation is complete without publication. The bounded read-only schedule follow-up `dsh` is active; the first post-T015 natural schedule is an explicitly pending external event. T016 awaits user acceptance.
++Release preparation is complete. The user accepted continuation of the remaining acceptance/release work on 2026-09-09. The bounded schedule follow-up `dsh` is paused at the user's request; the first post-T015 natural schedule remains an explicitly unverified external event. Publication is governed by T017's separate explicit approval.
+
+ ## Review Boundaries
+
+diff --git a/.ai-platform/evidence/T016/test-results.md b/.ai-platform/evidence/T016/test-results.md
+index 16f1654..04b2149 100644
+--- a/.ai-platform/evidence/T016/test-results.md
++++ b/.ai-platform/evidence/T016/test-results.md
+@@ -1,6 +1,6 @@
+ # T016 Test Results
+
+-Status: Needs_Review
++Status: Accepted
+
+ ## Local Evidence
+
+diff --git a/.ai-platform/evidence/T017/summary.md b/.ai-platform/evidence/T017/summary.md
+new file mode 100644
+index 0000000..a7fe0ee
+--- /dev/null
++++ b/.ai-platform/evidence/T017/summary.md
+@@ -0,0 +1,19 @@
++# T017 Release Evidence
++
++Status: Running
++Base: `ce90f70ced1e290f2b0f20f45bb85811c2d7ae05`
++Branch: `release/v0.4.3`
++Executor: Codex, direct; no delegation authorized.
++Approval: User explicitly authorized npm `0.4.3`, GitHub Release/tag and Action `v0` after passing checks on 2026-09-09.
++
++## Dependency Review
++
++PR #35 head `57c381390e8bd75e7c37da6ef3ea639434176f49` has green CI and no established runtime regression. It is closed as an optional out-of-scope major type upgrade: the diff also changes unrelated schemastery, ansi-styles and string-width resolutions. The release retains the Node >=22 contract. Closure is not represented as a failed test. The release's only dependency delta is the required `js-yaml@4.3.2` security patch for GHSA-2883-xcg3-v3hh, proven by a bounded RED/GREEN regression and fresh official audit.
++
++## Acceptance And Monitoring
++
++T016 is accepted by the user's request to complete the listed remaining acceptance/release work. Automation `dsh` is paused at the user's explicit request. Its pending natural-scheduler receipt is not represented as passed; GitHub's own workflow remains enabled.
++
++## Publication
++
++Pending candidate validation, protected merge, trusted publication and public distribution verification. No release success is claimed until receipts are recorded in `test-results.md`.
+diff --git a/.ai-platform/evidence/T017/test-results.md b/.ai-platform/evidence/T017/test-results.md
+new file mode 100644
+index 0000000..ff02bbf
+--- /dev/null
++++ b/.ai-platform/evidence/T017/test-results.md
+@@ -0,0 +1,18 @@
++# T017 Test Results
++
++Status: Running
++
++## Local Checks
++
++- Version-identity RED: 5 expected failures across CLI, manifest, runner image and changelog assertions with the 0.4.2 source. Version update GREEN: `pnpm validate` passed all 228 tests, contracts, typecheck, coverage and build.
++- `npm publish --dry-run --json --ignore-scripts`: passed; 151 files, no publication. `publint@0.3.12`: passed.
++- The configured mirror has no audit endpoint. Official npm audit found high-severity GHSA-2883-xcg3-v3hh in `xmlbuilder2 > js-yaml@4.3.1`. The advisory was added to GitHub's database on 2026-09-08 and fixes the empty-merge-source work-budget bypass in `4.3.2`.
++- Bounded negative-control test uses three empty merge sources and budget two; installed `4.3.1` returns without error, so the new test fails as intended. No large CPU-exhaustion payload is executed. Testkit's JUnit writer builds XML rather than parsing untrusted YAML; no application exploit is claimed.
++- The targeted pnpm updater refreshed unrelated transitive packages without fixing js-yaml; those generated changes were discarded. The lock delta contains only js-yaml `4.3.1 -> 4.3.2` and the exact official-registry integrity. Official production audit then reports zero vulnerabilities. Frozen install disables pnpm's optimistic repeat-install shortcut to actually relink the changed transitive dependency.
++
++- Security GREEN: the bounded merge-budget test passes on `4.3.2`; final `pnpm validate` passes all 229 tests in 33 files, static/type/coverage checks and build. The generated runner lock also resolves `js-yaml@4.3.2`.
++
++- Manual distribution workflow RED: missing workflow file fails its contract. GREEN: least-privilege/manual trigger, v0/immutable-tag identity, registry CLI and released Action checks pass focused tests and actionlint. Final full validation passes 230 tests in 34 files. The workflow does not publish or create recurring automation.
++- Full dependency audit has no high/critical findings and retains two moderate development-only entries for Vitest/mocker (GHSA-82fw-gwwq-j7x9). The repository runs Node-environment `vitest run`, not exposed mocker/browser dev servers; production audit is clean. A major test-framework migration is deferred rather than mixed into this patch. This is a documented residual risk, not a zero-vulnerability claim for the full development graph.
++
++Candidate/main/release and public distribution receipts remain pending.
+diff --git a/.ai-platform/specs/lifecycle-runner/packets/T017.yaml b/.ai-platform/specs/lifecycle-runner/packets/T017.yaml
+new file mode 100644
+index 0000000..a1007a2
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/packets/T017.yaml
+@@ -0,0 +1,23 @@
++schema_version: 1
++packet_id: EP-LIFECYCLE-T017
++task_id: T017
++mode: direct_execute
++approval: User explicitly authorized v0.4.3 publication, GitHub Release/tag and v0 update after checks on 2026-09-09.
++work_unit:
++  title: Publish accepted T015 and T016 delivery as v0.4.3
++  depends_on: [T016]
++execution_constraints:
++  allowed_files: [package.json, pnpm-lock.yaml, assets/runner-pnpm-lock.yaml, src/version.ts, tests/**, README.md, README.zh-CN.md, CHANGELOG.md, docs/**, .ai-platform/**, .github/workflows/release-consumer.yml]
++  invariants: [only required js-yaml 4.3.2 security patch in dependency graph, no default-host or schema changes, no external repository writes, no immutable tag retargeting, no publication before green checks, keep automation dsh paused]
++tdd_plan:
++  red: Version identity assertions expect 0.4.3 before source identity changes.
++  green: Version assertions, package checks and full Linux matrix pass.
++validation_loop:
++  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm test:adoption, npm publish --dry-run]
++  release: Protected-main CI then existing trusted-publishing workflow; public package and Action execution verification.
++evidence_contract:
++  paths: [.ai-platform/evidence/T017/summary.md, .ai-platform/evidence/T017/test-results.md, .ai-platform/evidence/T017/diff.patch]
++  required: [PR35 review decision, T016 acceptance, RED/GREEN, exact release commit, supported-host CI, public tarball identity and provenance, v0 lease update, residual risk]
++handoff:
++  status: Needs_Review
++  acceptance_authority: user
+diff --git a/.ai-platform/specs/lifecycle-runner/t017-plan.md b/.ai-platform/specs/lifecycle-runner/t017-plan.md
+new file mode 100644
+index 0000000..07657b0
+--- /dev/null
++++ b/.ai-platform/specs/lifecycle-runner/t017-plan.md
+@@ -0,0 +1,28 @@
++# T017 Patch Release
++
++Status: Confirmed
++Date: 2026-09-09
++Approval: User accepted continuation of the remaining review/acceptance/release work and explicitly authorized publishing `0.4.3`, creating its GitHub Release/tag and updating Action `v0` after all checks pass.
++
++## Scope
++
++1. Close optional dependency PR #35 after review; retain the tested dependency graph. Record T016 acceptance and the user's pause of the bounded scheduler follow-up.
++2. Prepare `0.4.3` version identity, release notes and canonical bilingual support documentation for accepted T015/T016 delivery.
++3. Validate the release PR and exact protected-main commit with all five supported hosts, negative fixtures, native bundle, installed tarball, independent browser and external-template acceptance. Publish only through the existing trusted workflow.
++4. Verify public npm metadata, tarball contents, signatures/provenance, clean consumer and released Action identity/execution. Create the GitHub Release and advance `v0` with an exact-old-value lease.
++
++## Boundaries
++
++- No runtime feature, schema, exit-code, default-host or unrelated dependency change. The release audit requires the narrowly scoped `js-yaml` transitive security patch from `4.3.1` to `4.3.2` for GHSA-2883-xcg3-v3hh, including the generated runner lock and a bounded negative-control regression test.
++- No external repository writes, automatic retries of deterministic failures or restoration of paused automations.
++- Existing immutable release tags cannot move. A failed mandatory check stops publication.
++- Natural scheduler delivery remains an optional pending observation; a manual run is not its substitute.
++
++## Validation And Analysis
++
++Version assertions are updated first and must fail before the identity change. Run `pnpm validate`, actionlint, package dry-run, clean consumer/API/type checks, production audit and package-export validation. Linux CI must pass all 18 jobs and CodeQL before merge; exact-main checks precede tagging. Inspect release/public-consumer receipts and safety manifests before final handoff.
++
++Checklist: scope is bounded to accepted work; explicit publication approval is present; dependencies stay unchanged; credential-free lifecycle tests and least-privilege publishing are retained. No Critical/High contract conflict identified. Direct execution is required because no delegation was authorized.
++
++Task: T017. Depends on: T016. Parallel: No. Status: Running.
++Packet: `packets/T017.yaml`. Evidence: `.ai-platform/evidence/T017/`.
+diff --git a/.ai-platform/specs/lifecycle-runner/tasks.md b/.ai-platform/specs/lifecycle-runner/tasks.md
+index 808ddf9..60e7f69 100644
+--- a/.ai-platform/specs/lifecycle-runner/tasks.md
++++ b/.ai-platform/specs/lifecycle-runner/tasks.md
+@@ -8,7 +8,7 @@ Last updated: 2026-09-08
+
+ ## Current Delivery
+
+-T015 is accepted source delivery. T016 is the active sequential task; its approved four-step scope, allowed files, validation and packet are recorded in [T016 plan](t016-plan.md) and the [delivery index](../../docs/tasks.md). Publication is not authorized.
++T015 and T016 are accepted. T017 is the active sequential release task; its approved scope, validation and publication boundaries are recorded in [T017 plan](t017-plan.md) and the [delivery index](../../docs/tasks.md).
+
+ ## 状态定义
+
+diff --git a/.github/workflows/release-consumer.yml b/.github/workflows/release-consumer.yml
+new file mode 100644
+index 0000000..5ce0ee1
+--- /dev/null
++++ b/.github/workflows/release-consumer.yml
+@@ -0,0 +1,83 @@
++name: Verify Published Distribution
++
++on:
++  workflow_dispatch:
++    inputs:
++      release-commit:
++        description: Exact reviewed commit shared by npm provenance, the version tag and v0.
++        required: true
++        type: string
++
++permissions:
++  contents: read
++
++concurrency:
++  group: release-consumer-${{ inputs.release-commit }}
++  cancel-in-progress: false
++
++jobs:
++  verify:
++    runs-on: ubuntu-latest
++    timeout-minutes: 45
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          ref: v0
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Verify release identity
++        shell: bash
++        env:
++          EXPECTED_COMMIT: ${{ inputs.release-commit }}
++        run: |
++          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
++          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
++          version="$(node -p "require('./package.json').version")"
++          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
++          test "$(git rev-list -n 1 "v$version")" = "$EXPECTED_COMMIT"
++          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
++      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
++        with:
++          node-version: '22'
++          registry-url: https://registry.npmjs.org/
++          package-manager-cache: false
++      - name: Install and verify public npm consumer
++        shell: bash
++        env:
++          npm_config_registry: https://registry.npmjs.org/
++        run: |
++          mkdir "$RUNNER_TEMP/consumer"
++          cd "$RUNNER_TEMP/consumer"
++          npm init --yes
++          npm install --ignore-scripts --omit=optional "dsh-testkit@$RELEASE_VERSION"
++          npm audit --omit=dev --audit-level=high
++          npm audit signatures
++          test "$(node node_modules/dsh-testkit/dist/src/cli.js --version)" = "$RELEASE_VERSION"
++          node --input-type=module -e 'import { TESTKIT_VERSION, ScenarioSchema, createDshTestTool } from "dsh-testkit"; if (TESTKIT_VERSION !== process.env.RELEASE_VERSION || !ScenarioSchema || createDshTestTool().name !== "dsh_test") process.exit(1)'
++      - name: Run published CLI against rc.1
++        shell: bash
++        run: |
++          node "$RUNNER_TEMP/consumer/node_modules/dsh-testkit/dist/src/cli.js" \
++            --config fixtures/healthy-plugin/dsh-testkit.yaml \
++            --dsh 0.1.2-rc.1 --output "$RUNNER_TEMP/public-consumer-evidence"
++      - id: safety
++        name: Prepare public consumer evidence
++        if: always()
++        shell: bash
++        run: node scripts/prepare-evidence.mjs "$RUNNER_TEMP/public-consumer-evidence" --allow-missing
++      - if: always() && steps.safety.outcome == 'success'
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: dsh-public-consumer
++          path: ${{ steps.safety.outputs.path }}
++          include-hidden-files: false
++          if-no-files-found: error
++          retention-days: 14
++      - name: Run released v0 Action
++        uses: ./.github/actions/dsh-test
++        with:
++          plugin: fixtures/healthy-plugin
++          config: fixtures/healthy-plugin/dsh-testkit.yaml
++          dsh-version: 0.1.2-rc.1
++          publish-junit-check: 'false'
++          artifact-name: dsh-public-action
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index fc4217e..428cce5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+
+ ## [Unreleased]
+
++## [0.4.3] - 2026-09-09
++
++### Security
++
++- Pin the repository and Docker runner's transitive `js-yaml` dependency to `4.3.2`, fixing the empty-merge-source CPU budget bypass in GHSA-2883-xcg3-v3hh.
++
+ ### Added
+
+ - Exact DSH `0.1.2-rc.1` support, with formal lifecycle, installed-package and Action checks. The default remains `0.1.1-rc.2`.
+@@ -189,7 +195,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
+ - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
+ - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
+
+-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...HEAD
++[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.3...HEAD
++[0.4.3]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...v0.4.3
+ [0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2
+ [0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1
+ [0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0
+diff --git a/README.md b/README.md
+index 63ba72c..f5b200e 100644
+--- a/README.md
++++ b/README.md
+@@ -75,7 +75,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
+         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+ ```
+
+-The source adapter accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Published npm `dsh-testkit@0.4.2` and the `v0` Action do not include `0.1.2-rc.1` support; use a reviewed source commit for that host until a release includes it. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
++DSH Testkit `0.4.3` accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Use npm `dsh-testkit@0.4.3` or the corresponding Action release for this support matrix. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
+
+ The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, unsupported published alpha versions include `0.1.2-alpha.2` through `0.1.2-alpha.5` and `0.1.3-alpha.2`. Release Watch selects versions newer than the highest supported host: its current runnable candidate is `0.1.3-alpha.2`, while `0.1.3-alpha.1` awaits a matching npm package. The older official `0.1.2-alpha.1` also has no matching npm artifact and is outside the current watch range. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
+
+@@ -181,7 +181,7 @@ The project-local Skill and the exported `dsh-testkit/skills/dsh-testkit/SKILL.m
+ DSH Testkit also ships an optional, community-maintained DSH Profile Bundle:
+
+ ```bash
+-dsh plugin --profile web add dsh-testkit@0.4.2
++dsh plugin --profile web add dsh-testkit@0.4.3
+ dsh --profile web --dump-config
+ ```
+
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index 94afd14..19d43c2 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -75,7 +75,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
+         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
+ ```
+
+-源码 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。已发布的 npm `dsh-testkit@0.4.2` 和 `v0` Action 不包含 `0.1.2-rc.1` 支持；包含该支持的版本发布前，请使用经过审核的源码 commit。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
++DSH Testkit `0.4.3` 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。请使用 npm `dsh-testkit@0.4.3` 或对应的 Action 发布版本获得此支持矩阵。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
+
+ 一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，已发布但未正式支持的 alpha 版本包括 `0.1.2-alpha.2` 至 `0.1.2-alpha.5` 和 `0.1.3-alpha.2`。Release Watch 只选择高于最高支持版本的候选：当前可运行的是 `0.1.3-alpha.2`，`0.1.3-alpha.1` 等待对应 npm 包。更早的官方 `0.1.2-alpha.1` 也没有对应 npm 制品，不在当前监测范围内。验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
+
+@@ -181,7 +181,7 @@ steps:
+ DSH Testkit 还提供可选的、由社区维护的 DSH Profile Bundle：
+
+ ```bash
+-dsh plugin --profile web add dsh-testkit@0.4.2
++dsh plugin --profile web add dsh-testkit@0.4.3
+ dsh --profile web --dump-config
+ ```
+
+diff --git a/docs/host-compatibility.md b/docs/host-compatibility.md
+index 6988031..2652c10 100644
+--- a/docs/host-compatibility.md
++++ b/docs/host-compatibility.md
+@@ -1,17 +1,17 @@
+ # Host Compatibility
+
+-Status checked: 2026-09-08.
++Release scope: DSH Testkit `0.4.3`. Status checked: 2026-09-09.
+
+ | Host versions | Status |
+ | --- | --- |
+ | `0.1.1-rc.2` | Formal support; default host |
+-| `0.1.2-rc.1` | Source support; not included in npm `0.4.2` or Action `v0` |
++| `0.1.2-rc.1` | Formal support in Testkit `0.4.3` |
+ | `0.1.0-rc.6`, `0.1.0-rc.7`, `0.1.0-rc.8` | Formal compatibility support |
+ | `0.1.2-alpha.2` through `0.1.2-alpha.5` | Older alpha canaries with recorded passing checks; not formally supported or rerun after rc.1 promotion |
+ | `0.1.3-alpha.2` | Disposable canary; Linux lifecycle and native-bundle checks pass; not formally supported |
+ | `0.1.2-alpha.1`, `0.1.3-alpha.1` | Immutable official releases without matching npm artifacts; no runtime execution |
+
+-The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest formally supported version: with `0.1.2-rc.1` in source support, its current runnable candidate is `0.1.3-alpha.2` and its pending npm candidate is `0.1.3-alpha.1`.
++The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest formally supported version. The recorded T015 discovery result identifies runnable candidate `0.1.3-alpha.2` and pending npm candidate `0.1.3-alpha.1`; fresh discovery determines the live candidate set.
+
+ ## Validation
+
+diff --git a/docs/monitoring-operations.md b/docs/monitoring-operations.md
+index 066be80..19f1fbb 100644
+--- a/docs/monitoring-operations.md
++++ b/docs/monitoring-operations.md
+@@ -10,7 +10,7 @@ Use `gh run list --workflow dsh-release-watch.yml --event schedule` and inspect
+
+ On 2026-09-08, [scheduled run 34202400081](https://github.com/iiwish/dsh-testkit/actions/runs/34202400081) succeeded at `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`. That is the T014 baseline, not T015's evidence-policy implementation. The [post-T015 manual main run](https://github.com/iiwish/dsh-testkit/actions/runs/34205717065) verifies the updated workflow at `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`. The first scheduled run containing that implementation needs its own receipt.
+
+-A bounded Codex follow-up named `DSH 自然调度验收` (automation ID `dsh`) checks hourly at minute 30 for that receipt. It verifies the event, main-branch SHA ancestry, jobs and conclusion, remains quiet while nothing actionable changes, and pauses itself after success, failure or the freshness deadline of 2026-09-09 20:02 UTC. It has no authority to change repositories, rerun failures or publish. Other paused automations remain paused. This follow-up's creation is not a GitHub scheduler receipt.
++The bounded Codex follow-up `DSH 自然调度验收` (automation ID `dsh`) is paused at the user's request on 2026-09-09. The first post-T015 natural-scheduler receipt remains unverified. GitHub Release Watch remains enabled independently; a manual inspection can collect the receipt without restoring the Codex follow-up. Other paused automations remain paused.
+
+ ## Failure Handling
+
+diff --git a/docs/release-preparation.md b/docs/release-preparation.md
+index 7f142b9..ac37a20 100644
+--- a/docs/release-preparation.md
++++ b/docs/release-preparation.md
+@@ -1,26 +1,26 @@
+-# Unreleased Delivery Preparation
++# v0.4.3 Release Gate
+
+ Published baseline: `dsh-testkit@0.4.2` and Action `v0`.
+-Publication status: Not authorized. Package version and tags remain unchanged.
++Candidate: `dsh-testkit@0.4.3`. Publication is user-authorized on 2026-09-09, conditional on all mandatory checks.
+
+ ## Scope
+
+-The source delivery includes exact DSH `0.1.2-rc.1` support, shared fail-closed evidence staging, complete Release Watch summaries, an isolated external-template adoption check, and independent visible-host browser acceptance. The default host remains `0.1.1-rc.2`; v1 schemas and exit codes are unchanged. Alpha hosts remain canary-only.
++The release includes accepted T015/T016 delivery: exact DSH `0.1.2-rc.1` support, shared fail-closed evidence staging, complete Release Watch summaries, an isolated external-template adoption check, and independent visible-host browser acceptance. The default host remains `0.1.1-rc.2`; v1 schemas and exit codes are unchanged. Alpha hosts remain canary-only.
+
+ The independent browser harness is repository test infrastructure, not a new public scenario mode. Its named contract is native onboarding and an unsent editor draft, not arbitrary plugin UI coverage or model execution.
+
+ ## Publication Gate
+
+-1. Review T015/T016 evidence and obtain explicit release approval, including the chosen version. A proposed patch release is `0.4.3`; it is not allocated or published by this preparation.
+-2. Update version-controlled package/version references in a separate release PR. Keep README support claims aligned with the version actually available to consumers.
++1. T015/T016 are accepted and `0.4.3` publication is explicitly authorized. T017 owns execution and final receipts.
++2. Align package/runtime versions, bilingual README, changelog and package contents at `0.4.3` in a reviewed release PR.
+ 3. Require clean install, full supported-host and positive/negative Action matrix, installed tarball execution, native bundle acceptance, and all evidence safety checks at that exact release commit.
+ 4. Use the existing protected trusted-publishing workflow. Verify npm tarball identity, provenance and package contents, immutable release tag, GitHub Release, and `v0` Action target after publication.
+ 5. Re-run the published consumer and Action entry points. Source-commit tests and an unpublished tarball are preparation evidence, not proof of registry distribution.
+
+-Release operations must not bypass failed checks or combine unrelated dependency upgrades. PR #35 is outside this delivery. External repository integration and maintainer adoption require their own authorization and evidence.
++Release operations must not bypass failed checks or combine unrelated dependency upgrades. PR #35 is closed as an optional type-major update with unrelated lockfile changes; this release retains the tested dependencies. Paused automations stay paused. External repository writes are outside this release.
+
+ ## References
+
+ - [Unreleased changes](../CHANGELOG.md)
+-- [T016 plan](../.ai-platform/specs/lifecycle-runner/t016-plan.md)
++- [T017 plan](../.ai-platform/specs/lifecycle-runner/t017-plan.md)
+ - [Monitoring operations](monitoring-operations.md)
+diff --git a/package.json b/package.json
+index 9234efb..ad4799e 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "dsh-testkit",
+-  "version": "0.4.2",
++  "version": "0.4.3",
+   "description": "The real-host release gate for DeepSeek Harness plugins.",
+   "keywords": [
+     "deepseek",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 638d880..f818612 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -789,8 +789,8 @@ packages:
+   js-tokens@9.0.1:
+     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
+
+-  js-yaml@4.3.1:
+-    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
++  js-yaml@4.3.2:
++    resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
+     hasBin: true
+
+   json-schema-traverse@1.0.0:
+@@ -1661,7 +1661,7 @@ snapshots:
+
+   js-tokens@9.0.1: {}
+
+-  js-yaml@4.3.1:
++  js-yaml@4.3.2:
+     dependencies:
+       argparse: 2.0.1
+
+@@ -1930,7 +1930,7 @@ snapshots:
+       '@oozcitak/dom': 2.0.2
+       '@oozcitak/infra': 2.0.2
+       '@oozcitak/util': 10.0.0
+-      js-yaml: 4.3.1
++      js-yaml: 4.3.2
+
+   yaml@2.9.0: {}
+
+diff --git a/src/version.ts b/src/version.ts
+index af0e868..ed3c8bf 100644
+--- a/src/version.ts
++++ b/src/version.ts
+@@ -1,3 +1,3 @@
+-export const TESTKIT_VERSION = '0.4.2'
++export const TESTKIT_VERSION = '0.4.3'
+ export const SCENARIO_SCHEMA_VERSION = 1 as const
+ export const REPORT_SCHEMA_VERSION = 1 as const
+diff --git a/tests/contracts/documentation.test.ts b/tests/contracts/documentation.test.ts
+index 630261e..9c7f9a4 100644
+--- a/tests/contracts/documentation.test.ts
++++ b/tests/contracts/documentation.test.ts
+@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
+     const english = await readFile(resolve(root, 'README.md'), 'utf8')
+     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
+
+-    expect(manifest.version).toBe('0.4.2')
++    expect(manifest.version).toBe('0.4.3')
+     expect(manifest.files).toContain('README.zh-CN.md')
+     expect(english).toContain('[简体中文](README.zh-CN.md)')
+     expect(chinese).toContain('[English](README.md)')
+     for (const contents of [english, chinese]) {
+-      expect(contents).toContain('dsh-testkit@0.4.2')
++      expect(contents).toContain('dsh-testkit@0.4.3')
+       expect(contents).toContain('dsh-test init')
+       expect(contents).toContain('--repo-root')
+       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
+@@ -57,8 +57,8 @@ describe('bilingual project entrypoints', () => {
+     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
+     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
+
+-    expect(changelog).toContain('## [0.4.2] - 2026-09-08')
+-    expect(changelog).toContain('[0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2')
++    expect(changelog).toContain('## [0.4.3] - 2026-09-09')
++    expect(changelog).toContain('[0.4.3]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...v0.4.3')
+     expect(security).toContain('| 0.4.x | Yes |')
+     expect(security).toContain('| 0.3.x | No |')
+   })
+diff --git a/tests/contracts/dsh-bundle.test.ts b/tests/contracts/dsh-bundle.test.ts
+index a99863c..7c1782b 100644
+--- a/tests/contracts/dsh-bundle.test.ts
++++ b/tests/contracts/dsh-bundle.test.ts
+@@ -10,7 +10,7 @@ describe('published DSH bundle contract', () => {
+     const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+     const patch = parse(await readFile(resolve(root, 'cordis.patch.yml'), 'utf8'))
+
+-    expect(manifest.version).toBe('0.4.2')
++    expect(manifest.version).toBe('0.4.3')
+     expect(manifest.dsh).toEqual({ bundle: { patch: './cordis.patch.yml' } })
+     expect(manifest.exports['.']).toMatchObject({
+       types: './dist/src/index.d.ts',
+diff --git a/tests/contracts/release-consumer.test.ts b/tests/contracts/release-consumer.test.ts
+new file mode 100644
+index 0000000..1d3e459
+--- /dev/null
++++ b/tests/contracts/release-consumer.test.ts
+@@ -0,0 +1,30 @@
++import { readFile } from 'node:fs/promises'
++import { resolve } from 'node:path'
++
++import { describe, expect, it } from 'vitest'
++import { parse } from 'yaml'
++
++describe('published distribution verification', () => {
++  it('is manual, read-only, checks v0 identity and runs registry CLI plus released Action', async () => {
++    const source = await readFile(resolve(import.meta.dirname, '../../.github/workflows/release-consumer.yml'), 'utf8')
++    const workflow = parse(source)
++    expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch'])
++    expect(workflow.permissions).toEqual({ contents: 'read' })
++    const steps = workflow.jobs.verify.steps
++    expect(steps[0].with).toMatchObject({ ref: 'v0', 'persist-credentials': false })
++    const identity = steps.find((step: { name?: string }) => step.name === 'Verify release identity')
++    expect(identity.run).toContain('^[0-9a-f]{40}$')
++    expect(identity.run).toContain('git rev-parse HEAD')
++    expect(identity.run).toContain('git rev-list -n 1 "v$version"')
++    expect(source).toContain('https://registry.npmjs.org/')
++    expect(source).toContain('--ignore-scripts --omit=optional')
++    expect(source).toContain('npm audit --omit=dev --audit-level=high')
++    expect(source).toContain('npm audit signatures')
++    expect(source).toContain('consumer/node_modules/dsh-testkit/dist/src/cli.js')
++    expect(steps.find((step: { uses?: string }) => step.uses === './.github/actions/dsh-test').with['publish-junit-check']).toBe('false')
++    const upload = steps.find((step: { uses?: string }) => step.uses?.startsWith('actions/upload-artifact@'))
++    expect(upload.if).toContain("steps.safety.outcome == 'success'")
++    expect(upload.with['include-hidden-files']).toBe(false)
++    expect(source).not.toContain('npm publish')
++  })
++})
+diff --git a/tests/integration/cli.test.ts b/tests/integration/cli.test.ts
+index 652344d..45a1f08 100644
+--- a/tests/integration/cli.test.ts
++++ b/tests/integration/cli.test.ts
+@@ -299,7 +299,7 @@ describe('CLI integration', () => {
+
+     expect(exitCode).toBe(0)
+     expect(factoryCalled).toBe(false)
+-    expect(stdout.join('')).toBe('0.4.2\n')
++    expect(stdout.join('')).toBe('0.4.3\n')
+   })
+
+   it('initializes a DSH bundle without constructing a lifecycle runner', async () => {
+diff --git a/tests/unit/dependency-security.test.ts b/tests/unit/dependency-security.test.ts
+new file mode 100644
+index 0000000..e5ed91b
+--- /dev/null
++++ b/tests/unit/dependency-security.test.ts
+@@ -0,0 +1,16 @@
++import { createRequire } from 'node:module'
++
++import { describe, expect, it } from 'vitest'
++
++const require = createRequire(import.meta.url)
++const xmlbuilderRequire = createRequire(require.resolve('xmlbuilder2'))
++const yaml = xmlbuilderRequire('js-yaml') as {
++  load(source: string, options: { maxTotalMergeKeys: number }): unknown
++}
++
++describe('JUnit dependency security', () => {
++  it('counts empty YAML merge sources against the work budget', () => {
++    const input = 'arr: &arr [{}, {}, {}]\ntarget: { <<: *arr }\n'
++    expect(() => yaml.load(input, { maxTotalMergeKeys: 2 })).toThrow(/merge/i)
++  })
++})
+diff --git a/tests/unit/runner.test.ts b/tests/unit/runner.test.ts
+index 800e4a7..895c1a4 100644
+--- a/tests/unit/runner.test.ts
++++ b/tests/unit/runner.test.ts
+@@ -47,7 +47,7 @@ describe('Docker runner command planning', () => {
+
+   it('keys the runner image name by the immutable build-context digest', () => {
+     const digest = `sha256:${'a'.repeat(64)}`
+-    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.4.2-aaaaaaaaaaaa')
++    expect(runnerImageName(digest)).toBe('dsh-testkit-runner:0.4.3-aaaaaaaaaaaa')
+   })
+
+   it('uses the explicit attempt-wide watchdog budget', () => {
