@@ -1,0 +1,83 @@
+name: Verify Published Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-commit:
+        description: Exact reviewed commit shared by npm provenance, the version tag and v0.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-consumer-${{ inputs.release-commit }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v0
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify release identity
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ inputs.release-commit }}
+        run: |
+          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          version="$(node -p "require('./package.json').version")"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-list -n 1 "v$version")" = "$EXPECTED_COMMIT"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - name: Install and verify public npm consumer
+        shell: bash
+        env:
+          npm_config_registry: https://registry.npmjs.org/
+        run: |
+          mkdir "$RUNNER_TEMP/consumer"
+          cd "$RUNNER_TEMP/consumer"
+          npm init --yes
+          npm install --ignore-scripts --omit=optional "dsh-testkit@$RELEASE_VERSION"
+          npm audit --omit=dev --audit-level=high
+          npm audit signatures
+          test "$(node node_modules/dsh-testkit/dist/src/cli.js --version)" = "$RELEASE_VERSION"
+          node --input-type=module -e 'import { TESTKIT_VERSION, ScenarioSchema, createDshTestTool } from "dsh-testkit"; if (TESTKIT_VERSION !== process.env.RELEASE_VERSION || !ScenarioSchema || createDshTestTool().name !== "dsh_test") process.exit(1)'
+      - name: Run published CLI against rc.1
+        shell: bash
+        run: |
+          node "$RUNNER_TEMP/consumer/node_modules/dsh-testkit/dist/src/cli.js" \
+            --config fixtures/healthy-plugin/dsh-testkit.yaml \
+            --dsh 0.1.2-rc.1 --output "$RUNNER_TEMP/public-consumer-evidence"
+      - id: safety
+        name: Prepare public consumer evidence
+        if: always()
+        shell: bash
+        run: node scripts/prepare-evidence.mjs "$RUNNER_TEMP/public-consumer-evidence" --allow-missing
+      - if: always() && steps.safety.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dsh-public-consumer
+          path: ${{ steps.safety.outputs.path }}
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 14
+      - name: Run released v0 Action
+        uses: ./.github/actions/dsh-test
+        with:
+          plugin: fixtures/healthy-plugin
+          config: fixtures/healthy-plugin/dsh-testkit.yaml
+          dsh-version: 0.1.2-rc.1
+          publish-junit-check: 'false'
+          artifact-name: dsh-public-action

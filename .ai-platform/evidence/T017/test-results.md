@@ -12,4 +12,7 @@ Status: Running
 
 - Security GREEN: the bounded merge-budget test passes on `4.3.2`; final `pnpm validate` passes all 229 tests in 33 files, static/type/coverage checks and build. The generated runner lock also resolves `js-yaml@4.3.2`.
 
+- Manual distribution workflow RED: missing workflow file fails its contract. GREEN: least-privilege/manual trigger, v0/immutable-tag identity, registry CLI and released Action checks pass focused tests and actionlint. Final full validation passes 230 tests in 34 files. The workflow does not publish or create recurring automation.
+- Full dependency audit has no high/critical findings and retains two moderate development-only entries for Vitest/mocker (GHSA-82fw-gwwq-j7x9). The repository runs Node-environment `vitest run`, not exposed mocker/browser dev servers; production audit is clean. A major test-framework migration is deferred rather than mixed into this patch. This is a documented residual risk, not a zero-vulnerability claim for the full development graph.
+
 Candidate/main/release and public distribution receipts remain pending.
