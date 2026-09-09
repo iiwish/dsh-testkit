@@ -1,8 +1,9 @@
+import { execFileSync } from 'node:child_process'
 import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RunReport } from '../../src/domain/report.js'
 import { ScenarioSchema } from '../../src/domain/scenario.js'
@@ -61,6 +62,11 @@ function simulateWorker(worker: (options: CommandOptions) => Promise<CommandResu
     return commandResult({ stdout: options.logName === 'docker-image-inspect' ? digest : 'sha256:image' })
   })
 }
+
+beforeAll(() => {
+  // A clean checkout has not run build yet; prepare the runner's generated context input.
+  execFileSync(process.execPath, ['scripts/prepare-runner-lock.mjs'], { cwd: process.cwd() })
+})
 
 beforeEach(async () => {
   vi.clearAllMocks()
