@@ -1,8 +1,8 @@
 # DSH Testkit Delivery Index
 
-Version: v0.4.3 release candidate; published baseline v0.4.2
+Version: v0.4.3 published
 Status: Confirmed
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 ## Active Release
 
@@ -12,7 +12,7 @@ Last updated: 2026-09-08
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 
-The published baseline is v0.4.2. T015 and T016 are accepted. T017 governs the explicitly authorized v0.4.3 publication and public distribution verification. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
+The published baseline is v0.4.3. T015 and T016 are accepted. T017 has completed authorized publication and public distribution verification and awaits user acceptance. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
 
 ## Release Gate
 
@@ -22,7 +22,7 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ### T017: Patch Release v0.4.3
 
-Status: Running
+Status: Needs_Review
 Priority: P1
 Depends on: T016
 Parallel: No
