@@ -1,10 +1,10 @@
 # DSH Testkit Release Acceptance Plan
 
-Version: v0.4.1
+Version: v0.4.3
 Status: Current
 Release channel: Public preview
 Source of truth: `constitution.md`, `product-design.md`, lifecycle contracts and package manifest
-Last updated: 2026-08-31
+Last updated: 2026-09-09
 
 ## 1. Acceptance Objective
 

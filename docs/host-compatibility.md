@@ -1,17 +1,17 @@
 # Host Compatibility
 
-Status checked: 2026-09-08.
+Release scope: DSH Testkit `0.4.3`. Status checked: 2026-09-09.
 
 | Host versions | Status |
 | --- | --- |
 | `0.1.1-rc.2` | Formal support; default host |
-| `0.1.2-rc.1` | Source support; not included in npm `0.4.2` or Action `v0` |
+| `0.1.2-rc.1` | Formal support in Testkit `0.4.3` |
 | `0.1.0-rc.6`, `0.1.0-rc.7`, `0.1.0-rc.8` | Formal compatibility support |
 | `0.1.2-alpha.2` through `0.1.2-alpha.5` | Older alpha canaries with recorded passing checks; not formally supported or rerun after rc.1 promotion |
 | `0.1.3-alpha.2` | Disposable canary; Linux lifecycle and native-bundle checks pass; not formally supported |
 | `0.1.2-alpha.1`, `0.1.3-alpha.1` | Immutable official releases without matching npm artifacts; no runtime execution |
 
-The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest formally supported version: with `0.1.2-rc.1` in source support, its current runnable candidate is `0.1.3-alpha.2` and its pending npm candidate is `0.1.3-alpha.1`.
+The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest formally supported version. The recorded T015 discovery result identifies runnable candidate `0.1.3-alpha.2` and pending npm candidate `0.1.3-alpha.1`; fresh discovery determines the live candidate set.
 
 ## Validation
 

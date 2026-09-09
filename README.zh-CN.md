@@ -75,7 +75,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
 ```
 
-源码 adapter 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。已发布的 npm `dsh-testkit@0.4.2` 和 `v0` Action 不包含 `0.1.2-rc.1` 支持；包含该支持的版本发布前，请使用经过审核的源码 commit。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
+DSH Testkit `0.4.3` 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。请使用 npm `dsh-testkit@0.4.3` 或对应的 Action 发布版本获得此支持矩阵。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
 
 一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。截至 2026-09-08，已发布但未正式支持的 alpha 版本包括 `0.1.2-alpha.2` 至 `0.1.2-alpha.5` 和 `0.1.3-alpha.2`。Release Watch 只选择高于最高支持版本的候选：当前可运行的是 `0.1.3-alpha.2`，`0.1.3-alpha.1` 等待对应 npm 包。更早的官方 `0.1.2-alpha.1` 也没有对应 npm 制品，不在当前监测范围内。验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
 
@@ -181,7 +181,7 @@ steps:
 DSH Testkit 还提供可选的、由社区维护的 DSH Profile Bundle：
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.4.2
+dsh plugin --profile web add dsh-testkit@0.4.3
 dsh --profile web --dump-config
 ```
 

@@ -10,7 +10,7 @@ Use `gh run list --workflow dsh-release-watch.yml --event schedule` and inspect 
 
 On 2026-09-08, [scheduled run 34202400081](https://github.com/iiwish/dsh-testkit/actions/runs/34202400081) succeeded at `d6727279a9dc57bb5b23d2568a8137b9e5b2315c`. That is the T014 baseline, not T015's evidence-policy implementation. The [post-T015 manual main run](https://github.com/iiwish/dsh-testkit/actions/runs/34205717065) verifies the updated workflow at `1bf96dbc6711833cc367c91b012caa6f38d0ab8b`. The first scheduled run containing that implementation needs its own receipt.
 
-A bounded Codex follow-up named `DSH 自然调度验收` (automation ID `dsh`) checks hourly at minute 30 for that receipt. It verifies the event, main-branch SHA ancestry, jobs and conclusion, remains quiet while nothing actionable changes, and pauses itself after success, failure or the freshness deadline of 2026-09-09 20:02 UTC. It has no authority to change repositories, rerun failures or publish. Other paused automations remain paused. This follow-up's creation is not a GitHub scheduler receipt.
+The bounded Codex follow-up `DSH 自然调度验收` (automation ID `dsh`) is paused at the user's request on 2026-09-09. The first post-T015 natural-scheduler receipt remains unverified. GitHub Release Watch remains enabled independently; a manual inspection can collect the receipt without restoring the Codex follow-up. Other paused automations remain paused.
 
 ## Failure Handling
 

@@ -1,0 +1,23 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T017
+task_id: T017
+mode: direct_execute
+approval: User explicitly authorized v0.4.3 publication, GitHub Release/tag and v0 update after checks on 2026-09-09.
+work_unit:
+  title: Publish accepted T015 and T016 delivery as v0.4.3
+  depends_on: [T016]
+execution_constraints:
+  allowed_files: [package.json, pnpm-lock.yaml, assets/runner-pnpm-lock.yaml, src/version.ts, tests/**, README.md, README.zh-CN.md, CHANGELOG.md, docs/**, .ai-platform/**, .github/workflows/release-consumer.yml]
+  invariants: [only required js-yaml 4.3.2 security patch in dependency graph, no default-host or schema changes, no external repository writes, no immutable tag retargeting, no publication before green checks, keep automation dsh paused]
+tdd_plan:
+  red: Version identity assertions expect 0.4.3 before source identity changes.
+  green: Version assertions, package checks and full Linux matrix pass.
+validation_loop:
+  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm test:adoption, npm publish --dry-run]
+  release: Protected-main CI then existing trusted-publishing workflow; public package and Action execution verification.
+evidence_contract:
+  paths: [.ai-platform/evidence/T017/summary.md, .ai-platform/evidence/T017/test-results.md, .ai-platform/evidence/T017/diff.patch]
+  required: [PR35 review decision, T016 acceptance, RED/GREEN, exact release commit, supported-host CI, public tarball identity and provenance, v0 lease update, residual risk]
+handoff:
+  status: Needs_Review
+  acceptance_authority: user

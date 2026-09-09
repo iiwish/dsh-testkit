@@ -8,7 +8,7 @@ Last updated: 2026-09-08
 
 ## Current Delivery
 
-T015 is accepted source delivery. T016 is the active sequential task; its approved four-step scope, allowed files, validation and packet are recorded in [T016 plan](t016-plan.md) and the [delivery index](../../docs/tasks.md). Publication is not authorized.
+T015 and T016 are accepted. T017 is the active sequential release task; its approved scope, validation and publication boundaries are recorded in [T017 plan](t017-plan.md) and the [delivery index](../../docs/tasks.md).
 
 ## 状态定义
 

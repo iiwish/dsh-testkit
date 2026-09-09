@@ -4,6 +4,12 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-09
+
+### Security
+
+- Pin the repository and Docker runner's transitive `js-yaml` dependency to `4.3.2`, fixing the empty-merge-source CPU budget bypass in GHSA-2883-xcg3-v3hh.
+
 ### Added
 
 - Exact DSH `0.1.2-rc.1` support, with formal lifecycle, installed-package and Action checks. The default remains `0.1.1-rc.2`.
@@ -189,7 +195,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/iiwish/dsh-testkit/compare/v0.3.4...v0.4.0

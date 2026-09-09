@@ -1,6 +1,6 @@
 # T016 Adoption And Release Readiness
 
-Status: Needs_Review
+Status: Accepted
 Executor: Codex, direct execution; no delegation authorized.
 Base: `59773eae27043154945954f6e03938218d8d9021`
 Branch: `feat/t016-adoption-readiness`
@@ -24,7 +24,7 @@ Implementation `785a37b7a90724037b5baf35184476240c51e124` passes 228 local tests
 
 Spec and code-quality review found no remaining actionable issue: execution stays in owned Docker profiles, external source remains pinned and isolated, negative verdicts remain intact, and public runtime/schema/default-host contracts are unchanged. Test-only browser ownership and asynchronous editor readiness failures have focused regression coverage.
 
-Release preparation is complete without publication. The bounded read-only schedule follow-up `dsh` is active; the first post-T015 natural schedule is an explicitly pending external event. T016 awaits user acceptance.
+Release preparation is complete. The user accepted continuation of the remaining acceptance/release work on 2026-09-09. The bounded schedule follow-up `dsh` is paused at the user's request; the first post-T015 natural schedule remains an explicitly unverified external event. Publication is governed by T017's separate explicit approval.
 
 ## Review Boundaries
 
