@@ -75,7 +75,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
         -> exercise -> update? -> uninstall -> reboot -> recover? -> cleanup
 ```
 
-The source adapter accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Published npm `dsh-testkit@0.4.2` and the `v0` Action do not include `0.1.2-rc.1` support; use a reviewed source commit for that host until a release includes it. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
+DSH Testkit `0.4.3` accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Use npm `dsh-testkit@0.4.3` or the corresponding Action release for this support matrix. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
 
 The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, unsupported published alpha versions include `0.1.2-alpha.2` through `0.1.2-alpha.5` and `0.1.3-alpha.2`. Release Watch selects versions newer than the highest supported host: its current runnable candidate is `0.1.3-alpha.2`, while `0.1.3-alpha.1` awaits a matching npm package. The older official `0.1.2-alpha.1` also has no matching npm artifact and is outside the current watch range. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
 
@@ -181,7 +181,7 @@ The project-local Skill and the exported `dsh-testkit/skills/dsh-testkit/SKILL.m
 DSH Testkit also ships an optional, community-maintained DSH Profile Bundle:
 
 ```bash
-dsh plugin --profile web add dsh-testkit@0.4.2
+dsh plugin --profile web add dsh-testkit@0.4.3
 dsh --profile web --dump-config
 ```
 

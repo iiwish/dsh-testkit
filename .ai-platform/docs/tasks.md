@@ -1,6 +1,6 @@
 # DSH Testkit Delivery Index
 
-Version: Unreleased source delivery; published baseline v0.4.2
+Version: v0.4.3 release candidate; published baseline v0.4.2
 Status: Confirmed
 Last updated: 2026-09-08
 
@@ -12,7 +12,7 @@ Last updated: 2026-09-08
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 
-The published baseline is v0.4.2. T015 is accepted source delivery. T016 covers release preparation, isolated external adoption, independent visible browser acceptance and scheduled monitoring verification. Publication requires separate approval. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
+The published baseline is v0.4.2. T015 and T016 are accepted. T017 governs the explicitly authorized v0.4.3 publication and public distribution verification. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
 
 ## Release Gate
 
@@ -20,9 +20,20 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ## Governed Task Index
 
+### T017: Patch Release v0.4.3
+
+Status: Running
+Priority: P1
+Depends on: T016
+Parallel: No
+Approval: User authorized publication, GitHub Release/tag and Action v0 after all checks on 2026-09-09.
+Plan: `.ai-platform/specs/lifecycle-runner/t017-plan.md`
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T017.yaml`
+Evidence: `.ai-platform/evidence/T017/`
+
 ### T016: Adoption And Release Readiness
 
-Status: Needs_Review
+Status: Accepted
 Priority: P1
 Depends on: T015
 Parallel: No
