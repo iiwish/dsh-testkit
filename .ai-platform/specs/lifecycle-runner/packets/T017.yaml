@@ -1,7 +1,12 @@
 schema_version: 1
 packet_id: EP-LIFECYCLE-T017
 task_id: T017
+feature_id: lifecycle-runner
 mode: direct_execute
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  plan: .ai-platform/specs/lifecycle-runner/t017-plan.md
+  prerequisite_evidence: .ai-platform/evidence/T016/summary.md
 approval: User explicitly authorized v0.4.3 publication, GitHub Release/tag and v0 update after checks on 2026-09-09.
 work_unit:
   title: Publish accepted T015 and T016 delivery as v0.4.3
@@ -12,6 +17,10 @@ execution_constraints:
 tdd_plan:
   red: Version identity assertions expect 0.4.3 before source identity changes.
   green: Version assertions, package checks and full Linux matrix pass.
+codebase_context:
+  version: src/version.ts
+  release: .github/workflows/release.yml
+  consumer: .github/workflows/release-consumer.yml
 validation_loop:
   commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack, pnpm test:adoption, npm publish --dry-run]
   release: Protected-main CI then existing trusted-publishing workflow; public package and Action execution verification.
@@ -21,3 +30,9 @@ evidence_contract:
 handoff:
   status: Needs_Review
   acceptance_authority: user
+review_contract:
+  scope: Version, necessary security patch and distribution proof only.
+  publication: Verify immutable identities and public evidence; no bypass of failed checks.
+stop_conditions:
+  - Stop publication on a failed mandatory release gate.
+  - Never retarget an existing immutable release tag.

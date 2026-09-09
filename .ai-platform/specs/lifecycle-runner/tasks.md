@@ -8,7 +8,7 @@ Last updated: 2026-09-08
 
 ## Current Delivery
 
-T015 and T016 are accepted. T017 is the active sequential release task; its approved scope, validation and publication boundaries are recorded in [T017 plan](t017-plan.md) and the [delivery index](../../docs/tasks.md).
+T015 and T016 are accepted. T017 publication and public distribution verification are complete and await user acceptance; its approved scope, validation and publication boundaries are recorded in [T017 plan](t017-plan.md) and the [delivery index](../../docs/tasks.md).
 
 ## 状态定义
 

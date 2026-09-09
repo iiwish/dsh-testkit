@@ -1,7 +1,7 @@
 # v0.4.3 Release Gate
 
-Published baseline: `dsh-testkit@0.4.2` and Action `v0`.
-Candidate: `dsh-testkit@0.4.3`. Publication is user-authorized on 2026-09-09, conditional on all mandatory checks.
+Published baseline: `dsh-testkit@0.4.3` and Action `v0` at `b6d2da02f01e0fed038fe8e75f943a218a4063fa`.
+Publication was explicitly user-authorized on 2026-09-09 and all mandatory distribution checks passed. T017 awaits user acceptance of the completed evidence.
 
 ## Scope
 
@@ -21,6 +21,7 @@ Release operations must not bypass failed checks or combine unrelated dependency
 
 ## References
 
-- [Unreleased changes](../CHANGELOG.md)
+- [Published release and verification](../.ai-platform/docs/release-report.md)
+- [Release changes](../CHANGELOG.md)
 - [T017 plan](../.ai-platform/specs/lifecycle-runner/t017-plan.md)
 - [Monitoring operations](monitoring-operations.md)

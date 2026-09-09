@@ -1,6 +1,6 @@
 # T017 Release Evidence
 
-Status: Running
+Status: Needs_Review
 Base: `ce90f70ced1e290f2b0f20f45bb85811c2d7ae05`
 Branch: `release/v0.4.3`
 Executor: Codex, direct; no delegation authorized.
@@ -16,4 +16,6 @@ T016 is accepted by the user's request to complete the listed remaining acceptan
 
 ## Publication
 
-Pending candidate validation, protected merge, trusted publication and public distribution verification. No release success is claimed until receipts are recorded in `test-results.md`.
+Published `dsh-testkit@0.4.3` at immutable commit `b6d2da02f01e0fed038fe8e75f943a218a4063fa`. PR #43, exact-main CI, trusted publishing, public npm signatures/provenance, GitHub Release and leased `v0` update all pass. Manual public CLI and released Action run `34306204816` passes against DSH `0.1.2-rc.1`; both downloaded artifacts match a fresh evidence-policy replay. Full receipts are in `test-results.md`.
+
+Spec-compliance and code-quality review found no unresolved release blocker. T017 awaits user acceptance, distinct from completed publication. Production audit is clean; two moderate development-only Vitest/mocker findings remain. Dependabot PR #44 proposes Vitest 4 but fails with an unmatched coverage plugin and is not merged. ATTW's internal crash is recorded with clean strict consumer compilation as alternative evidence.
