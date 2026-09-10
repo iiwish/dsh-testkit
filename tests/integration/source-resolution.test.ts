@@ -12,7 +12,7 @@ import type { WorkerRequest } from '../../src/worker/protocol.js'
 
 const executeFile = promisify(execFile)
 
-describe.sequential('local source resolution evidence', () => {
+describe('local source resolution evidence', { concurrent: false }, () => {
   afterEach(() => { vi.unstubAllEnvs() })
 
   it('declares Git commit probe logs when the plugin root is a repository', async () => {

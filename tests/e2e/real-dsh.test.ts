@@ -56,7 +56,7 @@ async function runFixture(
   return { code, report, outputDir: output }
 }
 
-describe.sequential('real DSH lifecycle fixtures', () => {
+describe('real DSH lifecycle fixtures', { concurrent: false }, () => {
   it('passes a healthy packed plugin through real DSH and deterministic tool execution', async () => {
     const result = await runFixture('healthy-plugin', [
       '--expect-row', 'fixture-healthy',
