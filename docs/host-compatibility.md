@@ -1,18 +1,18 @@
 # Host Compatibility
 
-Release scope: published DSH Testkit `0.4.3` and the source checkout. Status checked: 2026-09-10.
+Release scope: DSH Testkit `0.4.4`. Status checked: 2026-09-10.
 
 | Host versions | Status |
 | --- | --- |
 | `0.1.1-rc.2` | Formal support; default host |
-| `0.1.5-rc.1` | Reviewed source support with six-host CI; not included in published `0.4.3` or Action `v0` |
-| `0.1.2-rc.1` | Formal support in Testkit `0.4.3` |
+| `0.1.5-rc.1` | Formal support in Testkit `0.4.4` with six-host CI |
+| `0.1.2-rc.1` | Formal support |
 | `0.1.0-rc.6`, `0.1.0-rc.7`, `0.1.0-rc.8` | Formal compatibility support |
 | `0.1.2-alpha.2` through `0.1.2-alpha.5` | Older alpha canaries with recorded passing checks; not formally supported or rerun after rc.1 promotion |
 | `0.1.3-alpha.2`, `0.1.5-alpha.1`, `0.1.5-alpha.2` | Disposable canaries; not formally supported |
 | `0.1.2-alpha.1`, `0.1.3-alpha.1` | Immutable official releases without matching npm artifacts; no runtime execution |
 
-The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest supported version in that checkout. For the source registry containing `0.1.5-rc.1`, older alpha hosts and unavailable older npm packages are outside the watch range; fresh discovery determines the live candidate set. The default remains `0.1.1-rc.2`, and all five hosts in the published `0.4.3` matrix remain supported.
+The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in Release Watch does not enable it in the published CLI. The canary enabler changes only its disposable checkout. Release Watch selects candidates newer than the highest supported version in that checkout. For the registry containing `0.1.5-rc.1`, older alpha hosts and unavailable older npm packages are outside the watch range; fresh discovery determines the live candidate set. The default remains `0.1.1-rc.2`, and all six listed hosts are supported.
 
 ## Validation
 

@@ -1,6 +1,6 @@
 # DSH Testkit Delivery Index
 
-Version: v0.4.3 published
+Version: v0.4.4 release preparation
 Status: Confirmed
 Last updated: 2026-09-09
 
@@ -19,6 +19,14 @@ The published baseline is v0.4.3. T015 and T016 are accepted. T017 has completed
 The governed tasks execute sequentially. Each behavior task requires its packet, RED/GREEN evidence and review before release. User acceptance is required before any task becomes `Accepted` or the release report becomes final.
 
 ## Governed Task Index
+
+### T023: Patch Release v0.4.4
+
+Status: Running
+Approval: User explicitly approved the proposed npm, GitHub Release and v0 publication on 2026-09-10.
+Scope: Version identity, canonical release documentation and verified distribution of merged maintenance PRs #44 and #46 through #50.
+Packet: `.ai-platform/specs/lifecycle-runner/packets/T023.yaml`
+Evidence: `.ai-platform/evidence/T023/`
 
 ### T017: Patch Release v0.4.3
 

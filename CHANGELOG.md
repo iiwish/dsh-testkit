@@ -4,6 +4,21 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-09-10
+
+### Added
+
+- Exact DSH `0.1.5-rc.1` support with six-host lifecycle, native bundle, installed-package and Action compatibility checks. The default remains `0.1.1-rc.2`.
+
+### Fixed
+
+- Disable desktop auto-open for isolated web probes, preventing unrelated desktop-opener processes from leaving cleanup residue.
+
+### Changed
+
+- Update Playwright Core to `1.63.0` and the development Vitest/coverage toolchain to `5.0.0`, preserving sequential lifecycle suites and coverage thresholds.
+- Align repository and Composite Action pnpm setup pins on `6.1.0`.
+
 ## [0.4.3] - 2026-09-09
 
 ### Security
@@ -195,7 +210,8 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Update, expected-failure recovery, full-suite repeatability, and flaky-result classification.
 - Composite GitHub Action, real-host fixtures, and packed-consumer verification.
 
-[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/iiwish/dsh-testkit/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/iiwish/dsh-testkit/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/iiwish/dsh-testkit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/iiwish/dsh-testkit/compare/v0.4.0...v0.4.1

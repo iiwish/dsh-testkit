@@ -54,12 +54,12 @@ jobs:
           npm audit signatures
           test "$(node node_modules/dsh-testkit/dist/src/cli.js --version)" = "$RELEASE_VERSION"
           node --input-type=module -e 'import { TESTKIT_VERSION, ScenarioSchema, createDshTestTool } from "dsh-testkit"; if (TESTKIT_VERSION !== process.env.RELEASE_VERSION || !ScenarioSchema || createDshTestTool().name !== "dsh_test") process.exit(1)'
-      - name: Run published CLI against rc.1
+      - name: Run published CLI against DSH 0.1.5-rc.1
         shell: bash
         run: |
           node "$RUNNER_TEMP/consumer/node_modules/dsh-testkit/dist/src/cli.js" \
             --config fixtures/healthy-plugin/dsh-testkit.yaml \
-            --dsh 0.1.2-rc.1 --output "$RUNNER_TEMP/public-consumer-evidence"
+            --dsh 0.1.5-rc.1 --output "$RUNNER_TEMP/public-consumer-evidence"
       - id: safety
         name: Prepare public consumer evidence
         if: always()
@@ -78,6 +78,6 @@ jobs:
         with:
           plugin: fixtures/healthy-plugin
           config: fixtures/healthy-plugin/dsh-testkit.yaml
-          dsh-version: 0.1.2-rc.1
+          dsh-version: 0.1.5-rc.1
           publish-junit-check: 'false'
           artifact-name: dsh-public-action
