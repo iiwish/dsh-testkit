@@ -18,4 +18,7 @@ Mode: Direct Execute; no delegation authorized.
 
 ## Validation
 
-Pending focused GREEN, real-host verification, Linux matrix, evidence inspection and final review. No compatibility conclusion is claimed from the candidate registry edit alone.
+- Scheduled baseline [Release Watch 34453353489](https://github.com/iiwish/dsh-testkit/actions/runs/34453353489) passes both exact `0.1.5-rc.1` lanes. Downloaded lifecycle/bundle artifacts match all 632 manifest entries. Their 12 reports include nine passes and three intentional negative controls; HTTP and browser reports pass in Docker, and the native tool's nested Docker report passes. This is canary evidence, not the full promotion gate.
+- Intermediate local validation and [CI 34454034261](https://github.com/iiwish/dsh-testkit/actions/runs/34454034261) expose a release-discovery test coupled to the live support registry: its historical 0.1.2 promotion input correctly yields no 0.1.3 candidates after 0.1.5 support. The historical case uses its explicit historical support set, and a separate current-promotion case checks that only newer candidates remain. No discovery runtime behavior changes.
+- Focused GREEN: support, CI and release-discovery contracts pass all 25 tests after that correction.
+- Full Linux matrix, final local validation and review remain pending. No compatibility conclusion is claimed from the candidate registry edit alone.
