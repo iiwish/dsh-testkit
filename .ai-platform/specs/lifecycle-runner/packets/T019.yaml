@@ -11,7 +11,7 @@ work_unit:
   title: Validate and promote exact DSH 0.1.5-rc.1 source support
   depends_on: [T015, T016]
 execution_constraints:
-  allowed_files: [src/adapters/dsh/**, fixtures/**, tests/**, .github/workflows/ci.yml, README.md, README.zh-CN.md, docs/host-compatibility.md, .ai-platform/**]
+  allowed_files: [src/adapters/dsh/**, fixtures/**, tests/**, .github/workflows/ci.yml, README.md, README.zh-CN.md, docs/host-compatibility.md, docs/scenarios.md, .ai-platform/**]
   invariants:
     - Preserve all existing supported hosts and default 0.1.1-rc.2.
     - Preserve schema v1, stable exit codes, isolation, assertions and dependency identities.

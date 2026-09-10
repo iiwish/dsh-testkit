@@ -1,6 +1,6 @@
 # T019: DSH 0.1.5 RC Compatibility
 
-Status: Running
+Status: Needs_Review
 Approval: User requested completing the proposed exact-host validation and conditional support promotion on 2026-09-10.
 Mode: Direct Execute; no delegation authorized.
 
@@ -23,4 +23,13 @@ Mode: Direct Execute; no delegation authorized.
 - Focused GREEN: support, CI and release-discovery contracts pass all 25 tests after that correction.
 - Local `pnpm validate` passes 269 tests with unchanged coverage (statements 75.45%, branches 60.40%, functions 79.90%, lines 77.95%), typecheck and build before the documentation update. Actionlint 1.7.7 passes the six-host CI workflow. Independent safety-policy replay reproduces both downloaded canary manifests exactly.
 - Documentation validation at `748b4e3` identifies an obsolete README assertion requiring the historical `0.1.2-alpha.1` candidate. The README contract checks the relevant `0.1.5-rc.1` host and explicit source-versus-published support boundary in both languages; unavailable historical hosts remain documented in Host Compatibility.
-- Full Linux matrix, final local validation and review remain pending. No compatibility conclusion is claimed from the candidate registry edit alone.
+- Final implementation head `7c125b0fbbadb3c707dd99e778f8ad5211e81bbf` passes all 21 jobs in [Linux CI 34454912771](https://github.com/iiwish/dsh-testkit/actions/runs/34454912771), including all six hosts, installed-package consumers, twelve positive/negative Action cases and the independent adoption gate. Both CodeQL language checks and the aggregate CodeQL check pass.
+- All 20 downloaded artifacts reproduce their safety manifests under an independent policy replay: 5,190 files and 96 reports. Every formal host has 13 reports (10 passes, three intentional negative controls); all six installed-package reports pass. Adoption has four passes and one intentional negative control, and all 13 Action reports pass, including the adoption Action.
+- A final local default-worker coverage run encountered two 10-second child-process timeouts in unchanged evidence-safety tests under workstation load. The complete unchanged suite passes all 269 tests with `--maxWorkers=2`, at the same coverage percentages; `pnpm build` and documentation contracts pass. Linux CI passes the unmodified default-worker `pnpm validate`. No timeout, assertion, coverage threshold or exclusion was relaxed.
+- Live release discovery against the source registry returns no remaining canary or pending npm candidates: `0.1.5-rc.1` is the highest discovered host. Historical unavailable alphas are correctly outside this registry's watch range.
+
+## Review And Boundaries
+
+The runtime diff is one exact support-registry entry; no adapter, probe, observer, schema, exit-code, default-host or dependency behavior changes. The six-host matrix preserves every older host and both Action outcomes. The source/published boundary is explicit in both READMEs and the scenario reference. No unresolved implementation or scope blocker is identified.
+
+The browser gate proves the existing deterministic DOM/fixture smoke on an authenticated real host, not arbitrary plugin UI correctness or model behavior. Publication, main merge and user acceptance remain separate. The closeout contains only support documentation and these receipts; current-head checks remain authoritative on [PR #49](https://github.com/iiwish/dsh-testkit/pull/49).

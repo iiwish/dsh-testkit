@@ -16,7 +16,7 @@ Validate the immutable `@deepseek-ai/dsh@0.1.5-rc.1` artifact through the existi
 3. Run `pnpm validate`, the Linux six-host lifecycle/native-bundle/pack matrix and positive/negative Action cases. Retain and inspect sanitized evidence.
 4. Update support documentation with the verified source-only state and review the scoped diff.
 
-Allowed files: `src/adapters/dsh/**`, focused regression fixtures/tests if a reproduced incompatibility requires them, `tests/unit/dsh-support.test.ts`, `tests/contracts/ci-required-checks.test.ts`, `.github/workflows/ci.yml`, bilingual README host-support sections, `docs/host-compatibility.md`, and T019 delivery records.
+Allowed files: `src/adapters/dsh/**`, focused regression fixtures/tests if a reproduced incompatibility requires them, `tests/unit/dsh-support.test.ts`, `tests/contracts/ci-required-checks.test.ts`, `.github/workflows/ci.yml`, bilingual README host-support sections, `docs/host-compatibility.md`, the host-support paragraph in `docs/scenarios.md`, and T019 delivery records.
 
 Checklist/analysis: the confirmed lifecycle contract and promotion gate cover this maintenance work. Schemas, exits, isolation, default host, package version and dependency graph remain unchanged. No product-scope expansion or Critical/High contract conflict is identified. Run one maintenance task at a time. Failed acceptance blocks promotion; do not relabel infrastructure failures as plugin failures.
 
