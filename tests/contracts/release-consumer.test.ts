@@ -21,6 +21,8 @@ describe('published distribution verification', () => {
     expect(source).toContain('npm audit --omit=dev --audit-level=high')
     expect(source).toContain('npm audit signatures')
     expect(source).toContain('consumer/node_modules/dsh-testkit/dist/src/cli.js')
+    expect(source).toContain('--dsh 0.1.5-rc.1')
+    expect(steps.find((step: { uses?: string }) => step.uses === './.github/actions/dsh-test').with['dsh-version']).toBe('0.1.5-rc.1')
     expect(steps.find((step: { uses?: string }) => step.uses === './.github/actions/dsh-test').with['publish-junit-check']).toBe('false')
     const upload = steps.find((step: { uses?: string }) => step.uses?.startsWith('actions/upload-artifact@'))
     expect(upload.if).toContain("steps.safety.outcome == 'success'")

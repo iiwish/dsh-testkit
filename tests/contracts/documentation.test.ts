@@ -11,12 +11,12 @@ describe('bilingual project entrypoints', () => {
     const english = await readFile(resolve(root, 'README.md'), 'utf8')
     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
 
-    expect(manifest.version).toBe('0.4.3')
+    expect(manifest.version).toBe('0.4.4')
     expect(manifest.files).toContain('README.zh-CN.md')
     expect(english).toContain('[简体中文](README.zh-CN.md)')
     expect(chinese).toContain('[English](README.md)')
     for (const contents of [english, chinese]) {
-      expect(contents).toContain('dsh-testkit@0.4.3')
+      expect(contents).toContain('dsh-testkit@0.4.4')
       expect(contents).toContain('dsh-test init')
       expect(contents).toContain('--repo-root')
       expect(contents).toContain('.agents/skills/dsh-testkit/SKILL.md')
@@ -42,8 +42,8 @@ describe('bilingual project entrypoints', () => {
     expect(chinese).toContain('不是经过强化的恶意代码沙箱')
     expect(english).toContain('real-host release gate')
     expect(chinese).toContain('真实宿主发布门禁')
-    expect(english).toContain('not included in npm `dsh-testkit@0.4.3` or the published `v0` Action')
-    expect(chinese).toContain('npm `dsh-testkit@0.4.3` 和已发布的 `v0` Action 不包含此支持')
+    expect(english).toContain('Action `v0.4.4` for this six-host support matrix')
+    expect(chinese).toContain('Action `v0.4.4` 获得此六宿主支持矩阵')
   })
 
   it('keeps design-partner reruns behind higher immutable package identities', async () => {
@@ -58,10 +58,10 @@ describe('bilingual project entrypoints', () => {
   it('describes the published Action evidence guard with immutable release evidence', async () => {
     const english = await readFile(resolve(root, 'README.md'), 'utf8')
     const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
-    const releaseAction = 'https://github.com/iiwish/dsh-testkit/blob/b6d2da02f01e0fed038fe8e75f943a218a4063fa/.github/actions/dsh-test/action.yml'
+    const releaseAction = 'https://github.com/iiwish/dsh-testkit/blob/v0.4.4/.github/actions/dsh-test/action.yml'
 
-    expect(english).toContain('The published `v0.4.3` and `v0` Action releases check evidence')
-    expect(chinese).toContain('已发布的 `v0.4.3` 和 `v0` Action')
+    expect(english).toContain('The `v0.4.4` Action checks evidence')
+    expect(chinese).toContain('`v0.4.4` Action 在两个发布出口前执行统一证据检查')
     for (const contents of [english, chinese]) expect(contents).toContain(releaseAction)
     expect(english).not.toContain('This guard is not included in the published')
     expect(chinese).not.toContain('已发布的 `v0` Action 尚不包含此检查')
@@ -71,8 +71,8 @@ describe('bilingual project entrypoints', () => {
     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')
 
-    expect(changelog).toContain('## [0.4.3] - 2026-09-09')
-    expect(changelog).toContain('[0.4.3]: https://github.com/iiwish/dsh-testkit/compare/v0.4.2...v0.4.3')
+    expect(changelog).toContain('## [0.4.4] - 2026-09-10')
+    expect(changelog).toContain('[0.4.4]: https://github.com/iiwish/dsh-testkit/compare/v0.4.3...v0.4.4')
     expect(security).toContain('| 0.4.x | Yes |')
     expect(security).toContain('| 0.3.x | No |')
   })

@@ -1,0 +1,30 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T023
+task_id: T023
+feature_id: lifecycle-runner
+mode: direct_execute
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  plan: .ai-platform/specs/lifecycle-runner/t023-plan.md
+approval: User authorized the proposed 0.4.4 release and v0 update on 2026-09-10.
+work_unit:
+  title: Publish reviewed maintenance as v0.4.4
+  depends_on: [T018, T019, T020, T021, T022]
+  parallel: false
+execution_constraints:
+  allowed_files: [package.json, src/version.ts, tests/**, README.md, README.zh-CN.md, CHANGELOG.md, docs/release-preparation.md, docs/host-compatibility.md, .ai-platform/**, .github/workflows/release-consumer.yml]
+  invariants: [no dependency changes, no default-host or schema changes, no immutable tag retargeting, no failed-gate bypass, no automation changes]
+tdd_plan:
+  red: Version identity tests expect 0.4.4 before manifest and runtime changes.
+  green: Full validation and all release CI gates pass.
+validation_loop:
+  commands: [pnpm install --frozen-lockfile, pnpm validate, npm publish --dry-run]
+  ci: Six-host lifecycle and bundle tests, installed tarball, adoption and Action checks, CodeQL, trusted publication and public consumer workflow.
+evidence_contract:
+  paths: [.ai-platform/evidence/T023/summary.md, .ai-platform/evidence/T023/test-results.md]
+  required: [RED/GREEN, exact release commit, CI receipts, registry content and provenance, released consumer, v0 lease]
+handoff:
+  status: Needs_Review
+  acceptance_authority: user
+stop_conditions:
+  - Stop on any failed mandatory gate or conflicting user changes.

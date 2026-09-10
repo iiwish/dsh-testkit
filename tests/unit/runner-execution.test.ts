@@ -40,7 +40,7 @@ function report(): RunReport {
     subject: { input: '.', kind: 'local-directory', packageName: 'fixture', packageVersion: '1.0.0', sourceDigest: 'sha256:fixture', gitCommit: null, mutable: false },
     dsh: { version: '0.1.2-rc.1', integrity: null },
     scenario: { name: 'runner', suite: 'quick', schemaVersion: 1, profile: 'test', digest: `sha256:${'a'.repeat(64)}` },
-    testkitVersion: '0.4.3', environment: { runner: request.runner },
+    testkitVersion: '0.4.4', environment: { runner: request.runner },
     observerCoverage: { filesystem: observer, process: observer, ports: observer, network: observer, canary: observer },
     stages: [], artifacts: [], reproductionCommand: request.reproductionCommand,
   }
