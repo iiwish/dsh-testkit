@@ -71,4 +71,4 @@ Observer values are `required`, `preferred`, or `off`. Missing required coverage
 
 The resolved scenario is retained in the run evidence and bound to the report by SHA-256. Do not place real credentials in exercise arguments; use deterministic non-secret fixture values.
 
-The current adapter supports the exact DSH npm versions `0.1.1-rc.2` (default), `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6` (compatibility replays). Exact but unsupported versions return exit code `4` before plugin execution.
+The default DSH host is `0.1.1-rc.2`. [Host Compatibility](host-compatibility.md) lists the exact versions accepted by the published package and the source checkout; source-only support requires a reviewed source commit until its release. Exact but unsupported versions return exit code `4` before plugin execution.

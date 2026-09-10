@@ -75,8 +75,19 @@ describe('DSH release-train discovery', () => {
     expect(discoverDshReleaseTrain({
       'dist-tags': { latest: '0.1.2-rc.1', next: '0.1.2-rc.1' },
       versions: { '0.1.2-alpha.2': {}, '0.1.2-rc.1': {}, '0.1.3-alpha.2': {} },
-    }, SUPPORTED_DSH_NPM_VERSIONS, releases)).toMatchObject({
+    }, [...historicalSupport, '0.1.2-rc.1'], releases)).toMatchObject({
       canaryVersions: ['0.1.3-alpha.2'], pendingNpmVersions: ['0.1.3-alpha.1'],
+    })
+  })
+
+  it('monitors only releases beyond the promoted 0.1.5 RC host', () => {
+    const releases = ['0.1.3-alpha.1', '0.1.3-alpha.2', '0.1.5-alpha.1', '0.1.5-alpha.2', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.6-alpha.1']
+      .map(version => ({ tag_name: `dsh-v${version}`, immutable: true }))
+    expect(discoverDshReleaseTrain({
+      'dist-tags': { latest: '0.1.5-rc.1', next: '0.1.5-rc.1' },
+      versions: { '0.1.3-alpha.2': {}, '0.1.5-alpha.1': {}, '0.1.5-alpha.2': {}, '0.1.5-rc.1': {}, '0.1.5-rc.2': {} },
+    }, SUPPORTED_DSH_NPM_VERSIONS, releases)).toMatchObject({
+      canaryVersions: ['0.1.5-rc.2'], pendingNpmVersions: ['0.1.6-alpha.1'],
     })
   })
 

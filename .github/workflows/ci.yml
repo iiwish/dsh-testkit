@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dsh-version: [0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
+        dsh-version: [0.1.5-rc.1, 0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
     env:
       DSH_TESTKIT_DSH_VERSION: ${{ matrix.dsh-version }}
     steps:
@@ -246,6 +246,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - plugin: fixtures/healthy-plugin
+            dsh-version: 0.1.5-rc.1
+          - plugin: fixtures/boot-failure-plugin
+            dsh-version: 0.1.5-rc.1
           - plugin: fixtures/healthy-plugin
             dsh-version: 0.1.0-rc.8
           - plugin: fixtures/healthy-plugin

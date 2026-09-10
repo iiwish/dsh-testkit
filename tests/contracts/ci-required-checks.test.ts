@@ -73,8 +73,8 @@ describe('required CI checks', () => {
     const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
     const entries = workflow.jobs['action-smoke-compat'].strategy.matrix.include
 
-    expect(entries).toHaveLength(8)
-    for (const dshVersion of ['0.1.2-rc.1', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']) {
+    expect(entries).toHaveLength(SUPPORTED_DSH_NPM_VERSIONS.slice(1).length * 2)
+    for (const dshVersion of ['0.1.5-rc.1', '0.1.2-rc.1', '0.1.0-rc.8', '0.1.0-rc.7', '0.1.0-rc.6']) {
       expect(entries).toEqual(expect.arrayContaining([
         { plugin: 'fixtures/healthy-plugin', 'dsh-version': dshVersion },
         { plugin: 'fixtures/boot-failure-plugin', 'dsh-version': dshVersion },
