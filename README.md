@@ -77,7 +77,9 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 DSH Testkit `0.4.3` accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Use npm `dsh-testkit@0.4.3` or the corresponding Action release for this support matrix. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
 
-The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. As of 2026-09-08, unsupported published alpha versions include `0.1.2-alpha.2` through `0.1.2-alpha.5` and `0.1.3-alpha.2`. Release Watch selects versions newer than the highest supported host: its current runnable candidate is `0.1.3-alpha.2`, while `0.1.3-alpha.1` awaits a matching npm package. The older official `0.1.2-alpha.1` also has no matching npm artifact and is outside the current watch range. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
+The source checkout additionally accepts exact DSH `0.1.5-rc.1` with the same default and a six-host CI matrix. This support is not included in npm `dsh-testkit@0.4.3` or the published `v0` Action; use a reviewed source commit until a release includes it. [PR #49](https://github.com/iiwish/dsh-testkit/pull/49) tracks its acceptance checks.
+
+The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. Release Watch selects versions newer than the highest supported host in the checkout being tested. Alpha hosts, including `0.1.3-alpha.2`, `0.1.5-alpha.1` and `0.1.5-alpha.2`, are not formally supported merely because their canary lanes pass. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
 
 ### What A Pass Means
 
