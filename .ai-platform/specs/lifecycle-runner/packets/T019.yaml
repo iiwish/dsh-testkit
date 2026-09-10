@@ -1,0 +1,37 @@
+schema_version: 1
+packet_id: EP-LIFECYCLE-T019
+task_id: T019
+feature_id: lifecycle-runner
+mode: direct_execute
+approval: User approved completing proposed items 1 and 2 on 2026-09-10; T019 implements item 1 without publication or main merge.
+governance_inputs:
+  constitution: .ai-platform/memory/constitution.md
+  plan: .ai-platform/specs/lifecycle-runner/t019-plan.md
+work_unit:
+  title: Validate and promote exact DSH 0.1.5-rc.1 source support
+  depends_on: [T015, T016]
+execution_constraints:
+  allowed_files: [src/adapters/dsh/**, fixtures/**, tests/**, .github/workflows/ci.yml, README.md, README.zh-CN.md, docs/host-compatibility.md, .ai-platform/**]
+  invariants:
+    - Preserve all existing supported hosts and default 0.1.1-rc.2.
+    - Preserve schema v1, stable exit codes, isolation, assertions and dependency identities.
+    - Do not claim the published 0.4.3 package supports the candidate.
+    - No main merge, publication, release tags, unrelated dependency updates or external partner writes.
+tdd_plan:
+  red: Support and CI contract tests reject the unimplemented exact candidate.
+  green: Add exact candidate to support and both CI matrices; fix only reproduced compatibility issues.
+validation_loop:
+  commands: [pnpm validate, pnpm test:e2e, pnpm test:bundle-e2e, pnpm test:pack]
+  matrix: [0.1.1-rc.2, 0.1.5-rc.1, 0.1.2-rc.1, 0.1.0-rc.8, 0.1.0-rc.7, 0.1.0-rc.6]
+  additional: Positive and negative Action smoke for all matrix hosts; inspect retained evidence.
+evidence_contract:
+  paths: [.ai-platform/evidence/T019/summary.md]
+  required: [immutable identity, RED/GREEN results, exact-head Linux checks, real-host reports, residual risks]
+review_contract:
+  acceptance_authority: user
+stop_conditions:
+  - Failed required gate blocks formal support promotion.
+  - Expanded API or security changes require scope review.
+handoff:
+  status: Needs_Review
+  acceptance_authority: user
