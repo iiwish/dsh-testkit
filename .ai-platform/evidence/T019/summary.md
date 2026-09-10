@@ -1,7 +1,8 @@
 # T019: DSH 0.1.5 RC Compatibility
 
-Status: Needs_Review
+Status: Accepted
 Approval: User requested completing the proposed exact-host validation and conditional support promotion on 2026-09-10.
+Acceptance: User authorized review and conditional main merge on 2026-09-10; review and checks pass, and PR #49 is merged as `c1e5b59676a956d555b6b8da53db871d7a2fdea3`.
 Mode: Direct Execute; no delegation authorized.
 
 ## Identity And Scope
@@ -10,7 +11,7 @@ Mode: Direct Execute; no delegation authorized.
 - Upstream immutable release: `dsh-v0.1.5-rc.1`, commit `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`.
 - Public npm artifact: `https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.1.5-rc.1.tgz`.
 - Integrity: `sha512-rmNmzQCg3oIc1z8xH7izRSOuy1TNzq+/NILyfM+7e8DKOyV+yBtg47WEsqR2SiIe1ATec3L/rUa1YhIcfQ2XEg==`.
-- The maintenance branch enables the exact candidate for acceptance. Publication and main merge are outside scope; the published `0.4.3` support matrix is unchanged.
+- The source registry accepts the exact candidate. Publication remains outside scope; the published `0.4.3` support matrix is unchanged.
 
 ## RED
 
@@ -32,4 +33,4 @@ Mode: Direct Execute; no delegation authorized.
 
 The runtime diff is one exact support-registry entry; no adapter, probe, observer, schema, exit-code, default-host or dependency behavior changes. The six-host matrix preserves every older host and both Action outcomes. The source/published boundary is explicit in both READMEs and the scenario reference. No unresolved implementation or scope blocker is identified.
 
-The browser gate proves the existing deterministic DOM/fixture smoke on an authenticated real host, not arbitrary plugin UI correctness or model behavior. Publication, main merge and user acceptance remain separate. The closeout contains only support documentation and these receipts; current-head checks remain authoritative on [PR #49](https://github.com/iiwish/dsh-testkit/pull/49).
+The browser gate proves the existing deterministic DOM/fixture smoke on an authenticated real host, not arbitrary plugin UI correctness or model behavior. [Final-head CI 34455984589](https://github.com/iiwish/dsh-testkit/actions/runs/34455984589) passes all 21 jobs before the authorized main merge. Publication remains a separate gate; no package or release tag is changed.

@@ -1,7 +1,8 @@
 # T021: pnpm Action Maintenance
 
-Status: Running
+Status: Accepted
 Approval: The user requested review, conditional merge and completion of dependency item 3 on 2026-09-10.
+Acceptance: PR #46 is merged as `6f5e52c0b0bf5f18e4104e2f9c597f9deffcfce0` after review and passing current-head checks.
 Mode: Direct Execute; bounded dependency maintenance without delegation.
 
 ## Scope And Review
@@ -14,6 +15,8 @@ The upstream signed `v6.1.0` tag resolves to the proposed SHA and GitHub verifie
 
 ## Evidence
 
-The pin-parity test is RED on the bot update: seven workflow references use the new release while the composite Action retains the old SHA. Its nine existing CI contracts pass. Frozen public-registry installation succeeds without lockfile changes. Current-head checks and final review remain pending; user merge authorization is conditional on passing validation.
+The pin-parity test is RED on the bot update: seven workflow references use the new release while the composite Action retains the old SHA. Its nine existing CI contracts pass. Frozen public-registry installation succeeds without lockfile changes.
 
 After aligning the composite Action, local `pnpm validate` passes 280 tests in 36 files, contracts, typecheck, coverage and build. Action SHA checks and actionlint 1.7.7 pass all three workflows. The pnpm package lock and all version-selection inputs remain unchanged.
+
+[Linux CI 34463264331](https://github.com/iiwish/dsh-testkit/actions/runs/34463264331) passes all 21 jobs at `7cbe5e23aee4faaae51427595ceb49e013d82c0a`, including all six hosts and consumer Action cases. CodeQL passes. Final diff review confirms only the eight setup pins, parity contract and this evidence change relative to main; no remaining merge blocker is identified. The release workflow is statically checked, not invoked for publication.

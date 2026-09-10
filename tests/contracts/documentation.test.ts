@@ -55,6 +55,18 @@ describe('bilingual project entrypoints', () => {
     expect(followUp).not.toContain('#main')
   })
 
+  it('describes the published Action evidence guard with immutable release evidence', async () => {
+    const english = await readFile(resolve(root, 'README.md'), 'utf8')
+    const chinese = await readFile(resolve(root, 'README.zh-CN.md'), 'utf8')
+    const releaseAction = 'https://github.com/iiwish/dsh-testkit/blob/b6d2da02f01e0fed038fe8e75f943a218a4063fa/.github/actions/dsh-test/action.yml'
+
+    expect(english).toContain('The published `v0.4.3` and `v0` Action releases check evidence')
+    expect(chinese).toContain('已发布的 `v0.4.3` 和 `v0` Action')
+    for (const contents of [english, chinese]) expect(contents).toContain(releaseAction)
+    expect(english).not.toContain('This guard is not included in the published')
+    expect(chinese).not.toContain('已发布的 `v0` Action 尚不包含此检查')
+  })
+
   it('records the patch release in the changelog and security support table', async () => {
     const changelog = await readFile(resolve(root, 'CHANGELOG.md'), 'utf8')
     const security = await readFile(resolve(root, 'SECURITY.md'), 'utf8')

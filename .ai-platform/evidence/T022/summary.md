@@ -1,7 +1,8 @@
 # T022: Playwright Core Maintenance
 
-Status: Running
+Status: Accepted
 Approval: The user requested review, conditional merge and completion of dependency item 3 on 2026-09-10.
+Acceptance: PR #48 is merged as `4a3f577db262669450a814ef0de1d8f16b449146` after review and passing current-head checks.
 Mode: Direct Execute; bounded dependency maintenance without delegation.
 
 ## Scope And Review
@@ -14,8 +15,10 @@ The official Playwright `v1.63.0` release adds browser/locator APIs and drops Ub
 
 ## Evidence
 
-The bot's rebased head `4d07639493ea08e7651b088b95b903f61c3ab60f` includes an unrelated schemastery `3.18.2` refresh. The final dependency boundary, Linux checks and review remain pending. No release or tag movement is authorized by this task.
+The bot's rebased head `4d07639493ea08e7651b088b95b903f61c3ab60f` includes an unrelated schemastery `3.18.2` refresh. The reviewed head excludes that refresh. No release or tag movement is authorized by this task.
 
 The structured boundary check fails on the original bot lockfile and passes after repair. All 134 non-Playwright package entries, 134 snapshots, other importer entries and lock settings exactly equal current main. The public npm integrity for `playwright-core@1.63.0` matches the lock; its Node requirement is `>=20` and it adds no transitive dependency.
 
-A fresh frozen install passes the 135-entry supply-chain policy. Public-registry audit reports zero vulnerabilities across all severities. Local `pnpm validate` passes all 280 tests in 36 files, contract checks, typecheck, unchanged coverage gates and build. The generated Docker runner lock is byte-identical to the root lock. Linux browser/host verification remains the merge gate.
+A fresh frozen install passes the 135-entry supply-chain policy. Public-registry audit reports zero vulnerabilities across all severities. Local `pnpm validate` passes all 280 tests in 36 files, contract checks, typecheck, unchanged coverage gates and build. The generated Docker runner lock is byte-identical to the root lock.
+
+[Linux CI 34464694525](https://github.com/iiwish/dsh-testkit/actions/runs/34464694525) passes all 21 jobs at `3252c914bff5d74597231e9216cdbab94f29e94f`; CodeQL passes. All 5,190 retained files match their manifest hashes and sizes. The 96 reports contain 19 expected negative controls and no unexpected failure. All eight browser lanes, including native desktop/mobile adoption with Chromium `152.0.7977.82`, pass and leave no process/listener residue. Both adoption screenshots are inspected and show the real host with the unsent test draft. Final diff review finds no remaining merge blocker.
