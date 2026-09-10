@@ -24,7 +24,7 @@ describe('bilingual project entrypoints', () => {
       expect(contents).toContain('0.1.0-rc.8')
       expect(contents).toContain('0.1.0-rc.7')
       expect(contents).toContain('0.1.0-rc.6')
-      expect(contents).toContain('0.1.2-alpha.1')
+      expect(contents).toContain('0.1.5-rc.1')
       expect(contents).toContain('dsh-composition-check')
       expect(contents).toContain('dsh-plugin-doctor')
       expect(contents).toContain('http.routes')
@@ -42,6 +42,8 @@ describe('bilingual project entrypoints', () => {
     expect(chinese).toContain('不是经过强化的恶意代码沙箱')
     expect(english).toContain('real-host release gate')
     expect(chinese).toContain('真实宿主发布门禁')
+    expect(english).toContain('not included in npm `dsh-testkit@0.4.3` or the published `v0` Action')
+    expect(chinese).toContain('npm `dsh-testkit@0.4.3` 和已发布的 `v0` Action 不包含此支持')
   })
 
   it('keeps design-partner reruns behind higher immutable package identities', async () => {
