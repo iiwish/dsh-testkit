@@ -8,6 +8,21 @@ const runLifecycle = "github.event_name == 'push' || needs.changes.outputs.lifec
 const skipLifecycle = "github.event_name == 'pull_request' && needs.changes.outputs.lifecycle != 'true'"
 
 describe('required CI checks', () => {
+  it('uses one pinned pnpm setup release across workflows and the composite Action', async () => {
+    const setups: { uses: string; with: { version: string } }[] = []
+    for (const path of ['.github/workflows/ci.yml', '.github/workflows/dsh-release-watch.yml', '.github/workflows/release.yml', '.github/actions/dsh-test/action.yml']) {
+      const workflow = parse(await readFile(path, 'utf8'))
+      const jobs = workflow.jobs ? Object.values(workflow.jobs) : [workflow.runs]
+      for (const job of jobs as { steps?: typeof setups }[]) {
+        setups.push(...(job.steps ?? []).filter(step => step.uses?.startsWith('pnpm/action-setup@')))
+      }
+    }
+    expect(setups).toHaveLength(8)
+    expect(new Set(setups.map(step => step.uses)).size).toBe(1)
+    expect(setups.every(step => /^pnpm\/action-setup@[a-f0-9]{40}$/.test(step.uses))).toBe(true)
+    expect(setups.every(step => step.with.version === '11.1.3')).toBe(true)
+  })
+
   it('runs every formally supported host through all three real-host suites', async () => {
     const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
     expect(workflow.jobs['real-host'].env.DSH_TESTKIT_DSH_VERSION).toBe(DEFAULT_DSH_NPM_VERSION)
