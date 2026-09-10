@@ -19,4 +19,4 @@ The default DSH host, schemas, exit codes and dependency graph remain unchanged.
 - Registry distribution evidence is distinct from source and unpublished package evidence.
 - No Critical/High contract conflicts identified. Stop on any mandatory failed gate.
 
-Packet: `packets/T023.yaml`. Evidence: `.ai-platform/evidence/T023/`. State: Running; final acceptance belongs to the user.
+Packet: `packets/T023.yaml`. Evidence: `.ai-platform/evidence/T023/`. State: Needs_Review; distribution is verified and final acceptance belongs to the user.

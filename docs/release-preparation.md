@@ -1,6 +1,6 @@
 # v0.4.4 Release Gate
 
-Target: `dsh-testkit@0.4.4`, immutable `v0.4.4` and Action `v0` at the same verified release commit. Publication is explicitly user-authorized on 2026-09-10. T023 owns execution and distribution receipts.
+Published baseline: `dsh-testkit@0.4.4`, immutable `v0.4.4` and Action `v0` at `acc50b4dc307dbd40e621832329aaeac34614e90`. Publication is explicitly user-authorized on 2026-09-10 and all mandatory distribution gates pass. T023 owns execution and distribution receipts; final user acceptance is pending.
 
 ## Scope
 
