@@ -13,7 +13,7 @@ import type { CommandOptions } from '../../src/process/command.js'
 const root = resolve(import.meta.dirname, '../..')
 const enabled = process.env.DSH_TESTKIT_E2E === '1'
 
-describe.skipIf(!enabled).sequential('native DSH bundle', () => {
+describe.skipIf(!enabled)('native DSH bundle', { concurrent: false }, () => {
   it('installs, registers and invokes dsh_test through a real DSH profile', async () => {
     const temporary = await mkdtemp(join(tmpdir(), 'dsh-testkit-bundle-e2e-'))
     const harness = join(temporary, 'harness')

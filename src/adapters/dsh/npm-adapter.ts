@@ -1275,7 +1275,7 @@ export class DshNpmAdapter implements LifecycleAdapter {
         // Keep the launcher-owned patch flag before web-app pass-through flags.
         // Commander stops parsing the alias after an unknown app flag such as
         // --port; placing --patch first prevents it from reaching the web app.
-        ? ['--profile', 'web', '--patch', this.probePatch, ...(this.webPort === null ? [] : ['--port', String(this.webPort)])]
+        ? ['--profile', 'web', '--patch', this.probePatch, '--no-open', ...(this.webPort === null ? [] : ['--port', String(this.webPort)])]
         : ['--profile', this.profileName(this.request.scenario), '--patch', this.probePatch],
       cwd: this.workspaceDir,
       timeoutMs: this.request.scenario.timeouts.bootMs,

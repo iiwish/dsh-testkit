@@ -14,7 +14,13 @@ import type { AdapterBootObservation } from '../../src/worker/adapter.js'
 import type { AdapterCompletion } from '../../src/worker/adapter.js'
 import { ScenarioSchema } from '../../src/domain/scenario.js'
 import type { CommandResult } from '../../src/process/command.js'
+import { runCommand } from '../../src/process/command.js'
 import { captureSystemSnapshot, snapshotFiles } from '../../src/observers/snapshot.js'
+
+vi.mock('../../src/process/command.js', async (importOriginal) => {
+  const command = await importOriginal<typeof import('../../src/process/command.js')>()
+  return { ...command, runCommand: vi.fn(command.runCommand) }
+})
 
 vi.mock('../../src/observers/snapshot.js', async (importOriginal) => {
   const snapshot = await importOriginal<typeof import('../../src/observers/snapshot.js')>()
@@ -27,6 +33,45 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 })
 
 describe('subject-free runtime baseline', () => {
+  it.each([
+    ['http', 'present'], ['http', 'baseline'], ['http', 'absent'],
+    ['browser', 'present'], ['browser', 'baseline'], ['browser', 'absent'],
+    ['headless', 'present'],
+  ] as const)('does not auto-open a desktop browser for %s %s probes', async (surface, mode) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-launch-args-'))
+    const adapter = new DshNpmAdapter() as unknown as {
+      observeBoot(label: string, mode: string): Promise<unknown>
+      ensureProbePatch(): Promise<void>
+      allocateLoopbackPort(): Promise<number>
+      dshEnvironment(): object
+    }
+    Object.assign(adapter, {
+      runRoot: root, evidenceDir: root, probePatch: '/probe.patch.yml',
+      request: { runner: 'docker', scenario: {
+        profile: surface === 'headless' ? 'default' : 'web',
+        ...(surface === 'http' ? { http: {} } : {}),
+        ...(surface === 'browser' ? { browser: {} } : {}),
+        expect: { services: [], tools: [] }, exercise: [], timeouts: { bootMs: 1000 },
+      } },
+    })
+    vi.spyOn(adapter, 'ensureProbePatch').mockResolvedValue(undefined)
+    vi.spyOn(adapter, 'allocateLoopbackPort').mockResolvedValue(12345)
+    vi.spyOn(adapter, 'dshEnvironment').mockReturnValue({})
+    const stop = new Error('stop at command boundary')
+    vi.mocked(runCommand).mockRejectedValueOnce(stop)
+    try {
+      await expect(adapter.observeBoot('test', mode)).rejects.toBe(stop)
+      const args = vi.mocked(runCommand).mock.lastCall![0].args
+      expect(args).toEqual(surface === 'headless'
+        ? ['--profile', 'default', '--patch', '/probe.patch.yml']
+        : ['--profile', 'web', '--patch', '/probe.patch.yml', '--no-open',
+          ...(mode === 'absent' ? [] : ['--port', '12345'])])
+    } finally {
+      vi.restoreAllMocks()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it.each([true, false])('declares Connection readiness only for browser probes (%s)', async (browser) => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-probe-readiness-'))
     const adapter = new DshNpmAdapter() as unknown as { ensureProbePatch(): Promise<void> }
