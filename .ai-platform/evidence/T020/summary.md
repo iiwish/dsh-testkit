@@ -1,7 +1,8 @@
 # T020: Vitest 5 Compatibility
 
-Status: Needs_Review
+Status: Accepted
 Approval: User explicitly requested completing the proposed Vitest 5 PR repair on 2026-09-10.
+Acceptance: User authorized review and conditional main merge on 2026-09-10; PR #47 is merged as `2240c7cdac566b447bba061f5f0d0e904edda7cb` after the merge-blocker repair and passing six-host CI.
 Mode: Direct Execute; no delegation authorized. One bounded dependency-maintenance task after T019 implementation validation.
 
 ## Scope And Validation Plan
@@ -29,7 +30,7 @@ The [official migration guide](https://vitest.dev/guide/migration/#removed-test-
 - [Linux CI 34456460850](https://github.com/iiwish/dsh-testkit/actions/runs/34456460850) passes all 18 jobs at that implementation head: validation, change detection, five real-host lifecycle/native-bundle/installed-package lanes, adoption and ten Action smoke lanes. Both CodeQL analyses and the CodeQL check pass.
 - All 17 retained artifacts were downloaded and independently replayed through the repository evidence scanner. All 4,380 file entries match the retained manifests exactly, including hashes and sizes. The 81 reports comprise 65 expected passes and 16 intentional negative-fixture failures: three per host and one adoption negative. No unexpected failure appears.
 - A clean temporary merge preview with T019 head `e45f7f20538335c7d4d31156eafeb1d5e8bc757c` passes `pnpm validate`: 272 tests, contracts, typecheck, coverage and build. This is local composition evidence, not a combined Linux matrix claim. The temporary merge is aborted and its owned checkout removed after verification; both PRs remain independent.
-- Final scope review finds no runtime dependency drift or weakened validation gates. Package version remains `0.4.3`. PR #47 is ready for maintainer review; user acceptance, main merge and publication are not performed.
+- Dependency scope review finds no runtime dependency drift or weakened validation gates. Package version remains `0.4.3`. The merge review and its bounded launcher repair are recorded below; publication is not performed.
 
 ## Merge Review Follow-Up
 
@@ -38,3 +39,5 @@ The user authorized review and conditional main merge on 2026-09-10. PR #49 is m
 [Combined Linux CI 34460606694](https://github.com/iiwish/dsh-testkit/actions/runs/34460606694) passes 20 of 21 jobs. The `0.1.2-rc.1` HTTP fixture passes its HTTP and boot assertions but fails cleanup: an automatically spawned `open/xdg-open` shell and `grep -q %s` remain beyond the Docker baseline. This is an existing web-launch side effect, not a Vitest assertion/API failure. The retained report and process snapshots identify it; a retry alone is not accepted as a fix.
 
 The bounded merge-blocker repair adds the host's `--no-open` flag after the launcher-owned `--patch` argument for web probes. This covers baseline, present and absent web boots while leaving non-web commands and owned-process checks unchanged. Allowed follow-up files are `src/adapters/dsh/npm-adapter.ts`, `tests/unit/npm-adapter.test.ts` and this record. Six new web-command tests fail before the repair; the non-web negative control passes. The validation gate is the complete six-host matrix, including authenticated browser smoke, HTTP assertions and unchanged cleanup checks. No cleanup exemption, retry or timeout increase is introduced. Publication remains outside scope.
+
+At repaired head `596f0d88a3fbbc3a207b8642608f59609c90b533`, local validation passes 279 tests, contracts, types, coverage and build. [Linux CI 34461996879](https://github.com/iiwish/dsh-testkit/actions/runs/34461996879) passes all 21 jobs and CodeQL passes. Independent safety-policy replay matches all 5,190 entries in 20 artifacts; 96 reports contain 19 intentional negative controls and no unexpected failure. Every HTTP and browser report passes its unchanged cleanup gate. The final review finds no remaining merge blocker.

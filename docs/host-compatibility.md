@@ -5,7 +5,7 @@ Release scope: published DSH Testkit `0.4.3` and the source checkout. Status che
 | Host versions | Status |
 | --- | --- |
 | `0.1.1-rc.2` | Formal support; default host |
-| `0.1.5-rc.1` | Source support with six-host CI; acceptance tracked in [PR #49](https://github.com/iiwish/dsh-testkit/pull/49); not included in published `0.4.3` or Action `v0` |
+| `0.1.5-rc.1` | Reviewed source support with six-host CI; not included in published `0.4.3` or Action `v0` |
 | `0.1.2-rc.1` | Formal support in Testkit `0.4.3` |
 | `0.1.0-rc.6`, `0.1.0-rc.7`, `0.1.0-rc.8` | Formal compatibility support |
 | `0.1.2-alpha.2` through `0.1.2-alpha.5` | Older alpha canaries with recorded passing checks; not formally supported or rerun after rc.1 promotion |
@@ -16,7 +16,7 @@ The support registry is `src/adapters/dsh/support.ts`. A candidate's presence in
 
 ## Validation
 
-The [formal six-host Linux CI](https://github.com/iiwish/dsh-testkit/actions/runs/34454912771) passes lifecycle, native bundle, installed-package Docker execution, positive/negative Action cases and adoption at source commit `7c125b0fbbadb3c707dd99e778f8ad5211e81bbf`. Its 20 evidence artifacts match an independent safety-policy replay. [PR #49](https://github.com/iiwish/dsh-testkit/pull/49) tracks current-head checks and review; no published-package claim follows from source-only validation.
+The [formal six-host Linux CI](https://github.com/iiwish/dsh-testkit/actions/runs/34464694525) passes lifecycle, native bundle, installed-package Docker execution, positive/negative Action cases and adoption at source commit `3252c914bff5d74597231e9216cdbab94f29e94f`. All 5,190 retained file entries match their evidence manifests. The 96 reports contain 77 passes and 19 expected negative-fixture verdicts, with no unexpected failure. This source includes Vitest 5 and Playwright 1.63.0; no published-package claim follows from source-only validation.
 
 The [2026-09-10 scheduled canary run](https://github.com/iiwish/dsh-testkit/actions/runs/34453353489) passes both `0.1.5-rc.1` lanes, including deterministic HTTP, authenticated browser smoke and the native tool's Docker invocation. The T019 evidence record distinguishes canary checks from the complete promotion gate. The published five-host baseline has its own [Linux evidence](https://github.com/iiwish/dsh-testkit/actions/runs/34203974329) in T015.
 

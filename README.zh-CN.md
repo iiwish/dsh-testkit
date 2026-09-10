@@ -77,7 +77,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 DSH Testkit `0.4.3` 接受精确的 `@deepseek-ai/dsh` 版本：`0.1.1-rc.2`（默认）、`0.1.2-rc.1`、`0.1.0-rc.8`、`0.1.0-rc.7` 和 `0.1.0-rc.6`。请使用 npm `dsh-testkit@0.4.3` 或对应的 Action 发布版本获得此支持矩阵。未知版本会在创建 runner 前以退出码 `4` 停止，避免把宿主漂移误报成插件故障。
 
-源码 checkout 额外接受精确的 DSH `0.1.5-rc.1`，默认宿主不变，CI 覆盖六个宿主版本。npm `dsh-testkit@0.4.3` 和已发布的 `v0` Action 不包含此支持；相应版本发布前请使用经过审查的源码 commit。[PR #49](https://github.com/iiwish/dsh-testkit/pull/49) 跟踪验收检查。
+源码 checkout 额外接受精确的 DSH `0.1.5-rc.1`，默认宿主不变，CI 覆盖六个宿主版本。npm `dsh-testkit@0.4.3` 和已发布的 `v0` Action 不包含此支持；相应版本发布前请使用经过审查的源码 commit。
 
 一次性 canary 矩阵按精确 npm 制品和不可变上游 release 跟踪候选版本，与正式支持范围分离。Release Watch 只选择高于被测试 checkout 中最高支持版本的候选。`0.1.3-alpha.2`、`0.1.5-alpha.1` 和 `0.1.5-alpha.2` 等 alpha 宿主不会仅因 canary 通过而获得正式支持。验证证据与转正式支持条件见[宿主兼容性](docs/host-compatibility.md)。
 
@@ -155,7 +155,7 @@ steps:
       publish-junit-check: 'false'
 ```
 
-默认模式会把 JUnit annotation 写入 job，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。源码 Action 在两个发布出口前执行统一证据检查，只上传附带哈希清单的全新暂存副本。不安全证据会使 job 失败且不会发布。已发布的 `v0` Action 尚不包含此检查，需等待相应版本发布。
+默认模式会把 JUnit annotation 写入 job，并输出 artifact ID、URL、digest、报告路径和稳定退出码；它不会调用 Checks API。已发布的 `v0.4.3` 和 `v0` Action 在两个发布出口前执行统一证据检查，只上传附带哈希清单的全新暂存副本。不安全证据会使 job 失败且不会发布。实现见[已发布的 Action 源码](https://github.com/iiwish/dsh-testkit/blob/b6d2da02f01e0fed038fe8e75f943a218a4063fa/.github/actions/dsh-test/action.yml)。
 
 受信任的 push 或 release workflow 可以选择发布命名 JUnit Check：
 

@@ -77,7 +77,7 @@ resolve -> install-dsh -> package -> install-plugin -> assemble -> boot -> regis
 
 DSH Testkit `0.4.3` accepts exact `@deepseek-ai/dsh` versions `0.1.1-rc.2` (default), `0.1.2-rc.1`, `0.1.0-rc.8`, `0.1.0-rc.7`, and `0.1.0-rc.6`. Use npm `dsh-testkit@0.4.3` or the corresponding Action release for this support matrix. An unknown version stops before runner creation with exit code `4`, so host drift is not mislabeled as a plugin failure.
 
-The source checkout additionally accepts exact DSH `0.1.5-rc.1` with the same default and a six-host CI matrix. This support is not included in npm `dsh-testkit@0.4.3` or the published `v0` Action; use a reviewed source commit until a release includes it. [PR #49](https://github.com/iiwish/dsh-testkit/pull/49) tracks its acceptance checks.
+The source checkout additionally accepts exact DSH `0.1.5-rc.1` with the same default and a six-host CI matrix. This support is not included in npm `dsh-testkit@0.4.3` or the published `v0` Action; use a reviewed source commit until a release includes it.
 
 The disposable canary matrix follows exact npm artifacts and immutable upstream releases independently of formal support. Release Watch selects versions newer than the highest supported host in the checkout being tested. Alpha hosts, including `0.1.3-alpha.2`, `0.1.5-alpha.1` and `0.1.5-alpha.2`, are not formally supported merely because their canary lanes pass. See [Host Compatibility](docs/host-compatibility.md) for evidence and promotion requirements.
 
@@ -155,7 +155,7 @@ steps:
       publish-junit-check: 'false'
 ```
 
-This default writes JUnit annotations to the job and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API. The source Action checks evidence before either publication outlet and uploads only a fresh staged copy with a hash manifest. Unsafe evidence fails the job and is not published. This guard is not included in the published `v0` Action until a release includes it.
+This default writes JUnit annotations to the job and exposes the artifact ID, URL, digest, report path, and stable exit code. It does not call the Checks API. The published `v0.4.3` and `v0` Action releases check evidence before either publication outlet and upload only a fresh staged copy with a hash manifest. Unsafe evidence fails the job and is not published. See the [released Action implementation](https://github.com/iiwish/dsh-testkit/blob/b6d2da02f01e0fed038fe8e75f943a218a4063fa/.github/actions/dsh-test/action.yml).
 
 A trusted push or release workflow may opt into a named JUnit Check:
 
