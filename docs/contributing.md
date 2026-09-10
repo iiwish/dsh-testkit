@@ -1,6 +1,6 @@
 # Contributing
 
-Requirements: Node.js 22 or newer, pnpm 11, Git, and Docker for the default runner.
+Development requirements: Node.js 22.12+ (22.x), 24.x, or 26+, pnpm 11, Git, and Docker for the default runner. Vitest and its V8 coverage provider use the same exact version. Suites that share environment state or run lifecycle fixtures explicitly set `concurrent: false`.
 
 ```bash
 pnpm install
