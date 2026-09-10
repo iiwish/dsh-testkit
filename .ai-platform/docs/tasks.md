@@ -1,6 +1,6 @@
 # DSH Testkit Delivery Index
 
-Version: v0.4.4 release preparation
+Version: v0.4.4 published
 Status: Confirmed
 Last updated: 2026-09-09
 
@@ -12,7 +12,7 @@ Last updated: 2026-09-09
 - Technical decisions: `.ai-platform/docs/technology-decision-record.md`
 - Analysis: `.ai-platform/specs/lifecycle-runner/analysis.md`
 
-The published baseline is v0.4.3. T015 and T016 are accepted. T017 has completed authorized publication and public distribution verification and awaits user acceptance. T000 through T009 retain their recorded review states; publication does not supply retrospective acceptance.
+The published baseline is v0.4.4. T023 has completed authorized publication and public distribution verification and awaits user acceptance. Earlier tasks retain their recorded review states; publication does not supply retrospective acceptance.
 
 ## Release Gate
 
@@ -22,9 +22,10 @@ The governed tasks execute sequentially. Each behavior task requires its packet,
 
 ### T023: Patch Release v0.4.4
 
-Status: Running
+Status: Needs_Review
 Approval: User explicitly approved the proposed npm, GitHub Release and v0 publication on 2026-09-10.
 Scope: Version identity, canonical release documentation and verified distribution of merged maintenance PRs #44 and #46 through #50.
+Verification: npm 0.4.4, GitHub Release v0.4.4 and Action v0 identify acc50b4dc307dbd40e621832329aaeac34614e90; exact-main CI, trusted publishing, registry provenance and public CLI/Action checks pass.
 Packet: `.ai-platform/specs/lifecycle-runner/packets/T023.yaml`
 Evidence: `.ai-platform/evidence/T023/`
 
